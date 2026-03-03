@@ -23,6 +23,8 @@
 - **iCloud & File Sync**: Keep your prompts and settings synced across devices via iCloud or a custom sync folder (Dropbox, iCloud Drive, etc.).
 - **App Switcher**: Quickly switch back to your recently used applications or explore running apps directly from the assistant.
 
+![Sidey Screenshot](Resources/Screenshot-en.jpg)
+
 ### 🚀 Getting Started
 
 #### Prerequisites
@@ -57,6 +59,8 @@ cd sidey
 - **Markdown 支持**：完美的 Markdown 渲染，让 AI 响应清晰易读。
 - **多端同步**：支持通过 iCloud 或自定义同步目录（如 Dropbox、iCloud Drive 文件夹）同步助手指令和设置。
 - **应用切换**：在助手中快速切换回最近使用的应用或查看正在运行的程序。
+
+![Sidey 截图](Resources/Screenshot.jpg)
 
 ### 🚀 快速上手
 
