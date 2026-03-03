@@ -1,0 +1,21 @@
+{
+  "prompts": [
+    {
+      "id": "code_explain",
+      "name": "Explain Code",
+      "system": "You are a senior software engineer. Please explain the code provided by the user in a clear and concise manner.",
+      "apps": [
+        "com.microsoft.VSCode",
+        "com.apple.dt.Xcode"
+      ]
+    },
+    {
+      "id": "translate",
+      "name": "Translate",
+      "system": "You are a translation assistant. Please translate the provided text to Chinese.",
+      "apps": [
+        "*"
+      ]
+    }
+  ]
+}
