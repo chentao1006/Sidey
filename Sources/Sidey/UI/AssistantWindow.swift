@@ -22,7 +22,8 @@ struct AssistantWindow: View {
     @State private var userInput: String = ""
     @State private var aiResponse: String = ""
     @State private var copied: Bool = false
-    @State private var promptStates: [String: (input: String, response: String)] = [:]
+    @State private var promptStates: [String: String] = [:] // key -> aiResponse
+    @State private var lastPromptIDPerApp: [String: String] = [:] // bundleID -> promptID
     @State private var currentSessionKey: String = ""
     @State private var unreadSessions: Set<String> = []
     @State private var textToInsert: String? = nil
@@ -59,18 +60,12 @@ struct AssistantWindow: View {
         }
         // Automatically select the first available prompt on context change
         .onChangeCompatible(of: contextDetector.currentBundleID) { newValue in
-            let availablePrompts = promptStore.getPrompts(for: newValue)
-            if !availablePrompts.isEmpty {
-                switchTo(bundleID: newValue, prompt: availablePrompts.first)
-            } else {
-                switchTo(bundleID: newValue, prompt: nil)
-            }
+            let targetPrompt = bestPrompt(for: newValue)
+            switchTo(bundleID: newValue, prompt: targetPrompt)
         }
         .onAppear {
-            let availablePrompts = promptStore.getPrompts(for: contextDetector.currentBundleID)
-            if !availablePrompts.isEmpty {
-                switchTo(bundleID: contextDetector.currentBundleID, prompt: availablePrompts.first)
-            }
+            let targetPrompt = bestPrompt(for: contextDetector.currentBundleID)
+            switchTo(bundleID: contextDetector.currentBundleID, prompt: targetPrompt)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             if !unreadSessions.isEmpty, let lastSession = unreadSessions.first {
@@ -93,7 +88,8 @@ struct AssistantWindow: View {
             
             let availablePrompts = promptStore.getPrompts(for: contextDetector.currentBundleID)
             if selectedPrompt == nil || !availablePrompts.contains(where: { $0.id == selectedPrompt?.id }) {
-                switchTo(bundleID: contextDetector.currentBundleID, prompt: availablePrompts.first)
+                let targetPrompt = bestPrompt(for: contextDetector.currentBundleID)
+                switchTo(bundleID: contextDetector.currentBundleID, prompt: targetPrompt)
             }
             
             if autoPasteClipboard {
@@ -151,6 +147,9 @@ struct AssistantWindow: View {
                 if !contextDetector.currentBundleID.isEmpty {
                     if let app = NSRunningApplication.runningApplications(withBundleIdentifier: contextDetector.currentBundleID).first {
                         app.activate(options: .activateIgnoringOtherApps)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            AppDelegate.shared.showAssistant()
+                        }
                     }
                 }
             }) {
@@ -189,7 +188,7 @@ struct AssistantWindow: View {
                         Button {
                             if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == appCtx.bundleID }) {
                                 app.activate(options: .activateIgnoringOtherApps)
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                     AppDelegate.shared.showAssistant()
                                 }
                             }
@@ -208,7 +207,7 @@ struct AssistantWindow: View {
                     ForEach(running, id: \.bundleIdentifier) { app in
                         Button {
                             app.activate(options: .activateIgnoringOtherApps)
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                 AppDelegate.shared.showAssistant()
                             }
                         } label: {
@@ -479,7 +478,7 @@ struct AssistantWindow: View {
                                 }
                                 self.userInput = interaction.userMessage
                                 self.aiResponse = interaction.aiResponse
-                                self.promptStates[self.currentSessionKey] = (input: interaction.userMessage, response: interaction.aiResponse)
+                                self.promptStates[self.currentSessionKey] = interaction.aiResponse
                             }) {
                                 Text(interaction.userMessage.prefix(30) + (interaction.userMessage.count > 30 ? "..." : ""))
                             }
@@ -544,6 +543,9 @@ struct AssistantWindow: View {
                         Button(action: {
                             if let app = NSRunningApplication.runningApplications(withBundleIdentifier: contextDetector.currentBundleID).first {
                                 app.activate(options: .activateIgnoringOtherApps)
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    AppDelegate.shared.showAssistant()
+                                }
                             }
                         }) {
                             Label(L("Back to App"), systemImage: "arrow.uturn.backward")
@@ -574,12 +576,10 @@ struct AssistantWindow: View {
         let promptID = prompt.id
         
         let sessionKey = self.currentSessionKey
-        promptStates[sessionKey] = (input: userInput, response: aiResponse)
+        promptStates[sessionKey] = aiResponse
         
         llmClient.sendRequest(systemPrompt: systemPrompt, userMessage: messageToSend, sessionKey: sessionKey) { response in
-            var entry = self.promptStates[sessionKey] ?? (input: messageToSend, response: "")
-            entry.response = response
-            self.promptStates[sessionKey] = entry
+            self.promptStates[sessionKey] = response
             
             if self.currentSessionKey == sessionKey {
                 self.aiResponse = response
@@ -607,35 +607,32 @@ struct AssistantWindow: View {
     
     private func switchTo(bundleID: String, prompt: Prompt?) {
         if !currentSessionKey.isEmpty {
-            promptStates[currentSessionKey] = (input: userInput, response: aiResponse)
+            promptStates[currentSessionKey] = aiResponse
         }
+        
         self.selectedPrompt = prompt
+        if let p = prompt {
+            lastPromptIDPerApp[bundleID] = p.id
+        }
+        
         let newKey = "\(bundleID)|\(prompt?.id ?? "")"
         self.currentSessionKey = newKey
         self.unreadSessions.remove(newKey)
         
-        let state = promptStates[newKey] ?? (input: "", response: "")
-        self.userInput = state.input
-        self.aiResponse = state.response
+        self.aiResponse = promptStates[newKey] ?? ""
     }
     
-    private var activePIDs: Set<Int32> {
-        var pids = Set<Int32>()
-        if let windowList = CGWindowListCopyWindowInfo([.excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] {
-            for window in windowList {
-                if let layer = window[kCGWindowLayer as String] as? Int, layer == 0,
-                   let pid = window[kCGWindowOwnerPID as String] as? Int32 {
-                    if let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
-                       let bounds = CGRect(dictionaryRepresentation: boundsDict) {
-                        if bounds.height > 20 {
-                            pids.insert(pid)
-                        }
-                    }
-                }
-            }
+    private func bestPrompt(for bundleID: String) -> Prompt? {
+        let availablePrompts = promptStore.getPrompts(for: bundleID)
+        if availablePrompts.isEmpty { return nil }
+        
+        if let lastID = lastPromptIDPerApp[bundleID],
+           let lastPrompt = availablePrompts.first(where: { $0.id == lastID }) {
+            return lastPrompt
         }
-        return pids
+        return availablePrompts.first
     }
+
     
     private var filteredRecentApps: [ContextDetector.AppContext] {
         let pids = activePIDs
@@ -643,7 +640,7 @@ struct AssistantWindow: View {
         return contextDetector.recentApps.filter { appCtx in
             appCtx.bundleID != currentID &&
             NSWorkspace.shared.runningApplications.contains(where: { 
-                $0.bundleIdentifier == appCtx.bundleID && pids.contains($0.processIdentifier) 
+                $0.bundleIdentifier == appCtx.bundleID && pids.contains($0.processIdentifier)
             })
         }
     }
@@ -660,6 +657,41 @@ struct AssistantWindow: View {
             app.bundleIdentifier != Bundle.main.bundleIdentifier &&
             pids.contains(app.processIdentifier)
         }
+    }
+
+    private var activePIDs: Set<Int32> {
+        var pids = Set<Int32>()
+        // optionAll + excludeDesktopElements covers windows across all spaces
+        if let windowList = CGWindowListCopyWindowInfo([.excludeDesktopElements, .optionAll], kCGNullWindowID) as? [[String: Any]] {
+            for window in windowList {
+                // Layer 0 is the standard layer for app windows
+                guard let layer = window[kCGWindowLayer as String] as? Int, layer == 0 else { continue }
+                guard let pid = window[kCGWindowOwnerPID as String] as? Int32 else { continue }
+                
+                // Exclude completely transparent windows
+                if let alpha = window[kCGWindowAlpha as String] as? Double, alpha == 0 { continue }
+                
+                if let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
+                   let bounds = CGRect(dictionaryRepresentation: boundsDict) {
+                    
+                    // We check for a window title or substantial size. 
+                    // Apps with windows usually have at least one window with a title, 
+                    // or a large UI area (greater than a typical status bar or tiny helper)
+                    let name = window[kCGWindowName as String] as? String ?? ""
+                    let isReasonableSize = bounds.width > 40 && bounds.height > 40
+                    
+                    // Further filter: common size for non-window background elements is small or 1x1
+                    if isReasonableSize {
+                        // If it has a name, it's very likely a real window.
+                        // If it doesn't have a name, it needs to be "big enough" to be a main UI window.
+                        if !name.isEmpty || (bounds.width > 120 && bounds.height > 120) {
+                            pids.insert(pid)
+                        }
+                    }
+                }
+            }
+        }
+        return pids
     }
 }
 

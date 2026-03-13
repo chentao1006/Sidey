@@ -133,17 +133,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         
-        if !window.isOnActiveSpace {
-            window.collectionBehavior = .moveToActiveSpace
-        }
+        // Always enforce move to active space to handle space transitions reliably
+        window.collectionBehavior.insert(.moveToActiveSpace)
         
         NSApplication.shared.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         
-        if window.collectionBehavior.contains(.moveToActiveSpace) {
-            DispatchQueue.main.async {
-                window.collectionBehavior = []
-            }
+        // Clear the behavior after a short delay so it doesn't follow the user permanently
+        // unless requested again
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            window.collectionBehavior.remove(.moveToActiveSpace)
         }
     }
     
@@ -167,15 +166,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         if let window = settingsWindow {
-            if !window.isOnActiveSpace {
-                window.collectionBehavior = .moveToActiveSpace
-            }
+            window.collectionBehavior.insert(.moveToActiveSpace)
             NSApplication.shared.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
-            if window.collectionBehavior.contains(.moveToActiveSpace) {
-                DispatchQueue.main.async {
-                    window.collectionBehavior = []
-                }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                window.collectionBehavior.remove(.moveToActiveSpace)
             }
         }
     }

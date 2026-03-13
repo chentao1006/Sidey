@@ -74,5 +74,13 @@ cp ".build/apple/Products/Release/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/"
 # It should be placed in Contents/Resources/ for the app bundle
 find ".build/apple/Products/Release" -name "${APP_NAME}_${APP_NAME}.bundle" -exec cp -R {} "$APP_BUNDLE/Contents/Resources/" \;
 
-echo "✅ Done! You can find the app in the '$DIST_DIR' folder."
-open "$DIST_DIR"
+echo "🛑 Quitting existing $APP_NAME process..."
+pkill -x "$APP_NAME" || true
+sleep 1
+
+echo "📦 Installing to /Applications..."
+rm -rf "/Applications/$APP_NAME.app"
+cp -R "$APP_BUNDLE" "/Applications/"
+
+echo "✅ Done! You can find the app in the '$DIST_DIR' folder and it has been installed to /Applications."
+open "/Applications/$APP_NAME.app"
