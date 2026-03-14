@@ -26,6 +26,7 @@ class PromptStore: ObservableObject {
     
     private var fileWatcher: DispatchSourceFileSystemObject?
     private var currentAccessingURL: URL? = nil
+    private var isInitialLoading = false
     
     private var fileURL: URL {
         // 1. Try Custom Sync Folder via Bookmark (User selected)
@@ -113,6 +114,8 @@ class PromptStore: ObservableObject {
     }
     
     func loadPrompts() {
+        guard !isInitialLoading else { return }
+        
         if !isFileSyncEnabled {
             // If disabled, we still need initial prompts (from local/bundle)
             if allPrompts.isEmpty {
@@ -128,65 +131,82 @@ class PromptStore: ObservableObject {
         }
         
         let url = fileURL
+        isInitialLoading = true
         
-        // Handle Migration
-        if !FileManager.default.fileExists(atPath: url.path) {
-            let oldURL = url.deletingLastPathComponent().appendingPathComponent("prompts.json")
-            if FileManager.default.fileExists(atPath: oldURL.path) {
-                try? FileManager.default.moveItem(at: oldURL, to: url)
-            } else if let bundleURL = Bundle.module.url(forResource: "prompts", withExtension: "json") {
-                try? FileManager.default.copyItem(at: bundleURL, to: url)
-            } else {
-                return // Nothing to load
-            }
-        }
-        
-        do {
-            let data = try Data(contentsOf: url)
-            let decoded = try JSONDecoder().decode(SyncData.self, from: data)
-            
-            DispatchQueue.main.async {
-                // Restore Settings UI-side or via UserDefaults
-                if let settings = decoded.settings {
-                    var changed = false
-                    for (key, value) in settings {
-                        // Skip if already matching
-                        let current = "\(UserDefaults.standard.object(forKey: key) ?? "")"
-                        if current != value {
-                            if key == "alwaysOnTop" || key == "showDockIcon" || key == "autoPasteClipboard" {
-                                UserDefaults.standard.set(value == "1" || value.lowercased() == "true", forKey: key)
-                            } else if key == "windowOpacity" {
-                                UserDefaults.standard.set(Double(value) ?? 1.0, forKey: key)
-                            } else if key == "hotKeyKeyCode" || key == "hotKeyModifiers" {
-                                UserDefaults.standard.set(Int(value) ?? 0, forKey: key)
-                            } else {
-                                UserDefaults.standard.set(value, forKey: key)
-                            }
-                            changed = true
-                        }
+        // 1. If remote file exists, strictly read it (Remote wins)
+        if FileManager.default.fileExists(atPath: url.path) {
+            do {
+                let data = try Data(contentsOf: url)
+                let decoded = try JSONDecoder().decode(SyncData.self, from: data)
+                
+                DispatchQueue.main.async {
+                    self.isInitialLoading = false
+                    if let settings = decoded.settings {
+                        self.applySettings(settings)
                     }
                     
-                    if changed {
-                        if settings.keys.contains("hotKeyKeyCode") || settings.keys.contains("hotKeyModifiers") {
-                            HotKeyManager.shared.registerHotkey()
-                        }
+                    if self.allPrompts != decoded.prompts {
+                        self.allPrompts = decoded.prompts
                     }
                 }
-                
-                // Only update prompts if they actually changed (avoid refresh loops)
-                if self.allPrompts != decoded.prompts {
-                    self.allPrompts = decoded.prompts
-                }
+                self.stopAccessing()
+            } catch {
+                print("Error parsing sync file: \(error)")
+                isInitialLoading = false
+                self.stopAccessing()
             }
-            self.stopAccessing()
-        } catch {
-            print("Error parsing sync file: \(error)")
-            self.stopAccessing()
+            return
+        }
+        
+        // 2. If file does NOT exist, handle migration or initialize with local data
+        let oldURL = url.deletingLastPathComponent().appendingPathComponent("prompts.json")
+        if FileManager.default.fileExists(atPath: oldURL.path) {
+            try? FileManager.default.moveItem(at: oldURL, to: url)
+            isInitialLoading = false
+            self.loadPrompts() // call again to perform actual load
+        } else {
+            // Folder is empty. Check if we have local work to persist to this new storage.
+            if !allPrompts.isEmpty {
+                // Initialize new storage with current local state
+                isInitialLoading = false
+                self.savePrompts()
+            } else if let bundleURL = Bundle.module.url(forResource: "prompts", withExtension: "json") {
+                // True fresh start: copy bundle to folder.
+                try? FileManager.default.copyItem(at: bundleURL, to: url)
+                isInitialLoading = false
+                self.loadPrompts()
+            } else {
+                isInitialLoading = false
+            }
+        }
+    }
+    
+    private func applySettings(_ settings: [String: String]) {
+        var changed = false
+        for (key, value) in settings {
+            let current = "\(UserDefaults.standard.object(forKey: key) ?? "")"
+            if current != value {
+                if key == "alwaysOnTop" || key == "showDockIcon" || key == "autoPasteClipboard" {
+                    UserDefaults.standard.set(value == "1" || value.lowercased() == "true", forKey: key)
+                } else if key == "windowOpacity" {
+                    UserDefaults.standard.set(Double(value) ?? 1.0, forKey: key)
+                } else if key == "hotKeyKeyCode" || key == "hotKeyModifiers" {
+                    UserDefaults.standard.set(Int(value) ?? 0, forKey: key)
+                } else {
+                    UserDefaults.standard.set(value, forKey: key)
+                }
+                changed = true
+            }
+        }
+        if changed {
+            if settings.keys.contains("hotKeyKeyCode") || settings.keys.contains("hotKeyModifiers") {
+                HotKeyManager.shared.registerHotkey()
+            }
         }
     }
     
     func savePrompts() {
-        guard isFileSyncEnabled else { return }
+        guard isFileSyncEnabled, !isInitialLoading else { return }
         
         var settings: [String: String] = [:]
         for key in settingsKeys {

@@ -14,23 +14,29 @@ struct SettingsView: View {
                 }
                 .tag("general")
             
-            APISettingsView()
-                .tabItem {
-                    Label(L("API"), systemImage: "key")
-                }
-                .tag("api")
-                
             PromptSettingsView()
                 .tabItem {
                     Label(L("Prompts"), systemImage: "text.bubble")
                 }
                 .tag("prompts")
-            
+
+            APISettingsView()
+                .tabItem {
+                    Label(L("AI Service"), systemImage: "sparkles")
+                }
+                .tag("api")
+                
             DataSettingsView()
                 .tabItem {
-                    Label(L("Data"), systemImage: "icloud")
+                    Label(L("Data"), systemImage: "arrow.triangle.2.circlepath")
                 }
                 .tag("data")
+            
+            AboutSettingsView()
+                .tabItem {
+                    Label(L("About"), systemImage: "info.circle")
+                }
+                .tag("about")
         }
         .frame(width: 580, height: 480)
         .id(appLanguage)
@@ -102,7 +108,7 @@ struct GeneralSettingsView: View {
                             HStack {
                                 Image(systemName: icon)
                                     .frame(width: 20)
-                                Text(icon.capitalized.replacingOccurrences(of: ".fill", with: "").replacingOccurrences(of: ".", with: " "))
+                                Text(L(icon))
                             }.tag(icon)
                         }
                     }
@@ -152,21 +158,20 @@ struct GeneralSettingsView: View {
                             launchAtLogin = service.status == .enabled
                         }
                     }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(L("Global Shortcut:"))
+                        Spacer()
+                        ShortcutRecorderView()
+                    }
+                    Text(L("Brings the Assistant Window to the front globally."))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top, 4)
             } header: {
                 Text(L("Behavior")).font(.headline)
-            }
-            
-            Section {
-                HStack {
-                    Text(L("Global Shortcut:"))
-                    Spacer()
-                    ShortcutRecorderView()
-                }
-                Text(L("Brings the Assistant Window to the front globally."))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            } header: {
-                Text(L("Shortcuts")).font(.headline)
             }
         }
         .formStyle(.grouped)
@@ -308,8 +313,6 @@ struct PromptSettingsView: View {
                     Section {
                         TextField(L("Name"), text: $store.allPrompts[index].name)
                             .onChangeCompatible(of: store.allPrompts[index].name) { _ in store.savePrompts() }
-                    } header: {
-                        Text(L("Prompt Identity")).font(.headline)
                     }
                     
                     Section {
@@ -368,6 +371,7 @@ struct PromptSettingsView: View {
                                 store.allPrompts[index].apps.removeAll(where: { $0 == appID })
                                 store.savePrompts()
                             }
+                            .id(appLanguage)
                         }
                     } header: {
                         Text(L("Matched Apps")).font(.headline)
@@ -451,7 +455,7 @@ struct AppInfoRow: View {
         .padding(.vertical, 2)
         .onAppear {
             if bundleID == "*" {
-                name = String(localized: "All Apps (*)")
+                name = L("All Apps (*)")
             } else if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
                 name = FileManager.default.displayName(atPath: url.path)
                 icon = NSWorkspace.shared.icon(forFile: url.path)
@@ -548,15 +552,77 @@ struct ShortcutRecorderView: View {
 
 struct DataSettingsView: View {
     @StateObject private var store = PromptStore.shared
-    @StateObject private var syncManager = SyncManager.shared
     @State private var importSuccess = false
     @State private var exportSuccess = false
-    @State private var cloudLoadSuccess = false
-    @State private var cloudLoadFailed = false
     @AppStorage("appLanguage") private var appLanguage = "system"
     
     var body: some View {
         Form {
+            Section {
+                Toggle(L("Enable File Sync"), isOn: $store.isFileSyncEnabled)
+                    .onChangeCompatible(of: store.isFileSyncEnabled) { enabled in
+                        if enabled {
+                            store.loadPrompts()
+                            store.setupFileWatcher()
+                        } else {
+                            store.setupFileWatcher() // This will cancel it
+                        }
+                    }
+                
+                HStack {
+                    Text(L("Sync Folder:"))
+                    Spacer()
+                    if let userPath = UserDefaults.standard.string(forKey: "customSyncPath"), !userPath.isEmpty {
+                        Text(userPath)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    } else {
+                        Text(L("Default (iCloud Drive)"))
+                            .foregroundColor(.secondary)
+                    }
+                    Button(L("Choose...")) {
+                        let panel = NSOpenPanel()
+                        panel.canChooseFiles = false
+                        panel.canChooseDirectories = true
+                        panel.canCreateDirectories = true
+                        panel.allowsMultipleSelection = false
+                        panel.prompt = L("Select Sync Folder")
+                        if let userPath = UserDefaults.standard.string(forKey: "customSyncPath"), !userPath.isEmpty {
+                            panel.directoryURL = URL(fileURLWithPath: userPath)
+                        }
+                        
+                        if panel.runModal() == .OK, let url = panel.url {
+                            store.updateBookmark(for: url)
+                            // Immediately migrate or load from the new path
+                            store.loadPrompts()
+                            store.setupFileWatcher()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    if let userPath = UserDefaults.standard.string(forKey: "customSyncPath"), !userPath.isEmpty {
+                        Button(action: {
+                            UserDefaults.standard.removeObject(forKey: "customSyncPath")
+                            store.loadPrompts()
+                            store.setupFileWatcher()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                
+                Text(L("You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices without limitations."))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+            } header: {
+                Text(L("File Sync")).font(.headline)
+            }
+
             Section {
                 Button(action: {
                     if let _ = store.exportBackup() {
@@ -578,119 +644,62 @@ struct DataSettingsView: View {
             } header: {
                 Text(L("Backup & Restore")).font(.headline)
             }
-            
-            Section {
-                Toggle(L("Enable iCloud Sync"), isOn: $syncManager.isiCloudSyncEnabled)
-                    .help(L("Sync settings and prompts across your devices using iCloud."))
-
-                Button(action: {
-                    syncManager.syncToCloud()
-                    syncManager.syncPromptsToCloud(prompts: store.allPrompts)
-                }) {
-                    Label(L("Sync to iCloud Now"), systemImage: "arrow.clockwise.icloud")
-                }
-                .disabled(!syncManager.isiCloudSyncEnabled)
-                
-                Button(action: {
-                    if let cloudPrompts = syncManager.loadPromptsFromCloud() {
-                        store.allPrompts = cloudPrompts
-                        store.savePrompts()
-                        cloudLoadSuccess = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { cloudLoadSuccess = false }
-                    } else {
-                        cloudLoadFailed = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { cloudLoadFailed = false }
-                    }
-                }) {
-                    Label(cloudLoadSuccess ? L("Loaded!") : (cloudLoadFailed ? L("No Data Found") : L("Load from iCloud")), systemImage: "square.and.arrow.down.on.square")
-                }
-                .disabled(!syncManager.isiCloudSyncEnabled)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(L("Settings sync automatically; Prompts can be manually synced (limit 100KB)."))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    if let lastSync = syncManager.lastSyncTime {
-                        Text("\(L("Last Sync")): \(formattedDate(lastSync)) (\(syncManager.lastSyncStatus))")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        }
-                    }
-                } header: {
-                    Text(L("iCloud Sync")).font(.headline)
-                }
-                
-                Section {
-                    Toggle(L("Enable File Sync"), isOn: $store.isFileSyncEnabled)
-                        .onChangeCompatible(of: store.isFileSyncEnabled) { enabled in
-                            if enabled {
-                                store.loadPrompts()
-                                store.setupFileWatcher()
-                            } else {
-                                store.setupFileWatcher() // This will cancel it
-                            }
-                        }
-                    
-                    HStack {
-                        Text(L("Sync Folder:"))
-                        Spacer()
-                        if let userPath = UserDefaults.standard.string(forKey: "customSyncPath"), !userPath.isEmpty {
-                            Text(URL(fileURLWithPath: userPath).lastPathComponent)
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                                .frame(maxWidth: 150, alignment: .trailing)
-                        } else {
-                            Text(L("Default (iCloud Drive)"))
-                                .foregroundColor(.secondary)
-                        }
-                        Button(L("Choose...")) {
-                            let panel = NSOpenPanel()
-                            panel.canChooseFiles = false
-                            panel.canChooseDirectories = true
-                            panel.canCreateDirectories = true
-                            panel.allowsMultipleSelection = false
-                            panel.prompt = L("Select Sync Folder")
-                            
-                            if panel.runModal() == .OK, let url = panel.url {
-                                store.updateBookmark(for: url)
-                                // Immediately migrate or load from the new path
-                                store.loadPrompts()
-                                store.setupFileWatcher()
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        
-                        if let userPath = UserDefaults.standard.string(forKey: "customSyncPath"), !userPath.isEmpty {
-                            Button(action: {
-                                UserDefaults.standard.removeObject(forKey: "customSyncPath")
-                                store.loadPrompts()
-                                store.setupFileWatcher()
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    
-                    Text(L("You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices without limitations."))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    
-                } header: {
-                    Text(L("File Sync")).font(.headline)
-                }
-            }
-            .formStyle(.grouped)
         }
+        .formStyle(.grouped)
+    }
     
     private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+}
+
+struct AboutSettingsView: View {
+    var version: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    }
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            Image(nsImage: NSImage(named: NSImage.applicationIconName) ?? NSImage())
+                .resizable()
+                .frame(width: 100, height: 100)
+                .shadow(radius: 5)
+            
+            VStack(spacing: 8) {
+                Text(L("Sidey"))
+                    .font(.title)
+                    .fontWeight(.bold)
+                
+                Text("\(L("Version")) \(version)")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            
+            Text(L("A lightweight, context-aware AI assistant for macOS."))
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+                .frame(maxWidth: 300)
+            
+            Link(destination: URL(string: "https://github.com/chentao1006/Sidey")!) {
+                HStack {
+                    Image(systemName: "link")
+                    Text("GitHub")
+                }
+                .foregroundColor(.accentColor)
+            }
+            
+            Spacer()
+            
+            Text("© 2026 chentao1006")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .padding(.bottom, 20)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

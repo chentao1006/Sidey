@@ -97,6 +97,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.addObserver(forName: Notification.Name("CXAIToggleMainWindow"), object: nil, queue: .main) { _ in
             self.showAssistant()
         }
+        
+        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { _ in
+            DispatchQueue.main.async {
+                self.updateDockIconVisibility()
+            }
+        }
     }
     
     private func setupAssistantWindow() {
@@ -104,7 +110,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             contentRect: NSRect(x: 0, y: 0, width: 420, height: 620),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered, defer: false)
-        window.title = "Sidey"
+        window.title = L("Sidey")
         window.isReleasedWhenClosed = false
         window.backgroundColor = .windowBackgroundColor
         
@@ -152,7 +158,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 contentRect: NSRect(x: 0, y: 0, width: 500, height: 600),
                 styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
                 backing: .buffered, defer: false)
-            window.title = L("Settings")
+            window.title = "\(L("Sidey")) - \(L("Settings"))"
             window.isReleasedWhenClosed = false
             window.backgroundColor = .windowBackgroundColor
             
@@ -173,6 +179,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 window.collectionBehavior.remove(.moveToActiveSpace)
             }
+            updateDockIconVisibility()
+        }
+    }
+    
+    private func updateDockIconVisibility() {
+        let showDockIcon = UserDefaults.standard.bool(forKey: "showDockIcon")
+        if showDockIcon {
+            NSApplication.shared.setActivationPolicy(.regular)
+            return
+        }
+        
+        // Only force show Dock icon when the Settings window is visible
+        let isSettingsVisible = settingsWindow?.isVisible ?? false
+        
+        let currentPolicy = NSApplication.shared.activationPolicy()
+        if isSettingsVisible {
+            if currentPolicy != .regular {
+                NSApplication.shared.setActivationPolicy(.regular)
+            }
+        } else {
+            if currentPolicy != .accessory {
+                NSApplication.shared.setActivationPolicy(.accessory)
+            }
         }
     }
     
@@ -182,7 +211,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if visible.isEmpty {
                 showAssistant()
             }
+            updateDockIconVisibility()
         }
+    }
+    
+    func applicationDidResignActive(_ notification: Notification) {
+        updateDockIconVisibility()
     }
     
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -251,10 +285,11 @@ extension AppDelegate: NSMenuDelegate {
         } else {
             statusItem?.isVisible = true
             let symbolName = iconName.isEmpty ? "brain" : iconName
-            if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Sidey") {
+            let localizedAppName = L("Sidey")
+            if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: localizedAppName) {
                 let config = NSImage.SymbolConfiguration(scale: .medium)
                 statusItem?.button?.image = image.withSymbolConfiguration(config)
-            } else if let fallback = NSImage(systemSymbolName: "brain", accessibilityDescription: "Sidey") {
+            } else if let fallback = NSImage(systemSymbolName: "brain", accessibilityDescription: localizedAppName) {
                 let config = NSImage.SymbolConfiguration(scale: .medium)
                 statusItem?.button?.image = fallback.withSymbolConfiguration(config)
             }

@@ -1,4 +1,4 @@
-# Sidey - 你的智能 macOS 助手
+# 旁白 - 你的智能 macOS 助手
 
 <p align="center">
   <img src="Resources/AppIcon.png" width="128" height="128" alt="Sidey Logo">
@@ -8,7 +8,7 @@
 
 ---
 
-**Sidey** 是一款专为 macOS 设计的轻量级、场景感知 AI 助手。它能实时理解你正在使用的应用程序，并根据当前环境提供定制化的 AI 建议。
+**旁白** 是一款专为 macOS 设计的轻量级、场景感知 AI 助手。它能实时理解你正在使用的应用程序，并根据当前环境提供定制化的 AI 建议。
 
 ### ✨ 核心功能
 
