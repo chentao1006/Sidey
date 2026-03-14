@@ -371,7 +371,7 @@ struct PromptSettingsView: View {
                                 store.allPrompts[index].apps.removeAll(where: { $0 == appID })
                                 store.savePrompts()
                             }
-                            .id(appLanguage)
+                            .id("\(appLanguage)_\(appID)")
                         }
                     } header: {
                         Text(L("Matched Apps")).font(.headline)
@@ -447,21 +447,30 @@ struct AppInfoRow: View {
             Spacer()
             
             Button(action: onRemove) {
-                Image(systemName: "trash")
+                Image(systemName: "minus.circle")
                     .foregroundColor(.red)
             }
             .buttonStyle(.plain)
         }
         .padding(.vertical, 2)
         .onAppear {
-            if bundleID == "*" {
-                name = L("All Apps (*)")
-            } else if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
-                name = FileManager.default.displayName(atPath: url.path)
-                icon = NSWorkspace.shared.icon(forFile: url.path)
-            } else {
-                name = bundleID
-            }
+            loadInfo()
+        }
+        .onChangeCompatible(of: bundleID) { _ in
+            loadInfo()
+        }
+    }
+    
+    private func loadInfo() {
+        if bundleID == "*" {
+            name = L("All Apps (*)")
+            icon = nil
+        } else if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+            name = FileManager.default.displayName(atPath: url.path)
+            icon = NSWorkspace.shared.icon(forFile: url.path)
+        } else {
+            name = bundleID
+            icon = nil
         }
     }
 }

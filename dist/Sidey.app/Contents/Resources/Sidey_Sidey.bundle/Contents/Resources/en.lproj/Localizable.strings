@@ -1,7 +1,7 @@
 "Sidey" = "Sidey";
 "General" = "General";
-"API" = "AI Service";
-"AI Service" = "AI Service";
+"API" = "Service";
+"AI Service" = "Service";
 "Prompts" = "Assistants";
 "About" = "About";
 "Version" = "Version";
@@ -124,8 +124,8 @@
 "wand.and.stars" = "Magic Wand";
 "Recent Apps" = "Recent Apps";
 "Running Apps" = "Running Apps";
-"Enable File Sync" = "Enable File Sync";
-"File Sync" = "File Sync";
+"Enable File Sync" = "Enable Settings Sync";
+"File Sync" = "Settings Sync";
 "Sync Folder:" = "Sync Folder:";
 "Choose..." = "Choose...";
 "Select Sync Folder" = "Select Sync Folder";

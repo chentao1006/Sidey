@@ -1,7 +1,7 @@
 "Sidey" = "旁白";
 "General" = "通用";
-"API" = "AI 服务";
-"AI Service" = "AI 服务";
+"API" = "服务";
+"AI Service" = "服务";
 "Prompts" = "助手";
 "About" = "关于";
 "Version" = "版本";
@@ -126,8 +126,8 @@
 "wand.and.stars" = "魔杖";
 "Recent Apps" = "最近使用";
 "Running Apps" = "运行中的应用";
-"Enable File Sync" = "启用文件同步";
-"File Sync" = "文件同步";
+"Enable File Sync" = "启用配置同步";
+"File Sync" = "配置同步";
 "Sync Folder:" = "同步目录:";
 "Choose..." = "选择...";
 "Select Sync Folder" = "选择同步目录";
