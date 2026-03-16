@@ -41,7 +41,7 @@ class PromptStore: ObservableObject {
                 }
                 if url.startAccessingSecurityScopedResource() {
                     currentAccessingURL = url
-                    return url.appendingPathComponent("sidey_sync.json")
+                    return url.appendingPathComponent("settings.json")
                 }
             } catch {
                 print("Failed to resolve bookmark: \(error)")
@@ -53,7 +53,7 @@ class PromptStore: ObservableObject {
             if !FileManager.default.fileExists(atPath: iCloudURL.path) {
                 try? FileManager.default.createDirectory(at: iCloudURL, withIntermediateDirectories: true, attributes: nil)
             }
-            return iCloudURL.appendingPathComponent("sidey_sync.json")
+            return iCloudURL.appendingPathComponent("settings.json")
         }
         
         // 3. Fallback to local Application Support (Sandboxed path)
@@ -63,11 +63,11 @@ class PromptStore: ObservableObject {
             if !fileManager.fileExists(atPath: appDir.path) {
                 try? fileManager.createDirectory(at: appDir, withIntermediateDirectories: true, attributes: nil)
             }
-            return appDir.appendingPathComponent("sidey_sync.json")
+            return appDir.appendingPathComponent("settings.json")
         }
         
         // Absolute fallback
-        return fileManager.temporaryDirectory.appendingPathComponent("sidey_sync.json")
+        return fileManager.temporaryDirectory.appendingPathComponent("settings.json")
     }
     
     func updateBookmark(for url: URL) {
@@ -110,7 +110,7 @@ class PromptStore: ObservableObject {
     }
     
     private var settingsKeys: [String] {
-        ["openAI_APIKey", "openAI_BaseURL", "alwaysOnTop", "showDockIcon", "windowOpacity", "sendBehavior", "autoPasteClipboard", "appLanguage", "hotKeyKeyCode", "hotKeyModifiers", "menuBarIcon"]
+        ["openAI_APIKey", "openAI_BaseURL", "openAI_Model", "alwaysOnTop", "showDockIcon", "windowOpacity", "sendBehavior", "appLanguage", "hotKeyKeyCode", "hotKeyModifiers", "menuBarIcon"]
     }
     
     func loadPrompts() {
@@ -120,7 +120,7 @@ class PromptStore: ObservableObject {
             // If disabled, we still need initial prompts (from local/bundle)
             if allPrompts.isEmpty {
                 let localURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-                    .appendingPathComponent("Sidey/sidey_sync.json")
+                    .appendingPathComponent("Sidey/settings.json")
                 let loadURL = FileManager.default.fileExists(atPath: localURL.path) ? localURL : Bundle.module.url(forResource: "prompts", withExtension: "json")
                 if let loadURL = loadURL, let data = try? Data(contentsOf: loadURL),
                    let decoded = try? JSONDecoder().decode(SyncData.self, from: data) {
@@ -159,9 +159,15 @@ class PromptStore: ObservableObject {
         }
         
         // 2. If file does NOT exist, handle migration or initialize with local data
-        let oldURL = url.deletingLastPathComponent().appendingPathComponent("prompts.json")
-        if FileManager.default.fileExists(atPath: oldURL.path) {
-            try? FileManager.default.moveItem(at: oldURL, to: url)
+        let syncOldURL = url.deletingLastPathComponent().appendingPathComponent("sidey_sync.json")
+        let promptsOldURL = url.deletingLastPathComponent().appendingPathComponent("prompts.json")
+        
+        if FileManager.default.fileExists(atPath: syncOldURL.path) {
+            try? FileManager.default.moveItem(at: syncOldURL, to: url)
+            isInitialLoading = false
+            self.loadPrompts() // call again to perform actual load
+        } else if FileManager.default.fileExists(atPath: promptsOldURL.path) {
+            try? FileManager.default.moveItem(at: promptsOldURL, to: url)
             isInitialLoading = false
             self.loadPrompts() // call again to perform actual load
         } else {
@@ -186,7 +192,7 @@ class PromptStore: ObservableObject {
         for (key, value) in settings {
             let current = "\(UserDefaults.standard.object(forKey: key) ?? "")"
             if current != value {
-                if key == "alwaysOnTop" || key == "showDockIcon" || key == "autoPasteClipboard" {
+                if key == "alwaysOnTop" || key == "showDockIcon" {
                     UserDefaults.standard.set(value == "1" || value.lowercased() == "true", forKey: key)
                 } else if key == "windowOpacity" {
                     UserDefaults.standard.set(Double(value) ?? 1.0, forKey: key)
@@ -280,7 +286,7 @@ class PromptStore: ObservableObject {
             
             // Restore Settings
             for (key, value) in backup.settings {
-                if key == "alwaysOnTop" || key == "showDockIcon" || key == "autoPasteClipboard" {
+                if key == "alwaysOnTop" || key == "showDockIcon" {
                     UserDefaults.standard.set(value == "1" || value.lowercased() == "true", forKey: key)
                 } else if key == "windowOpacity" {
                     UserDefaults.standard.set(Double(value) ?? 1.0, forKey: key)

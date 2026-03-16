@@ -22,11 +22,13 @@
 "⚠️ You need to provide an API key to use the assistant." = "⚠️ 您需要提供 API 密钥才能使用旁白。";
 "Prompt Identity" = "助手标识";
 "Name" = "名称";
+"Model" = "模型";
 "System Prompt" = "系统指令";
 "Matched Apps" = "匹配的应用";
 "All Apps (*)" = "所有应用 (*)";
 "All Apps" = "所有应用";
 "Add App..." = "添加应用...";
+"App" = "应用";
 "Match All (*)" = "匹配所有 (*)";
 "Select a prompt to edit" = "选择要编辑的助手";
 "Current App:" = "当前应用:";
@@ -63,7 +65,7 @@
 "Copy" = "复制";
 "Copied!" = "已复制";
 "Retry" = "重试";
-"Back to App" = "回到应用";
+"Back to %@" = "返回到 %@";
 "Window Opacity" = "窗口不透明度";
 "Pin Window" = "置顶窗口";
 "Unpin Window" = "取消置顶";
@@ -137,3 +139,8 @@
 "No Data Found" = "未发现数据";
 "Automatically pasted from clipboard" = "已自动粘贴自剪贴板";
 "Undo" = "撤销";
+"Clipboard Content" = "剪贴板内容";
+"Clear Clipboard Preview" = "清除剪贴板预览";
+"Debug Logs" = "调试日志";
+"Clear Logs" = "清空日志";
+"Click to expand" = "点击展开";

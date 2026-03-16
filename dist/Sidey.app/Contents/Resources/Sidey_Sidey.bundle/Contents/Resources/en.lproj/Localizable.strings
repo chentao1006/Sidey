@@ -22,10 +22,12 @@
 "⚠️ You need to provide an API key to use the assistant." = "⚠️ You need to provide an API key to use the assistant.";
 "Prompt Identity" = "Assistant Identity";
 "Name" = "Name";
+"Model" = "Model";
 "System Prompt" = "System Instruction";
 "Matched Apps" = "Matched Apps";
 "All Apps (*)" = "All Apps (*)";
 "Add App..." = "Add App...";
+"App" = "App";
 "Match All (*)" = "Match All (*)";
 "Select a prompt to edit" = "Select an assistant to edit";
 "Current App:" = "Current App:";
@@ -62,7 +64,7 @@
 "Copy" = "Copy";
 "Copied!" = "Copied!";
 "Retry" = "Retry";
-"Back to App" = "Back to App";
+"Back to %@" = "Back to %@";
 "Window Opacity" = "Window Opacity";
 "Pin Window" = "Pin Window";
 "Unpin Window" = "Unpin Window";
@@ -135,3 +137,8 @@
 "No Data Found" = "No Data Found";
 "Automatically pasted from clipboard" = "Automatically pasted from clipboard";
 "Undo" = "Undo";
+"Clipboard Content" = "Clipboard Content";
+"Clear Clipboard Preview" = "Clear Clipboard Preview";
+"Debug Logs" = "Debug Logs";
+"Clear Logs" = "Clear Logs";
+"Click to expand" = "Click to expand";

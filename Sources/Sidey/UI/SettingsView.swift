@@ -49,7 +49,6 @@ struct GeneralSettingsView: View {
     @AppStorage("appLanguage") private var appLanguage = "system"
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("sendBehavior") private var sendBehavior = "return"
-    @AppStorage("autoPasteClipboard") private var autoPasteClipboard = false
     @AppStorage("menuBarIcon") private var menuBarIcon = "brain"
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     
@@ -138,10 +137,6 @@ struct GeneralSettingsView: View {
                 .pickerStyle(.menu)
                 .onChangeCompatible(of: sendBehavior) { _ in SyncManager.shared.syncToCloud() }
                 
-                Toggle(L("Auto Paste from Clipboard"), isOn: $autoPasteClipboard)
-                    .help(L("Automatically paste copied text from other apps when Assistant activates."))
-                    .onChangeCompatible(of: autoPasteClipboard) { _ in SyncManager.shared.syncToCloud() }
-
                 Toggle(L("Launch at Login"), isOn: $launchAtLogin)
                     .help(L("Start the app automatically when you log in."))
                     .onChangeCompatible(of: launchAtLogin) { newValue in
@@ -181,6 +176,7 @@ struct GeneralSettingsView: View {
 struct APISettingsView: View {
     @AppStorage("openAI_APIKey") private var apiKey = ""
     @AppStorage("openAI_BaseURL") private var baseURL = "https://api.openai.com/v1"
+    @AppStorage("openAI_Model") private var model = "gpt-4o-mini"
     @AppStorage("appLanguage") private var appLanguage = "system"
     
     @State private var testResult: String?
@@ -205,6 +201,11 @@ struct APISettingsView: View {
                     .textFieldStyle(.roundedBorder)
                     .help(L("Default: https://api.openai.com/v1"))
                     .onChangeCompatible(of: baseURL) { _ in SyncManager.shared.syncToCloud() }
+                
+                TextField(L("Model"), text: $model)
+                    .textFieldStyle(.roundedBorder)
+                    .help(L("Default: gpt-4o-mini"))
+                    .onChangeCompatible(of: model) { _ in SyncManager.shared.syncToCloud() }
                 
                 HStack {
                     Button(action: testConnection) {
@@ -237,7 +238,7 @@ struct APISettingsView: View {
         testResult = nil
         
         let client = LLMClient()
-        client.sendRequest(systemPrompt: "You are a helpful assistant.", userMessage: "Say 'OK' if you can hear me.") { response in
+        client.sendRequest(systemPrompt: "You are a helpful assistant.", messages: [ChatMessage(role: "user", content: "Say 'OK' if you can hear me.")]) { response in
             isTesting = false
             if response.contains("Error") || response.contains("Failed") {
                 testResult = "❌ " + response
@@ -561,6 +562,7 @@ struct ShortcutRecorderView: View {
 
 struct DataSettingsView: View {
     @StateObject private var store = PromptStore.shared
+    @ObservedObject private var logger = DebugLogger.shared
     @State private var importSuccess = false
     @State private var exportSuccess = false
     @AppStorage("appLanguage") private var appLanguage = "system"
@@ -653,8 +655,83 @@ struct DataSettingsView: View {
             } header: {
                 Text(L("Backup & Restore")).font(.headline)
             }
+            
+            Section {
+                VStack(spacing: 0) {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 4) {
+                            if logger.logs.isEmpty {
+                                Text(L("No logs available."))
+                                    .foregroundColor(.secondary)
+                                    .italic()
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                                    .padding(.top, 80)
+                            } else {
+                                ForEach(logger.logs) { entry in
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        HStack {
+                                            Text(entry.timestamp, style: .time)
+                                                .font(.system(.caption2, design: .monospaced))
+                                                .foregroundColor(.secondary)
+                                            
+                                            Text(entry.type.rawValue.uppercased())
+                                                .font(.system(size: 8, weight: .bold))
+                                                .padding(.horizontal, 4)
+                                                .padding(.vertical, 1)
+                                                .background(colorForType(entry.type))
+                                                .foregroundColor(.white)
+                                                .cornerRadius(3)
+                                        }
+                                        
+                                        Text(entry.message)
+                                            .font(.system(.caption, design: .monospaced))
+                                            .textSelection(.enabled)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        
+                                        Divider()
+                                            .padding(.vertical, 4)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(height: 200)
+                    .frame(maxWidth: .infinity)
+                    .background(Color(NSColor.textBackgroundColor))
+                    .cornerRadius(4)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                    )
+                    
+                    HStack {
+                        Spacer()
+                        Button(L("Clear Logs")) {
+                            logger.clear()
+                        }
+                        .buttonStyle(.borderless)
+                        .controlSize(.small)
+                        .foregroundColor(.red)
+                    }
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity)
+            } header: {
+                Text(L("Debug Logs")).font(.headline)
+            }
         }
         .formStyle(.grouped)
+    }
+    
+    private func colorForType(_ type: LogEntry.LogType) -> Color {
+        switch type {
+        case .info: return .blue
+        case .error: return .red
+        case .request: return .purple
+        case .response: return .green
+        }
     }
     
     private func formattedDate(_ date: Date) -> String {

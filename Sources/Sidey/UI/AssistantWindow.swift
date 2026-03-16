@@ -2,6 +2,18 @@ import SwiftUI
 import AppKit
 import MarkdownUI
 
+struct MessageExchange: Equatable, Identifiable, Codable {
+    let id: UUID
+    var userMessage: String
+    var aiResponse: String
+    var isExpanded: Bool = false
+}
+
+struct SessionState: Equatable, Codable {
+    var exchanges: [MessageExchange]
+    var lastScrollID: String?
+}
+
 struct AssistantWindow: View {
     @ObservedObject private var contextDetector = ContextDetector.shared
     @ObservedObject private var promptStore = PromptStore.shared
@@ -13,25 +25,23 @@ struct AssistantWindow: View {
     @AppStorage("settingsSelectedTab") private var settingsSelectedTab = "general"
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("sendBehavior") private var sendBehavior = "return"
-    @AppStorage("autoPasteClipboard") private var autoPasteClipboard = false
     @AppStorage("appLanguage") private var appLanguage = "system"
     
     @State private var window: NSWindow?
     
     @State private var selectedPrompt: Prompt?
     @State private var userInput: String = ""
-    @State private var aiResponse: String = ""
+    @State private var currentExchanges: [MessageExchange] = []
     @State private var copied: Bool = false
-    @State private var promptStates: [String: String] = [:] // key -> aiResponse
+    @State private var promptStates: [String: SessionState] = [:] // key -> SessionState
     @State private var lastPromptIDPerApp: [String: String] = [:] // bundleID -> promptID
     @State private var currentSessionKey: String = ""
     @State private var unreadSessions: Set<String> = []
     @State private var textToInsert: String? = nil
-    @State private var showAutoPasteTip: Bool = false
-    @State private var textBeforeAutoPaste: String = ""
-    @State private var autoPasteSessionKey: String = ""
-    
     @State private var lastPasteboardChangeCount: Int = NSPasteboard.general.changeCount
+    @State private var clipboardContent: String? = nil
+    @State private var includeClipboard: Bool = true
+    @State private var lastFinishedExchangeID: UUID? = nil
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -66,6 +76,7 @@ struct AssistantWindow: View {
         .onAppear {
             let targetPrompt = bestPrompt(for: contextDetector.currentBundleID)
             switchTo(bundleID: contextDetector.currentBundleID, prompt: targetPrompt)
+            checkClipboard()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             if !unreadSessions.isEmpty, let lastSession = unreadSessions.first {
@@ -92,21 +103,7 @@ struct AssistantWindow: View {
                 switchTo(bundleID: contextDetector.currentBundleID, prompt: targetPrompt)
             }
             
-            if autoPasteClipboard {
-                let currentChangeCount = NSPasteboard.general.changeCount
-                if currentChangeCount != lastPasteboardChangeCount {
-                    if let newText = NSPasteboard.general.string(forType: .string),
-                       !newText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        textBeforeAutoPaste = userInput
-                        autoPasteSessionKey = currentSessionKey
-                        textToInsert = newText
-                        withAnimation {
-                            showAutoPasteTip = true
-                        }
-                    }
-                    lastPasteboardChangeCount = currentChangeCount
-                }
-            }
+            checkClipboard()
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("CXAISwitchSession"))) { notification in
             if let userInfo = notification.userInfo,
@@ -382,58 +379,77 @@ struct AssistantWindow: View {
                 .font(.headline)
             
             MacTextEditor(text: $userInput, textToInsert: $textToInsert, sendBehavior: sendBehavior, onSend: sendMessage)
-                .frame(height: 80)
+                .frame(height: clipboardContent == nil ? 60 : 44)
                 .padding(4)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
                 )
+
+            if let content = clipboardContent {
+                HStack(alignment: .top, spacing: 6) {
+                    Toggle("", isOn: $includeClipboard)
+                        .toggleStyle(.checkbox)
+                        .labelsHidden()
+                        .controlSize(.small)
+                        .padding(.top, 1)
+                    
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                        .padding(.top, 3)
+
+                    Text(cleanPreview(content))
+                        .font(.caption)
+                        .lineLimit(3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Button(action: {
+                        clipboardContent = nil
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.secondary.opacity(0.8))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 2)
+                    .help(L("Clear Clipboard Preview"))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.secondary.opacity(0.1), lineWidth: 0.5)
+                )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    includeClipboard.toggle()
+                }
+                .onHover { inside in
+                    if inside {
+                        NSCursor.pointingHand.set()
+                    } else {
+                        NSCursor.arrow.set()
+                    }
+                }
+            }
             
             HStack(spacing: 8) {
                 Button(action: {
                     self.userInput = ""
-                    self.aiResponse = ""
-                    self.showAutoPasteTip = false
+                    self.currentExchanges = []
+                    if !currentSessionKey.isEmpty {
+                        promptStates[currentSessionKey] = SessionState(exchanges: [])
+                    }
                 }) {
                     Image(systemName: "arrow.counterclockwise")
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.plain)
                 .help(L("Clear Input"))
-                .opacity(userInput.isEmpty && aiResponse.isEmpty ? 0 : 1)
-                
-                if showAutoPasteTip && autoPasteSessionKey == currentSessionKey {
-                    HStack(spacing: 4) {
-                        Text(L("Automatically pasted from clipboard"))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Button(action: {
-                            userInput = textBeforeAutoPaste
-                            withAnimation {
-                                showAutoPasteTip = false
-                            }
-                        }) {
-                            Text(L("Undo"))
-                                .font(.caption)
-                                .foregroundColor(.accentColor)
-                                .underline()
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Button(action: {
-                            withAnimation {
-                                showAutoPasteTip = false
-                            }
-                        }) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 8))
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .transition(.opacity)
-                }
+                .opacity(userInput.isEmpty && currentExchanges.isEmpty ? 0 : 1)
                 
                 Spacer()
                 
@@ -449,13 +465,11 @@ struct AssistantWindow: View {
                     }
                 }
                 .keyboardShortcut(.return, modifiers: sendBehavior == "cmdReturn" ? [.command] : [])
-                .disabled(userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedPrompt == nil || llmClient.loadingStates[currentSessionKey] == true)
+                .disabled((userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !(includeClipboard && clipboardContent != nil)) || selectedPrompt == nil || llmClient.loadingStates[currentSessionKey] == true)
                 .help(L("Send"))
             }
         }
     }
-    
-    
     
     @ViewBuilder
     private var responseArea: some View {
@@ -476,9 +490,10 @@ struct AssistantWindow: View {
                                 if let prompt = promptStore.allPrompts.first(where: { $0.name == interaction.promptName }) {
                                     self.switchTo(bundleID: contextDetector.currentBundleID, prompt: prompt)
                                 }
-                                self.userInput = interaction.userMessage
-                                self.aiResponse = interaction.aiResponse
-                                self.promptStates[self.currentSessionKey] = interaction.aiResponse
+                                self.userInput = "" // Clear input since we are loading history
+                                let exchange = MessageExchange(id: UUID(), userMessage: interaction.userMessage, aiResponse: interaction.aiResponse)
+                                self.currentExchanges = [exchange]
+                                self.promptStates[self.currentSessionKey] = SessionState(exchanges: [exchange])
                             }) {
                                 Text(interaction.userMessage.prefix(30) + (interaction.userMessage.count > 30 ? "..." : ""))
                             }
@@ -495,20 +510,102 @@ struct AssistantWindow: View {
             }
             
             ZStack {
-                ScrollView {
-                    if aiResponse.isEmpty {
-                        Text(L("Output will appear here..."))
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    } else if aiResponse == "Thinking..." {
-                        Text(L("Thinking..."))
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    } else {
-                        Markdown(aiResponse)
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .textSelection(.enabled)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 12) {
+                            ForEach($currentExchanges) { $exchange in
+                                VStack(alignment: .leading, spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(exchange.isExpanded ? exchange.userMessage : cleanPreview(exchange.userMessage))
+                                            .font(.subheadline)
+                                            .lineLimit(exchange.isExpanded ? nil : 3)
+                                            .padding(10)
+                                            .background(Color.accentColor.opacity(0.1))
+                                            .cornerRadius(8)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                            .onTapGesture {
+                                                withAnimation {
+                                                    exchange.isExpanded.toggle()
+                                                }
+                                            }
+                                        
+                                        if !exchange.isExpanded && (exchange.userMessage.count > 100 || exchange.userMessage.contains("\n")) {
+                                            Text(L("Click to expand"))
+                                                .font(.caption2)
+                                                .foregroundColor(.accentColor)
+                                                .padding(.leading, 10)
+                                                .onTapGesture {
+                                                    withAnimation {
+                                                        exchange.isExpanded.toggle()
+                                                    }
+                                                }
+                                        }
+                                    }
+                                    .padding(.horizontal)
+                                    .padding(.top, 12)
+                                    
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        Color.clear.frame(height: 0).id(exchange.id.uuidString + "_top")
+                                        if exchange.aiResponse == "Thinking..." {
+                                            HStack {
+                                                ProgressView()
+                                                    .controlSize(.small)
+                                                    .padding(.trailing, 4)
+                                                Text(L("Thinking..."))
+                                            }
+                                            .padding()
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        } else {
+                                            Markdown(exchange.aiResponse)
+                                                .padding()
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .textSelection(.enabled)
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if currentExchanges.isEmpty {
+                                Text(L("Output will appear here..."))
+                                    .padding()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            
+                            Color.clear
+                                .frame(height: 1)
+                                .id("bottom_anchor")
+                        }
+                    }
+                    .onChangeCompatible(of: currentExchanges) { newValue in
+                        if let last = newValue.last, last.aiResponse == "Thinking..." {
+                            proxy.scrollTo("bottom_anchor", anchor: .bottom)
+                        }
+                    }
+                    .onChangeCompatible(of: currentSessionKey) { _ in
+                        // When switching sessions/prompts, scroll to the top of the last exchange (answer)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { // Increase delay to ensure render
+                            if let lastID = currentExchanges.last?.id {
+                                withAnimation(.easeInOut(duration: 0.6)) {
+                                    proxy.scrollTo(lastID.uuidString + "_top", anchor: .top)
+                                }
+                            } else {
+                                proxy.scrollTo("bottom_anchor", anchor: .bottom)
+                            }
+                        }
+                    }
+                    .onChangeCompatible(of: llmClient.loadingStates[currentSessionKey]) { isLoading in
+                        if isLoading == false, let lastID = lastFinishedExchangeID {
+                            // Finished an answer, scroll to its top
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                withAnimation(.easeInOut(duration: 0.6)) {
+                                    proxy.scrollTo(lastID.uuidString + "_top", anchor: .top)
+                                }
+                                // Reset after scroll
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                                    self.lastFinishedExchangeID = nil
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -520,11 +617,11 @@ struct AssistantWindow: View {
                 )
             
             // Action Buttons
-            if !aiResponse.isEmpty && aiResponse != "Thinking..." {
+            if let lastExchange = currentExchanges.last, lastExchange.aiResponse != "Thinking..." {
                 HStack(spacing: 8) {
                     Button(action: {
                         NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(aiResponse, forType: .string)
+                        NSPasteboard.general.setString(lastExchange.aiResponse, forType: .string)
                         copied = true
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                             copied = false
@@ -534,7 +631,7 @@ struct AssistantWindow: View {
                     }
                     .help(L("Copy"))
                     
-                    Button(action: sendMessage) {
+                    Button(action: retryLastExchange) {
                         Label(L("Retry"), systemImage: "arrow.clockwise")
                     }
                     .help(L("Retry"))
@@ -543,14 +640,11 @@ struct AssistantWindow: View {
                         Button(action: {
                             if let app = NSRunningApplication.runningApplications(withBundleIdentifier: contextDetector.currentBundleID).first {
                                 app.activate(options: .activateIgnoringOtherApps)
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                    AppDelegate.shared.showAssistant()
-                                }
                             }
                         }) {
-                            Label(L("Back to App"), systemImage: "arrow.uturn.backward")
+                            Label(String(format: L("Back to %@"), contextDetector.currentAppName.isEmpty ? L("App") : contextDetector.currentAppName), systemImage: "arrow.uturn.backward")
                         }
-                        .help(L("Back to App"))
+                        .help(String(format: L("Back to %@"), contextDetector.currentAppName.isEmpty ? L("App") : contextDetector.currentAppName))
                     }
                     
                     Spacer()
@@ -561,13 +655,40 @@ struct AssistantWindow: View {
         }
     }
     
+    private func retryLastExchange() {
+        guard let prompt = selectedPrompt, !currentExchanges.isEmpty else { return }
+        
+        let lastUserMessage = currentExchanges.last?.userMessage ?? ""
+        if lastUserMessage.isEmpty { return }
+        
+        // Remove the last exchange to "retry" it
+        currentExchanges.removeLast()
+        
+        // Call performSend (abstracted from sendMessage)
+        performSend(messageToSend: lastUserMessage, prompt: prompt)
+    }
+    
     private func sendMessage() {
         guard let prompt = selectedPrompt else { return }
         
-        let messageToSend = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        if messageToSend.isEmpty { return }
+        var messageToSend = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if includeClipboard, let content = clipboardContent {
+            if messageToSend.isEmpty {
+                messageToSend = content
+            } else {
+                messageToSend = "\(messageToSend)\n\n---\n\(content)"
+            }
+        }
         
-        aiResponse = "Thinking..."
+        if messageToSend.isEmpty { return }
+        performSend(messageToSend: messageToSend, prompt: prompt)
+    }
+    
+    private func performSend(messageToSend: String, prompt: Prompt) {
+        let newExchangeID = UUID()
+        let newExchange = MessageExchange(id: newExchangeID, userMessage: messageToSend, aiResponse: "Thinking...")
+        self.currentExchanges.append(newExchange)
+        self.userInput = ""
         
         let currentBundleID = contextDetector.currentBundleID
         let currentAppName = contextDetector.currentAppName
@@ -576,14 +697,41 @@ struct AssistantWindow: View {
         let promptID = prompt.id
         
         let sessionKey = self.currentSessionKey
-        promptStates[sessionKey] = aiResponse
+        promptStates[sessionKey] = SessionState(exchanges: currentExchanges)
         
-        llmClient.sendRequest(systemPrompt: systemPrompt, userMessage: messageToSend, sessionKey: sessionKey) { response in
-            self.promptStates[sessionKey] = response
+        // Prepare full context with "Appropriate Compression" (适当压缩)
+        let maxHistoryTurns = 10
+        let contextExchanges = currentExchanges.dropLast().suffix(maxHistoryTurns)
+        
+        let historyMessages = contextExchanges.flatMap { exchange -> [ChatMessage] in
+            let compressedUser = exchange.userMessage.count > 2000 ? (String(exchange.userMessage.prefix(2000)) + "... [History Truncated]") : exchange.userMessage
+            let compressedAI = exchange.aiResponse.count > 3000 ? (String(exchange.aiResponse.prefix(3000)) + "... [History Truncated]") : exchange.aiResponse
             
+            return [
+                ChatMessage(role: "user", content: compressedUser),
+                ChatMessage(role: "assistant", content: compressedAI)
+            ]
+        }
+        var allMessages = historyMessages
+        allMessages.append(ChatMessage(role: "user", content: messageToSend))
+        
+        llmClient.sendRequest(systemPrompt: systemPrompt, messages: allMessages, sessionKey: sessionKey) { response in
+            // Update the stored state first (persistence)
+            if var state = self.promptStates[sessionKey] {
+                if let index = state.exchanges.firstIndex(where: { $0.id == newExchangeID }) {
+                    state.exchanges[index].aiResponse = response
+                    self.promptStates[sessionKey] = state
+                }
+            }
+            
+            // If this is still the active session, update UI state
             if self.currentSessionKey == sessionKey {
-                self.aiResponse = response
+                if let index = self.currentExchanges.firstIndex(where: { $0.id == newExchangeID }) {
+                    self.currentExchanges[index].aiResponse = response
+                    self.lastFinishedExchangeID = newExchangeID
+                }
             } else {
+                // Background session completed
                 self.unreadSessions.insert(sessionKey)
                 NotificationManager.shared.sendNotification(
                     title: "\(promptName) " + L("Response Completed"),
@@ -593,6 +741,7 @@ struct AssistantWindow: View {
                 )
             }
             
+            // Log interaction
             let interaction = Interaction(
                 appBundleID: currentBundleID,
                 appName: currentAppName.isEmpty ? "Unknown" : currentAppName,
@@ -607,7 +756,10 @@ struct AssistantWindow: View {
     
     private func switchTo(bundleID: String, prompt: Prompt?) {
         if !currentSessionKey.isEmpty {
-            promptStates[currentSessionKey] = aiResponse
+            promptStates[currentSessionKey] = SessionState(
+                exchanges: currentExchanges,
+                lastScrollID: nil // Reverting for now for stability
+            )
         }
         
         self.selectedPrompt = prompt
@@ -619,71 +771,61 @@ struct AssistantWindow: View {
         self.currentSessionKey = newKey
         self.unreadSessions.remove(newKey)
         
-        self.aiResponse = promptStates[newKey] ?? ""
+        let state = promptStates[newKey]
+        self.currentExchanges = state?.exchanges ?? []
+    }
+    
+    private func checkClipboard() {
+        let currentChangeCount = NSPasteboard.general.changeCount
+        if let newText = NSPasteboard.general.string(forType: .string),
+           !newText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            
+            // Only update if it's new content
+            if currentChangeCount != lastPasteboardChangeCount {
+                clipboardContent = newText
+                includeClipboard = true
+                lastPasteboardChangeCount = currentChangeCount
+            }
+        } else {
+            clipboardContent = nil
+            lastPasteboardChangeCount = currentChangeCount
+        }
     }
     
     private func bestPrompt(for bundleID: String) -> Prompt? {
-        let availablePrompts = promptStore.getPrompts(for: bundleID)
-        if availablePrompts.isEmpty { return nil }
-        
-        if let lastID = lastPromptIDPerApp[bundleID],
-           let lastPrompt = availablePrompts.first(where: { $0.id == lastID }) {
-            return lastPrompt
+        let available = promptStore.getPrompts(for: bundleID)
+        if let lastID = lastPromptIDPerApp[bundleID], let last = available.first(where: { $0.id == lastID }) {
+            return last
         }
-        return availablePrompts.first
+        return available.first
     }
 
-    
     private var filteredRecentApps: [ContextDetector.AppContext] {
-        let pids = activePIDs
-        let currentID = contextDetector.currentBundleID
-        return contextDetector.recentApps.filter { appCtx in
-            appCtx.bundleID != currentID &&
-            NSWorkspace.shared.runningApplications.contains(where: { 
-                $0.bundleIdentifier == appCtx.bundleID && pids.contains($0.processIdentifier)
-            })
-        }
+        contextDetector.recentApps.filter { $0.bundleID != contextDetector.currentBundleID }
     }
-    
+
     private var filteredRunningApps: [NSRunningApplication] {
-        let pids = activePIDs
-        let recentIDs = Set(filteredRecentApps.map { $0.bundleID })
-        let currentID = contextDetector.currentBundleID
+        let active = activePIDs
         return NSWorkspace.shared.runningApplications.filter { app in
             app.activationPolicy == .regular &&
-            app.bundleIdentifier != nil &&
-            app.bundleIdentifier != currentID &&
-            !recentIDs.contains(app.bundleIdentifier!) &&
-            app.bundleIdentifier != Bundle.main.bundleIdentifier &&
-            pids.contains(app.processIdentifier)
+            app.bundleIdentifier != contextDetector.currentBundleID &&
+            active.contains(app.processIdentifier)
         }
     }
 
     private var activePIDs: Set<Int32> {
         var pids = Set<Int32>()
-        // optionAll + excludeDesktopElements covers windows across all spaces
-        if let windowList = CGWindowListCopyWindowInfo([.excludeDesktopElements, .optionAll], kCGNullWindowID) as? [[String: Any]] {
-            for window in windowList {
-                // Layer 0 is the standard layer for app windows
-                guard let layer = window[kCGWindowLayer as String] as? Int, layer == 0 else { continue }
+        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
+        if let infoList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] {
+            for window in infoList {
                 guard let pid = window[kCGWindowOwnerPID as String] as? Int32 else { continue }
-                
-                // Exclude completely transparent windows
                 if let alpha = window[kCGWindowAlpha as String] as? Double, alpha == 0 { continue }
                 
                 if let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
                    let bounds = CGRect(dictionaryRepresentation: boundsDict) {
-                    
-                    // We check for a window title or substantial size. 
-                    // Apps with windows usually have at least one window with a title, 
-                    // or a large UI area (greater than a typical status bar or tiny helper)
                     let name = window[kCGWindowName as String] as? String ?? ""
                     let isReasonableSize = bounds.width > 40 && bounds.height > 40
-                    
-                    // Further filter: common size for non-window background elements is small or 1x1
                     if isReasonableSize {
-                        // If it has a name, it's very likely a real window.
-                        // If it doesn't have a name, it needs to be "big enough" to be a main UI window.
                         if !name.isEmpty || (bounds.width > 120 && bounds.height > 120) {
                             pids.insert(pid)
                         }
@@ -692,6 +834,14 @@ struct AssistantWindow: View {
             }
         }
         return pids
+    }
+
+    private func cleanPreview(_ text: String) -> String {
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
     }
 }
 
@@ -749,18 +899,13 @@ struct MacTextEditor: NSViewRepresentable {
         guard let textView = scrollView.documentView as? NSTextView else { return }
         
         if let toInsert = textToInsert {
-            // If the textView is not the first responder, we might want to make it one 
-            // or at least ensure we are inserting at the right place.
             textView.insertText(toInsert, replacementRange: textView.selectedRange())
-            
-            // Critical: Update the bound text immediately so the next sync doesn't revert it
             let newText = textView.string
-            
             DispatchQueue.main.async {
                 self.text = newText
                 self.textToInsert = nil
             }
-            return // Skip the regular sync this time
+            return
         }
         
         if textView.string != text {
@@ -770,16 +915,11 @@ struct MacTextEditor: NSViewRepresentable {
 
     class Coordinator: NSObject, NSTextViewDelegate {
         var parent: MacTextEditor
-
-        init(_ parent: MacTextEditor) {
-            self.parent = parent
-        }
-
+        init(_ parent: MacTextEditor) { self.parent = parent }
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             self.parent.text = textView.string
         }
-
         func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
             if parent.sendBehavior == "return" {
                 if commandSelector == #selector(NSResponder.insertNewline(_:)) {
