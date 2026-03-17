@@ -124,6 +124,8 @@
 "face.smiling" = "Assistant";
 "command" = "Command";
 "wand.and.stars" = "Magic Wand";
+" (New Answer)" = " (New Answer)";
+" (Thinking...)" = " (Thinking...)";
 "Recent Apps" = "Recent Apps";
 "Running Apps" = "Running Apps";
 "Enable File Sync" = "Enable Settings Sync";

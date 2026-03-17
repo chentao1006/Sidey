@@ -128,6 +128,8 @@
 "face.smiling" = "助手";
 "command" = "命令";
 "wand.and.stars" = "魔杖";
+" (New Answer)" = " (新回答)";
+" (Thinking...)" = " (思考中)";
 "Recent Apps" = "最近使用";
 "Running Apps" = "运行中的应用";
 "Enable File Sync" = "启用配置同步";

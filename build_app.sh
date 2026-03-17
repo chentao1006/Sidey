@@ -54,6 +54,8 @@ cp ".build/apple/Products/Release/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/"
 # SPM generates a resource bundle file, e.g., Sidey_Sidey.bundle
 # It should be placed in Contents/Resources/ for the app bundle
 find ".build/apple/Products/Release" -name "${APP_NAME}_${APP_NAME}.bundle" -exec cp -R {} "$APP_BUNDLE/Contents/Resources/" \;
+# Copy .lproj folders to top-level Resources so macOS system UI can find them
+cp -R "$APP_BUNDLE/Contents/Resources/${APP_NAME}_${APP_NAME}.bundle"/*.lproj "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
 
 echo "🛑 Quitting existing $APP_NAME process..."
 pkill -x "$APP_NAME" || true

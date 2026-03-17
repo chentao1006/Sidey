@@ -191,7 +191,7 @@ struct AssistantWindow: View {
                                     }
                                 }
                             } label: {
-                                let suffix = hasUnreadFor(bundleID: appCtx.bundleID) ? " (回答完成)" : (hasLoadingFor(bundleID: appCtx.bundleID) ? " (思考中)" : "")
+                                let suffix = hasUnreadFor(bundleID: appCtx.bundleID) ? L(" (New Answer)") : (hasLoadingFor(bundleID: appCtx.bundleID) ? L(" (Thinking...)") : "")
                                 Text(appCtx.appName + suffix)
                             }
                         }
