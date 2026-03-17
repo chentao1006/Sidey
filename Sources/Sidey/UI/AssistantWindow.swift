@@ -175,54 +175,63 @@ struct AssistantWindow: View {
             
             Spacer()
             
-            Menu {
-                Text(L("Recent Apps"))
-                let recent = filteredRecentApps
-                if recent.isEmpty {
-                    Text(L("None"))
-                } else {
-                    ForEach(recent) { appCtx in
-                        Button {
-                            if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == appCtx.bundleID }) {
+            ZStack(alignment: .topTrailing) {
+                Menu {
+                    Text(L("Recent Apps"))
+                    let recent = filteredRecentApps
+                    if recent.isEmpty {
+                        Text(L("No Recent Apps"))
+                    } else {
+                        ForEach(recent) { appCtx in
+                            Button {
+                                if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == appCtx.bundleID }) {
+                                    app.activate(options: .activateIgnoringOtherApps)
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        AppDelegate.shared.showAssistant()
+                                    }
+                                }
+                            } label: {
+                                let suffix = hasUnreadFor(bundleID: appCtx.bundleID) ? " (回答完成)" : (hasLoadingFor(bundleID: appCtx.bundleID) ? " (思考中)" : "")
+                                Text(appCtx.appName + suffix)
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                    Text(L("Running Apps"))
+                    let running = filteredRunningApps
+                    if running.isEmpty {
+                        Text(L("No Running Apps"))
+                    } else {
+                        ForEach(running, id: \.bundleIdentifier) { app in
+                            Button {
                                 app.activate(options: .activateIgnoringOtherApps)
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                     AppDelegate.shared.showAssistant()
                                 }
+                            } label: {
+                                let suffix = hasUnreadFor(bundleID: app.bundleIdentifier) ? " (回答完成)" : (hasLoadingFor(bundleID: app.bundleIdentifier) ? " (思考中)" : "")
+                                let name = app.localizedName ?? (app.bundleIdentifier ?? "Unknown")
+                                Text(name + suffix)
                             }
-                        } label: {
-                            Text(appCtx.appName)
                         }
                     }
+                } label: {
+                    Image(systemName: "arrow.right.arrow.left")
                 }
+                .menuStyle(BorderlessButtonMenuStyle())
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help(L("Recent Apps"))
                 
-                Divider()
-                Text(L("Running Apps"))
-                let running = filteredRunningApps
-                if running.isEmpty {
-                    Text(L("None"))
-                } else {
-                    ForEach(running, id: \.bundleIdentifier) { app in
-                        Button {
-                            app.activate(options: .activateIgnoringOtherApps)
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                AppDelegate.shared.showAssistant()
-                            }
-                        } label: {
-                            if let name = app.localizedName {
-                                Text(name)
-                            } else {
-                                Text(app.bundleIdentifier ?? "Unknown")
-                            }
-                        }
-                    }
+                if hasAnyOtherUnread || hasAnyOtherLoading {
+                    Circle()
+                        .fill(hasAnyOtherUnread ? Color.green : Color.orange)
+                        .frame(width: 8, height: 8)
+                        .offset(x: 2, y: -2)
+                        .allowsHitTesting(false)
                 }
-            } label: {
-                Image(systemName: "arrow.right.arrow.left")
             }
-            .menuStyle(BorderlessButtonMenuStyle())
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help(L("Recent Apps"))
             
             Button {
                 alwaysOnTop.toggle()
@@ -332,7 +341,7 @@ struct AssistantWindow: View {
                                     .cornerRadius(8)
                                     .overlay(
                                         Circle()
-                                            .fill(Color.red)
+                                            .fill(Color.green)
                                             .frame(width: 8, height: 8)
                                             .offset(x: -4, y: 4)
                                             .opacity(unreadSessions.contains(sessionKey) ? 1 : 0),
@@ -800,16 +809,49 @@ struct AssistantWindow: View {
         return available.first
     }
 
+    private var hasAnyOtherUnread: Bool {
+        unreadSessions.contains { sessionKey in
+            let bundleID = String(sessionKey.split(separator: "|").first ?? "")
+            return bundleID != "*" && bundleID != contextDetector.currentBundleID
+        }
+    }
+
+    private var hasAnyOtherLoading: Bool {
+        llmClient.loadingStates.contains { key, isLoading in
+            if !isLoading { return false }
+            let bundleID = String(key.split(separator: "|").first ?? "")
+            return bundleID != "*" && bundleID != contextDetector.currentBundleID
+        }
+    }
+
+    private func hasUnreadFor(bundleID: String?) -> Bool {
+        guard let bundleID = bundleID else { return false }
+        return unreadSessions.contains { $0.hasPrefix("\(bundleID)|") }
+    }
+
+    private func hasLoadingFor(bundleID: String?) -> Bool {
+        guard let bundleID = bundleID else { return false }
+        return llmClient.loadingStates.contains { key, isLoading in
+            isLoading && key.hasPrefix("\(bundleID)|")
+        }
+    }
+
     private var filteredRecentApps: [ContextDetector.AppContext] {
         contextDetector.recentApps.filter { $0.bundleID != contextDetector.currentBundleID }
     }
 
     private var filteredRunningApps: [NSRunningApplication] {
-        let active = activePIDs
+        let recentIDs = Set(filteredRecentApps.map { $0.bundleID })
         return NSWorkspace.shared.runningApplications.filter { app in
-            app.activationPolicy == .regular &&
-            app.bundleIdentifier != contextDetector.currentBundleID &&
-            active.contains(app.processIdentifier)
+            guard let bundleID = app.bundleIdentifier else { return false }
+            return app.activationPolicy == .regular &&
+            bundleID != contextDetector.currentBundleID &&
+            !recentIDs.contains(bundleID)
+        }
+        .sorted { (app1, app2) -> Bool in
+            let name1 = app1.localizedName ?? ""
+            let name2 = app2.localizedName ?? ""
+            return name1.localizedCompare(name2) == .orderedAscending
         }
     }
 

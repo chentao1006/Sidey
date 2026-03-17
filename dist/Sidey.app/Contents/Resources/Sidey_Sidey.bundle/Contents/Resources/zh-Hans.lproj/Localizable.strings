@@ -33,6 +33,8 @@
 "Select a prompt to edit" = "选择要编辑的助手";
 "Current App:" = "当前应用:";
 "None" = "无";
+"No Recent Apps" = "无最近应用";
+"No Running Apps" = "无运行中的应用";
 "Refresh Frontmost App" = "刷新前台应用";
 "Available Prompts" = "可用助手";
 "No prompts available for this app. Please check prompts.json or select an app with configured prompts." = "此应用没有可用的助手。";
@@ -115,7 +117,7 @@
 "Dismiss" = "忽略";
 "Paste" = "粘贴";
 "Response Completed" = "响应已完成";
-"None" = "不显示";
+"None" = "无";
 "brain" = "大脑";
 "sparkles" = "星星";
 "bolt.fill" = "闪电";
