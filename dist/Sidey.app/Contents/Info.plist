@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Sidey</string>
 	<key>CFBundleExecutable</key>
 	<string>Sidey</string>
 	<key>CFBundleIconFile</key>
@@ -21,11 +23,17 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
 	<key>LSUIElement</key>
-	<string>1</string>
+	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>SUFeedURL</key>
+	<string>https://chentao1006.github.io/sidey/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>T9d+4vUpmrkAXNcwSOu7/MzSO6tIKr8JbVhYe4j0jaE=</string>
 </dict>
 </plist>

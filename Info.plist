@@ -15,7 +15,7 @@
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>LSUIElement</key>
-    <string>1</string>
+    <true/>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleDevelopmentRegion</key>
@@ -27,5 +27,11 @@
     </array>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>SUFeedURL</key>
+    <string>https://chentao1006.github.io/sidey/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>T9d+4vUpmrkAXNcwSOu7/MzSO6tIKr8JbVhYe4j0jaE=</string>
 </dict>
 </plist>

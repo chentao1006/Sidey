@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import ServiceManagement
 import Carbon
+import Sparkle
 
 @main
 struct SideyApp: App {
@@ -51,6 +52,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private var statusItem: NSStatusItem?
     private var statusMenu: NSMenu?
+    
+    // Sparkle updater
+    private var updaterController: SPUStandardUpdaterController?
+    
+    override init() {
+        super.init()
+        // Initialize Sparkle
+        self.updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+    }
     
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSAppleEventManager.shared().setEventHandler(
@@ -324,6 +334,11 @@ extension AppDelegate: NSMenuDelegate {
         let settingsItem = NSMenuItem(title: L("Settings..."), action: #selector(showSettingsAction), keyEquivalent: "")
         settingsItem.target = self
         menu.addItem(settingsItem)
+        
+        // Add "Check for Updates"
+        let checkUpdateItem = NSMenuItem(title: L("Check for Updates..."), action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
+        checkUpdateItem.target = updaterController
+        menu.addItem(checkUpdateItem)
         
         menu.addItem(NSMenuItem.separator())
         

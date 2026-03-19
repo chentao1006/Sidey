@@ -30,6 +30,7 @@ playground.xcworkspace
 # .swiftpm
 
 .build/
+dist/
 
 # CocoaPods
 #
@@ -60,3 +61,5 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+Sparkle_tmp/
