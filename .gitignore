@@ -63,3 +63,11 @@ fastlane/screenshots/**/*.png
 fastlane/test_output
 
 Sparkle_tmp/
+
+# Xcode Project Files
+!Sidey.xcodeproj/project.pbxproj
+!Sidey.xcworkspace/contents.xcworkspacedata
+# Ignore user-specific settings
+xcuserdata/
+*.xcuserstate
+.DS_Store

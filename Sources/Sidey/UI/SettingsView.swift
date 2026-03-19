@@ -7,6 +7,7 @@ struct SettingsView: View {
     @AppStorage("appLanguage") private var appLanguage = "system"
 
     var body: some View {
+        let currentLocale = appLanguage == "system" ? Locale.current : Locale(identifier: appLanguage)
         TabView(selection: $selectedTab) {
             GeneralSettingsView()
                 .tabItem {
@@ -38,6 +39,7 @@ struct SettingsView: View {
                 }
                 .tag("about")
         }
+        .environment(\.locale, currentLocale)
         .frame(width: 580, height: 480)
         .id(appLanguage)
     }

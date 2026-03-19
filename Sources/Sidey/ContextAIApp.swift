@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import ServiceManagement
 import Carbon
-import Sparkle
+
 
 @main
 struct SideyApp: App {
@@ -16,7 +16,8 @@ struct SideyApp: App {
     }
     
     var currentLocale: Locale {
-        return appLanguage == "system" ? Locale.current : Locale(identifier: appLanguage)
+        let lang = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
+        return lang == "system" ? .current : Locale(identifier: lang)
     }
     
     var body: some Scene {
@@ -53,15 +54,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var statusMenu: NSMenu?
     
-    // Sparkle updater
-    private var updaterController: SPUStandardUpdaterController?
-    
-    override init() {
-        super.init()
-        // Initialize Sparkle
-        self.updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
-    }
-    
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSAppleEventManager.shared().setEventHandler(
             self,
@@ -91,7 +83,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let showDockIcon = UserDefaults.standard.bool(forKey: "showDockIcon")
         NSApplication.shared.setActivationPolicy(showDockIcon ? .regular : .accessory)
         
-        if let iconURL = Bundle.module.url(forResource: "Mac-512", withExtension: "png", subdirectory: "Assets.xcassets/AppIcon.appiconset"),
+        if let iconURL = Bundle.sideyModule.url(forResource: "Mac-512", withExtension: "png"),
            let icon = NSImage(contentsOf: iconURL) {
             NSApplication.shared.applicationIconImage = icon
         }
@@ -137,7 +129,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         window.setFrameAutosaveName("AssistantWindow")
         
-        let assistantView = AssistantWindow().environment(\.locale, Locale.current)
+        let assistantView = AssistantWindow()
+        window.contentView = NSHostingView(rootView: assistantView)
         window.contentView = NSHostingView(rootView: assistantView)
         self.assistantWindow = window
     }
@@ -177,7 +170,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             window.setFrameAutosaveName("SettingsWindow")
             
-            window.contentView = NSHostingView(rootView: SettingsView().environment(\.locale, Locale.current))
+            let settingsView = SettingsView()
+            window.contentView = NSHostingView(rootView: settingsView)
             self.settingsWindow = window
         }
         
@@ -335,10 +329,6 @@ extension AppDelegate: NSMenuDelegate {
         settingsItem.target = self
         menu.addItem(settingsItem)
         
-        // Add "Check for Updates"
-        let checkUpdateItem = NSMenuItem(title: L("Check for Updates..."), action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
-        checkUpdateItem.target = updaterController
-        menu.addItem(checkUpdateItem)
         
         menu.addItem(NSMenuItem.separator())
         

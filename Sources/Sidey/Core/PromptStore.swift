@@ -121,7 +121,7 @@ class PromptStore: ObservableObject {
             if allPrompts.isEmpty {
                 let localURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
                     .appendingPathComponent("Sidey/settings.json")
-                let loadURL = FileManager.default.fileExists(atPath: localURL.path) ? localURL : Bundle.module.url(forResource: "prompts", withExtension: "json")
+                let loadURL = FileManager.default.fileExists(atPath: localURL.path) ? localURL : Bundle.sideyModule.url(forResource: "prompts", withExtension: "json")
                 if let loadURL = loadURL, let data = try? Data(contentsOf: loadURL),
                    let decoded = try? JSONDecoder().decode(SyncData.self, from: data) {
                     self.allPrompts = decoded.prompts
@@ -176,7 +176,7 @@ class PromptStore: ObservableObject {
                 // Initialize new storage with current local state
                 isInitialLoading = false
                 self.savePrompts()
-            } else if let bundleURL = Bundle.module.url(forResource: "prompts", withExtension: "json") {
+            } else if let bundleURL = Bundle.sideyModule.url(forResource: "prompts", withExtension: "json") {
                 // True fresh start: copy bundle to folder.
                 try? FileManager.default.copyItem(at: bundleURL, to: url)
                 isInitialLoading = false

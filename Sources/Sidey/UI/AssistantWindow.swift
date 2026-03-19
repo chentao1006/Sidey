@@ -44,6 +44,7 @@ struct AssistantWindow: View {
     @State private var lastFinishedExchangeID: UUID? = nil
     
     var body: some View {
+        let currentLocale = appLanguage == "system" ? Locale.current : Locale(identifier: appLanguage)
         ZStack(alignment: .bottom) {
             VStack(spacing: 16) {
                 appContextHeader
@@ -53,6 +54,7 @@ struct AssistantWindow: View {
             }
             .padding()
         }
+        .environment(\.locale, currentLocale)
         .id(appLanguage)
         .frame(minWidth: 380, idealWidth: 380, minHeight: 520, idealHeight: 520)
         .background(WindowAccessor(window: $window))
@@ -210,7 +212,7 @@ struct AssistantWindow: View {
                                     AppDelegate.shared.showAssistant()
                                 }
                             } label: {
-                                let suffix = hasUnreadFor(bundleID: app.bundleIdentifier) ? " (回答完成)" : (hasLoadingFor(bundleID: app.bundleIdentifier) ? " (思考中)" : "")
+                                let suffix = hasUnreadFor(bundleID: app.bundleIdentifier) ? L(" (New Answer)") : (hasLoadingFor(bundleID: app.bundleIdentifier) ? L(" (Thinking...)") : "")
                                 let name = app.localizedName ?? (app.bundleIdentifier ?? "Unknown")
                                 Text(name + suffix)
                             }

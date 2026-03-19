@@ -14,14 +14,13 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/gonzalezreal/MarkdownUI", from: "2.4.0"),
-        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.4")
+
     ],
     targets: [
         .executableTarget(
             name: "Sidey",
             dependencies: [
-                .product(name: "MarkdownUI", package: "MarkdownUI"),
-                .product(name: "Sparkle", package: "Sparkle")
+                .product(name: "MarkdownUI", package: "MarkdownUI")
             ],
             path: "Sources/Sidey",
             exclude: [

@@ -86,4 +86,4 @@ else
     echo "⚠️  GitHub CLI (gh) not found or not authenticated. Please upload ${RESULT_DIR}/${PROJECT_NAME}.dmg and appcast.xml manually to the GitHub release page."
 fi
 
-echo "📡 Important: Don't forget to push any changes to GitHub Pages if you're using it for Sparkle updates."
+echo "🎉 Release process complete!"

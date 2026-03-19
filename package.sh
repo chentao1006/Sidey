@@ -15,28 +15,6 @@ DMG_PATH="${RESULT_DIR}/${DMG_NAME}"
 # You can set these environment variables globally or replace them here
 APPLE_ID="${APPLE_ID}"
 APPLE_PASSWORD="${APPLE_PASSWORD}"
-SPARKLE_BIN_PATH="./Sparkle_tmp/bin" # Downloaded during build if missing
-
-# --- Ensure Sparkle tools exist locally ---
-if [ ! -x "${SPARKLE_BIN_PATH}/generate_appcast" ]; then
-    echo "⬇️ Sparkle tools not found at ${SPARKLE_BIN_PATH}. Downloading..."
-    mkdir -p Sparkle_tmp
-    
-    # Simple logic to find latest Sparkle release asset (.tar.xz)
-    SPARKLE_URL=$(curl -s https://api.github.com/repos/sparkle-project/Sparkle/releases/latest | grep "browser_download_url" | grep "tar.xz" | head -n 1 | cut -d '"' -f 4)
-    
-    if [ -z "$SPARKLE_URL" ]; then
-        echo "❌ Error: Failed to find Sparkle download URL."
-        exit 1
-    fi
-    
-    curl -L "$SPARKLE_URL" -o sparkle_dist.tar.xz
-    tar -xf sparkle_dist.tar.xz -C Sparkle_tmp
-    
-    # Cleanup
-    rm -f sparkle_dist.tar.xz
-    echo "✅ Sparkle tools installed to ${SPARKLE_BIN_PATH}"
-fi
 
 set -e
 
@@ -87,15 +65,6 @@ find ".build/apple/Products/Release" -name "${PROJECT_NAME}_${PROJECT_NAME}.bund
 # Copy .lproj folders to top-level Resources (correct path for SPM-generated bundle)
 cp -R "$APP_BUNDLE/Contents/Resources/${PROJECT_NAME}_${PROJECT_NAME}.bundle/Contents/Resources"/*.lproj "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
 
-# Copy Sparkle.framework
-echo "📥 Copying Sparkle.framework..."
-mkdir -p "$APP_BUNDLE/Contents/Frameworks"
-SPARKLE_FW=$(find .build -name "Sparkle.framework" | grep "macos-arm64_x86_64" | head -n 1)
-if [ -n "$SPARKLE_FW" ]; then
-    cp -R "$SPARKLE_FW" "$APP_BUNDLE/Contents/Frameworks/"
-else
-    echo "⚠️  Sparkle.framework not found in .build. Version check might fail."
-fi
 
 # 4. Code Signing (if developer ID set, else ad-hoc)
 echo "🖋️ Code signing..."
@@ -118,10 +87,6 @@ if security find-identity -v -p codesigning | grep -q "$CODESIGN_IDENTITY"; then
     find "$APP_BUNDLE/Contents" -maxdepth 2 -name "*.framework" -o -name "*.bundle" | while read component; do
         codesign --force --options runtime --sign "$CODESIGN_IDENTITY" "$component"
     done
-    # Sign Sparkle's Updater and other services
-    if [ -d "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework" ]; then
-        codesign --force --options runtime --sign "$CODESIGN_IDENTITY" "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
-    fi
     # Finally sign the main app bundle
     codesign --force --options runtime --deep $ENT_OPT --sign "$CODESIGN_IDENTITY" "$APP_BUNDLE"
 else
@@ -155,14 +120,5 @@ else
     echo "⚠️  Notarization skipped (APPLE_ID/APPLE_PASSWORD not set)."
 fi
 
-# 7. Generate Sparkle Appcast
-if [ -x "${SPARKLE_BIN_PATH}/generate_appcast" ]; then
-    echo "📡 Generating Sparkle appcast..."
-    "${SPARKLE_BIN_PATH}/generate_appcast" -o appcast.xml "${RESULT_DIR}"
-    echo "✅ appcast.xml generated."
-else
-    echo "❌ Sparkle tools missing at ${SPARKLE_BIN_PATH}."
-    exit 1
-fi
 
 echo "🎉 All done! DMG is at ${DMG_PATH}"
