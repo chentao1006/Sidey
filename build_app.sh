@@ -1,11 +1,58 @@
 #!/bin/bash
 
 # Configuration
-APP_NAME="Sidey"
-BUNDLE_ID="com.ct106.sidey"
+echo "🔍 Extracting project information..."
+PROJ_FILE=$(find . -maxdepth 1 -name "*.xcodeproj" | head -n 1)
+if [ -z "$PROJ_FILE" ]; then
+    echo "❌ Error: Could not find .xcodeproj file in the current directory."
+    exit 1
+fi
+
+PROJ_SETTINGS=$(xcodebuild -showBuildSettings -project "$PROJ_FILE" -configuration Release 2>/dev/null)
+if [ $? -ne 0 ]; then
+    echo "❌ Error: Could not get project build settings from xcodebuild."
+    exit 1
+fi
+
+APP_NAME=$(echo "$PROJ_SETTINGS" | grep -w "PRODUCT_NAME" | head -n 1 | cut -d'=' -f2 | xargs)
+BUNDLE_ID=$(echo "$PROJ_SETTINGS" | grep -w "PRODUCT_BUNDLE_IDENTIFIER" | head -n 1 | cut -d'=' -f2 | xargs)
+VERSION=$(echo "$PROJ_SETTINGS" | grep -w "MARKETING_VERSION" | head -n 1 | cut -d'=' -f2 | xargs)
+BUILD_NUMBER=$(echo "$PROJ_SETTINGS" | grep -w "CURRENT_PROJECT_VERSION" | head -n 1 | cut -d'=' -f2 | xargs)
+
+if [ -z "$APP_NAME" ] || [ -z "$BUNDLE_ID" ]; then
+    echo "❌ Error: Could not extract APP_NAME or BUNDLE_ID from project settings."
+    exit 1
+fi
+
+echo "   App Name: $APP_NAME"
+echo "   Bundle ID: $BUNDLE_ID"
+echo "   Version: $VERSION ($BUILD_NUMBER)"
+
+# 0. Localize Bundle Name based on system language
+DISPLAY_NAME="$APP_NAME"
+SYSTEM_LANG=$(defaults read -g AppleLanguages | grep -oE '[a-zA-Z-]+' | head -n 1)
+echo "🔍 System Language: $SYSTEM_LANG"
+
+if [[ "$SYSTEM_LANG" == zh* ]]; then
+    # Try to find Chinese InfoPlist.strings
+    STRINGS_FILE=$(find "$APP_NAME" -name "InfoPlist.strings" | grep "zh-Hans" | head -n 1 2>/dev/null)
+    if [ -z "$STRINGS_FILE" ]; then
+        # Fallback to search in all dirs if APP_NAME folder not found
+        STRINGS_FILE=$(find . -name "InfoPlist.strings" | grep "zh-Hans" | head -n 1 2>/dev/null)
+    fi
+    
+    if [ -n "$STRINGS_FILE" ]; then
+        LOCALIZED_NAME=$(plutil -p "$STRINGS_FILE" | grep -E "CFBundleDisplayName|CFBundleName" | head -n 1 | sed -E 's/.*=> "(.*)".*/\1/')
+        if [ -n "$LOCALIZED_NAME" ]; then
+            DISPLAY_NAME="$LOCALIZED_NAME"
+            echo "🌐 Localized Name found: $DISPLAY_NAME"
+        fi
+    fi
+fi
+
 BUILD_DIR=".build/apple/Products/Release"
 DIST_DIR="dist"
-APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
+APP_BUNDLE="$DIST_DIR/$DISPLAY_NAME.app"
 
 # 1. Build in Release mode
 echo "🏗️ Building $APP_NAME in release mode..."
@@ -19,7 +66,7 @@ mkdir -p "$APP_BUNDLE/Contents/Resources"
 
 # 3. Handle Icons
 echo "🎨 Generating App Icon..."
-ICONSET_DIR="/tmp/Sidey.iconset"
+ICONSET_DIR="/tmp/$APP_NAME.iconset"
 rm -rf "$ICONSET_DIR"
 mkdir -p "$ICONSET_DIR"
 
@@ -42,10 +89,13 @@ rm -rf "$ICONSET_DIR"
 # 4. Handle Info.plist
 echo "📝 Processing Info.plist..."
 cp "Info.plist" "$APP_BUNDLE/Contents/Info.plist"
-# Ensure the app name and ID in Plist match script configuration
+# Ensure the app name, ID and versions in Plist match project configuration
 plutil -replace CFBundleExecutable -string "$APP_NAME" "$APP_BUNDLE/Contents/Info.plist"
-plutil -replace CFBundleName -string "$APP_NAME" "$APP_BUNDLE/Contents/Info.plist"
+plutil -replace CFBundleName -string "$DISPLAY_NAME" "$APP_BUNDLE/Contents/Info.plist"
+plutil -replace CFBundleDisplayName -string "$DISPLAY_NAME" "$APP_BUNDLE/Contents/Info.plist"
 plutil -replace CFBundleIdentifier -string "$BUNDLE_ID" "$APP_BUNDLE/Contents/Info.plist"
+plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP_BUNDLE/Contents/Info.plist"
+plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$APP_BUNDLE/Contents/Info.plist"
 
 # 5. Copy binary and resources
 echo "🚀 Copying binary and artifacts..."
@@ -62,8 +112,8 @@ pkill -x "$APP_NAME" || true
 sleep 1
 
 echo "📦 Installing to /Applications..."
-rm -rf "/Applications/$APP_NAME.app"
+rm -rf "/Applications/$DISPLAY_NAME.app"
 cp -R "$APP_BUNDLE" "/Applications/"
 
 echo "✅ Done! You can find the app in the '$DIST_DIR' folder and it has been installed to /Applications."
-open "/Applications/$APP_NAME.app"
+open "/Applications/$DISPLAY_NAME.app"
