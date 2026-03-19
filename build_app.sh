@@ -24,7 +24,7 @@ rm -rf "$ICONSET_DIR"
 mkdir -p "$ICONSET_DIR"
 
 # Mapping files from Assets.xcassets to standard iconset names
-SRC_ICON_DIR="Sources/Sidey/Resources/Assets.xcassets/AppIcon.appiconset"
+SRC_ICON_DIR="Sidey/Resources/Assets.xcassets/AppIcon.appiconset"
 cp "$SRC_ICON_DIR/Mac-16.png" "$ICONSET_DIR/icon_16x16.png"
 cp "$SRC_ICON_DIR/Mac-16@2x.png" "$ICONSET_DIR/icon_16x16@2x.png"
 cp "$SRC_ICON_DIR/Mac-32.png" "$ICONSET_DIR/icon_32x32.png"

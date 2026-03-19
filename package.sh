@@ -37,7 +37,7 @@ echo "📂 Assembling App Bundle..."
 ICONSET_DIR="/tmp/${PROJECT_NAME}.iconset"
 rm -rf "$ICONSET_DIR"
 mkdir -p "$ICONSET_DIR"
-SRC_ICON_DIR="Sources/Sidey/Resources/Assets.xcassets/AppIcon.appiconset"
+SRC_ICON_DIR="Sidey/Resources/Assets.xcassets/AppIcon.appiconset"
 cp "$SRC_ICON_DIR/Mac-16.png" "$ICONSET_DIR/icon_16x16.png"
 cp "$SRC_ICON_DIR/Mac-16@2x.png" "$ICONSET_DIR/icon_16x16@2x.png"
 cp "$SRC_ICON_DIR/Mac-32.png" "$ICONSET_DIR/icon_32x32.png"
@@ -69,7 +69,7 @@ cp -R "$APP_BUNDLE/Contents/Resources/${PROJECT_NAME}_${PROJECT_NAME}.bundle/Con
 # 4. Code Signing (if developer ID set, else ad-hoc)
 echo "🖋️ Code signing..."
 CODESIGN_IDENTITY="Developer ID Application"
-ENTITLEMENTS="Sources/Sidey/Sidey.entitlements"
+ENTITLEMENTS="Sidey/Sidey.entitlements"
 TMP_ENTITLEMENTS="/tmp/Sidey.tmp.entitlements"
 
 # Prepare entitlements with Team ID

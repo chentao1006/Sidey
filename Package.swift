@@ -22,7 +22,7 @@ let package = Package(
             dependencies: [
                 .product(name: "MarkdownUI", package: "MarkdownUI")
             ],
-            path: "Sources/Sidey",
+            path: "Sidey",
             exclude: [
                 "Sidey.entitlements"
             ],
