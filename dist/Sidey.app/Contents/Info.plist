@@ -4,8 +4,6 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
-	<key>CFBundleDisplayName</key>
-	<string>Sidey</string>
 	<key>CFBundleExecutable</key>
 	<string>Sidey</string>
 	<key>CFBundleIconFile</key>
