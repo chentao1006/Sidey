@@ -46,7 +46,6 @@ struct SettingsView: View {
 }
 
 struct GeneralSettingsView: View {
-    @AppStorage("showDockIcon") private var showDockIcon = true
     @AppStorage("alwaysOnTop") private var alwaysOnTop = true
     @AppStorage("appLanguage") private var appLanguage = "system"
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
@@ -88,18 +87,6 @@ struct GeneralSettingsView: View {
                     SyncManager.shared.syncToCloud()
                 }
                 
-                Toggle(L("Show application in Dock"), isOn: $showDockIcon)
-                    .help(L("If disabled, the app will only appear in the menu bar."))
-                    .onChangeCompatible(of: showDockIcon) { newValue in
-                        let policy: NSApplication.ActivationPolicy = newValue ? .regular : .accessory
-                        NSApplication.shared.setActivationPolicy(policy)
-                        if newValue {
-                            NSApplication.shared.activate(ignoringOtherApps: true)
-                        } else {
-                            NSApplication.shared.deactivate()
-                        }
-                        SyncManager.shared.syncToCloud()
-                    }
 
                 Picker(L("Menu Bar Icon"), selection: $menuBarIcon) {
                     ForEach(menuBarIcons, id: \.self) { icon in
@@ -627,7 +614,7 @@ struct DataSettingsView: View {
                     }
                 }
                 
-                Text(L("You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices without limitations."))
+                Text(L("You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices."))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

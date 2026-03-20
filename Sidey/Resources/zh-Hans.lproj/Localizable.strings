@@ -138,7 +138,7 @@
 "Choose..." = "选择...";
 "Select Sync Folder" = "选择同步目录";
 "Default (iCloud Drive)" = "默认 (iCloud Drive)";
-"You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices without limitations." = "您可以选择 iCloud Drive 或 Dropbox 目录来在多台设备间自动同步数据，且不受大小限制。";
+"You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices." = "您可以选择 iCloud Drive 或 Dropbox 目录来在多台设备间自动同步数据。";
 "Loaded!" = "已加载";
 "No Data Found" = "未发现数据";
 "Automatically pasted from clipboard" = "已自动粘贴自剪贴板";

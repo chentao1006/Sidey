@@ -693,6 +693,9 @@ struct AssistantWindow: View {
         
         if messageToSend.isEmpty { return }
         performSend(messageToSend: messageToSend, prompt: prompt)
+        
+        // Deselect clipboard after sending
+        self.includeClipboard = false
     }
     
     private func performSend(messageToSend: String, prompt: Prompt) {

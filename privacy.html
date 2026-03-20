@@ -5,234 +5,326 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy - Sidey</title>
     <style>
+        :root {
+            --primary-color: #007AFF;
+            --text-main: #1D1D1F;
+            --text-secondary: #86868B;
+            --bg-color: #FFFFFF;
+            --section-bg: #F5F5F7;
+            --border-color: #D2D2D7;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary-color: #0A84FF;
+                --text-main: #F5F5F7;
+                --text-secondary: #86868B;
+                --bg-color: #000000;
+                --section-bg: #1C1C1E;
+                --border-color: #38383A;
+            }
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            line-height: 1.6;
-            margin: 40px auto;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            line-height: 1.5;
+            letter-spacing: -0.01em;
+            margin: 0;
+            padding: 0;
+            color: var(--text-main);
+            background-color: var(--bg-color);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
             max-width: 800px;
-            padding: 0 20px;
-            color: #333;
-            background: #fff;
+            margin: 0 auto;
+            padding: 80px 40px;
         }
-        h1, h2 {
-            color: #111;
+
+        header {
+            margin-bottom: 60px;
+            text-align: center;
         }
+
         h1 {
-            border-bottom: 2px solid #eee;
-            padding-bottom: 10px;
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            letter-spacing: -0.02em;
         }
-        h2 {
-            margin-top: 30px;
-        }
-        p {
-            margin: 10px 0;
-        }
-        ul {
-            margin: 10px 0 10px 20px;
-        }
-        li {
-            margin: 5px 0;
-        }
-        .section {
-            margin-bottom: 25px;
-        }
-        .footer {
-            margin-top: 50px;
+
+        .last-updated {
             font-size: 14px;
-            color: #666;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            color: var(--text-main);
+        }
+
+        p {
+            margin-bottom: 20px;
+            font-size: 17px;
+        }
+
+        ul {
+            margin-bottom: 25px;
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 12px;
+            font-size: 17px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background-color: var(--section-bg);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            color: var(--text-secondary);
+        }
+
+        .section {
+            margin-bottom: 50px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .language-switcher {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .btn-lang {
+            display: inline-block;
+            padding: 8px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 14px;
+            margin: 0 5px;
+            cursor: pointer;
+            color: var(--text-main);
+            background: transparent;
+            transition: all 0.2s ease;
+        }
+
+        .btn-lang:hover {
+            background-color: var(--section-bg);
+        }
+
+        .footer {
+            margin-top: 100px;
+            padding-bottom: 60px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 80px 0;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 24px;
+            }
+            h1 {
+                font-size: 32px;
+            }
         }
     </style>
 </head>
 <body>
 
-<h1>Privacy Policy for Sidey</h1>
-<p><strong>Last updated: March 2026</strong></p>
+<div class="container">
+    <div class="language-switcher">
+        <a href="#en" class="btn-lang">English</a>
+        <a href="#zh" class="btn-lang">简体中文</a>
+    </div>
 
-<div class="section">
-    <p>
-        Sidey is a lightweight macOS utility designed to ensure selected applications fully terminate when their windows are closed.
-    </p>
-    <p>
-        We respect your privacy. This Privacy Policy explains how Sidey handles your information.
-    </p>
-</div>
+    <header id="en">
+        <div class="badge">Sidey Privacy Policy</div>
+        <h1>Privacy Policy</h1>
+        <p class="last-updated">Last updated: March 2026</p>
+    </header>
 
-<div class="section">
-    <h2>1. Data Collection</h2>
-    <p>Sidey does <strong>not collect, store, or transmit any personal data</strong>.</p>
-    <ul>
-        <li>No account system</li>
-        <li>No analytics or tracking</li>
-        <li>No personal identifiers collected</li>
-        <li>No usage data sent to any server</li>
-    </ul>
-    <p>Sidey runs entirely on your local device.</p>
-</div>
+    <div class="section">
+        <p>
+            Sidey (also known as "旁白" in Chinese) is a lightweight, context-aware AI assistant for macOS. We respect your privacy and are committed to protecting any data you share with the application.
+        </p>
+    </div>
 
-<div class="section">
-    <h2>2. Permissions</h2>
-    <p>
-        Sidey may require certain macOS system permissions (such as Accessibility access) to function properly.
-    </p>
-    <ul>
-        <li>Used only to monitor and control application behavior</li>
-        <li>Processed entirely on-device</li>
-        <li>Never transmitted externally</li>
-    </ul>
-</div>
+    <div class="section">
+        <h2>1. No Personal Data Collection</h2>
+        <p>
+            Sidey is designed with privacy at its core. The developer <strong>does not collect, store, or transmit</strong> any of your personal data, including:
+        </p>
+        <ul>
+            <li>No account registration or personal profiling.</li>
+            <li>No analytics, tracking, or usage telemetry.</li>
+            <li>No periodic "heartbeat" or identification sent to the developer's server.</li>
+        </ul>
+    </div>
 
-<div class="section">
-    <h2>3. Data Storage</h2>
-    <p>
-        All configurations (such as selected applications) are stored locally on your device.
-    </p>
-    <p>
-        Sidey does not use any remote database or cloud storage.
-    </p>
-</div>
+    <div class="section">
+        <h2>2. AI Services & Data Transmission</h2>
+        <p>
+            Sidey functions as a client for AI services (such as OpenAI). When you interact with the assistant:
+        </p>
+        <ul>
+            <li>Your chat messages and system prompts are sent directly to the <strong>API provider</strong> (e.g., OpenAI) that you have configured in the settings.</li>
+            <li>This data transmission occurs over encrypted HTTPS connections directly from your device to the API endpoint.</li>
+            <li>The developer of Sidey does not act as a middleman and cannot access these communications.</li>
+            <li>Please refer to your API provider's privacy policy for information on how they handle your data.</li>
+        </ul>
+    </div>
 
-<div class="section">
-    <h2>4. Third-Party Services</h2>
-    <p>
-        Sidey does not integrate with third-party services, except for optional update mechanisms (e.g., Sparkle).
-    </p>
-    <ul>
-        <li>The app may check for updates from a remote feed</li>
-        <li>No personal data is included in update requests</li>
-    </ul>
-</div>
+    <div class="section">
+        <h2>3. Local & Cloud Storage</h2>
+        <p>
+            All application data is under your control:
+        </p>
+        <ul>
+            <li><strong>API Keys & Settings:</strong> Stored securely on your local device using standard macOS storage mechanisms (UserDefaults/Keychain).</li>
+            <li><strong>Prompts & Configurations:</strong> If you enable "File Sync", these are stored in a folder you choose (e.g., iCloud Drive, Dropbox). This allows you to sync data across your own devices using your own cloud storage.</li>
+            <li><strong>Debug Logs:</strong> Sidey maintains a volatile local log for debugging purposes, which you can clear at any time from the settings. These logs never leave your device unless you manually export them.</li>
+        </ul>
+    </div>
 
-<div class="section">
-    <h2>5. Security</h2>
-    <p>
-        Since Sidey does not collect or transmit user data:
-    </p>
-    <ul>
-        <li>No risk of server-side data leakage</li>
-        <li>All operations remain local to your device</li>
-    </ul>
-</div>
+    <div class="section">
+        <h2>4. System Permissions</h2>
+        <p>
+            To provide its core functionality, Sidey may request the following permissions:
+        </p>
+        <ul>
+            <li><strong>Accessibility:</strong> Used solely to detect the currently active application. This allows Sidey to provide "context-aware" prompts tailored to the app you are currently using.</li>
+            <li><strong>Login Item:</strong> Optional permission to start Sidey automatically when you log in to your Mac.</li>
+        </ul>
+        <p>Most features of Sidey work entirely offline, except for the communication with your chosen AI provider.</p>
+    </div>
 
-<div class="section">
-    <h2>6. Children's Privacy</h2>
-    <p>
-        Sidey does not collect any personal data from anyone, including children.
-    </p>
-</div>
+    <div class="section">
+        <h2>5. Changes to This Policy</h2>
+        <p>
+            We may update this Privacy Policy from time to time. Any changes will be posted on this page with an updated "Last updated" date.
+        </p>
+    </div>
 
-<div class="section">
-    <h2>7. Changes to This Policy</h2>
-    <p>
-        This Privacy Policy may be updated in the future. Any changes will be reflected on this page with an updated date.
-    </p>
-</div>
+    <div class="section">
+        <h2>6. Contact</h2>
+        <p>
+            If you have any questions or concerns about this Privacy Policy, please contact us via GitHub:
+            <a href="https://github.com/chentao1006/Sidey" target="_blank">https://github.com/chentao1006/Sidey</a>
+        </p>
+    </div>
 
-<div class="section">
-    <h2>8. Contact</h2>
-    <p>
-        If you have any questions, you can contact:
-    </p>
-    <ul>
-        <li>GitHub: <a href="https://github.com/chentao1006/Sidey" target="_blank">https://github.com/chentao1006/Sidey</a></li>
-    </ul>
-</div>
+    <hr id="zh">
 
-<hr>
+    <header>
+        <div class="badge">Sidey 隐私政策</div>
+        <h1>隐私政策</h1>
+        <p class="last-updated">最后更新：2026年3月</p>
+    </header>
 
-<h1>隐私政策（中文）</h1>
-<p><strong>最后更新：2026年3月</strong></p>
+    <div class="section">
+        <p>
+            Sidey（中文名“旁白”）是一款为 macOS 设计的轻量级、上下文感知 AI 助手。我们非常重视您的隐私，并致力于保护您在使用应用过程中产生的所有数据。
+        </p>
+    </div>
 
-<div class="section">
-    <p>
-        Sidey 是一个轻量级 macOS 工具，用于在关闭窗口时确保应用彻底退出。
-    </p>
-    <p>
-        我们非常重视你的隐私。本隐私政策说明 Sidey 如何处理你的信息。
-    </p>
-</div>
+    <div class="section">
+        <h2>1. 不收集个人数据</h2>
+        <p>
+            Sidey 的设计初衷是保护隐私。开发者<strong>不会收集、存储或传输</strong>您的任何个人数据，具体包括：
+        </p>
+        <ul>
+            <li>没有账号注册系统，不进行个人画像。</li>
+            <li>没有数据统计、追踪或使用情况分析。</li>
+            <li>不会向开发者的服务器发送任何身份识别信息。</li>
+        </ul>
+    </div>
 
-<div class="section">
-    <h2>1. 数据收集</h2>
-    <p>Sidey <strong>不会收集、存储或传输任何个人数据</strong>。</p>
-    <ul>
-        <li>无账号系统</li>
-        <li>无统计或跟踪</li>
-        <li>不收集任何身份信息</li>
-        <li>不向服务器发送任何使用数据</li>
-    </ul>
-    <p>Sidey 完全在本地运行。</p>
-</div>
+    <div class="section">
+        <h2>2. AI 服务与数据传输</h2>
+        <p>
+            Sidey 作为 AI 服务（如 OpenAI）的客户端运行。当您与助手交互时：
+        </p>
+        <ul>
+            <li>您的聊天信息和系统提示词将直接发送给您在设置中配置的 <strong>API 提供商</strong>（如 OpenAI）。</li>
+            <li>这些数据通过加密的 HTTPS 连接直接从您的设备发送到 API 端点。</li>
+            <li>Sidey 的开发者不充当中间人，无法访问这些通信内容。</li>
+            <li>关于 API 提供商如何处理您的数据，请参考其各自的隐私政策。</li>
+        </ul>
+    </div>
 
-<div class="section">
-    <h2>2. 权限说明</h2>
-    <p>
-        Sidey 可能需要 macOS 的部分系统权限（如辅助功能权限）以实现功能。
-    </p>
-    <ul>
-        <li>仅用于控制应用行为</li>
-        <li>所有数据仅在本地处理</li>
-        <li>不会上传或共享</li>
-    </ul>
-</div>
+    <div class="section">
+        <h2>3. 本地与云端存储</h2>
+        <p>
+            所有应用数据完全由您掌控：
+        </p>
+        <ul>
+            <li><strong>API 密钥与设置：</strong> 安全地存储在您的本地设备上，使用 macOS 标准存储机制。</li>
+            <li><strong>提示词与配置：</strong> 如果您启用了“文件同步”，这些数据将存储在您选择的文件夹中（如 iCloud Drive、Dropbox）。这允许您使用自己的云存储在不同设备间同步数据。</li>
+            <li><strong>调试日志：</strong> Sidey 会保留一份本地临时日志用于调试，您可以在设置中随时清除。这些日志除非您手动导出，否则永远不会离开您的设备。</li>
+        </ul>
+    </div>
 
-<div class="section">
-    <h2>3. 数据存储</h2>
-    <p>
-        所有配置（例如你选择的应用）均保存在本地设备中。
-    </p>
-    <p>
-        Sidey 不使用云存储或远程数据库。
-    </p>
-</div>
+    <div class="section">
+        <h2>4. 系统权限</h2>
+        <p>
+            为了实现核心功能，Sidey 可能会请求以下权限：
+        </p>
+        <ul>
+            <li><strong>辅助功能 (Accessibility)：</strong> 仅用于检测当前活动的应用程序。这使得 Sidey 能够根据您当前使用的应用提供“上下文感知”的提示词。</li>
+            <li><strong>登录项：</strong> 可选权限，用于在您登录 Mac 时自动启动 Sidey。</li>
+        </ul>
+        <p>除了与您选择的 AI 提供商进行通信外，Sidey 的大部分功能都在本地离线运行。</p>
+    </div>
 
-<div class="section">
-    <h2>4. 第三方服务</h2>
-    <p>
-        Sidey 不集成第三方服务，除非用于自动更新（如 Sparkle）。
-    </p>
-    <ul>
-        <li>可能会请求更新服务器</li>
-        <li>不包含任何个人数据</li>
-    </ul>
-</div>
+    <div class="section">
+        <h2>5. 政策更新</h2>
+        <p>
+            我们可能会不时更新本隐私政策。任何更改都将发布在此页面上，并更新“最后更新”日期。
+        </p>
+    </div>
 
-<div class="section">
-    <h2>5. 安全性</h2>
-    <p>
-        由于 Sidey 不收集或传输数据：
-    </p>
-    <ul>
-        <li>不存在服务器数据泄露风险</li>
-        <li>所有操作均在本地完成</li>
-    </ul>
-</div>
+    <div class="section">
+        <h2>6. 联系方式</h2>
+        <p>
+            如果您对本隐私政策有任何疑问或担忧，请通过 GitHub 与我们联系：
+            <a href="https://github.com/chentao1006/Sidey" target="_blank">https://github.com/chentao1006/Sidey</a>
+        </p>
+    </div>
 
-<div class="section">
-    <h2>6. 未成年人隐私</h2>
-    <p>
-        Sidey 不收集任何用户数据，包括未成年人。
-    </p>
-</div>
-
-<div class="section">
-    <h2>7. 政策更新</h2>
-    <p>
-        本隐私政策可能会更新，更新后会在本页面注明日期。
-    </p>
-</div>
-
-<div class="section">
-    <h2>8. 联系方式</h2>
-    <p>
-        如有问题，可通过以下方式联系：
-    </p>
-    <ul>
-        <li>GitHub: <a href="https://github.com/chentao1006/Sidey" target="_blank">https://github.com/chentao1006/Sidey</a></li>
-    </ul>
-</div>
-
-<div class="footer">
-    © 2026 Sidey
+    <div class="footer">
+        © 2026 Sidey. Built with privacy in mind.
+    </div>
 </div>
 
 </body>

@@ -134,7 +134,7 @@
 "Choose..." = "Choose...";
 "Select Sync Folder" = "Select Sync Folder";
 "Default (iCloud Drive)" = "Default (iCloud Drive)";
-"You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices without limitations." = "You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices without limitations.";
+"You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices." = "You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices.";
 "Loaded!" = "Loaded!";
 "No Data Found" = "No Data Found";
 "Automatically pasted from clipboard" = "Automatically pasted from clipboard";

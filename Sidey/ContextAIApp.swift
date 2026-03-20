@@ -73,7 +73,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         AppDelegate.shared = self
         
         UserDefaults.standard.register(defaults: [
-            "showDockIcon": true,
+            "showDockIcon": false,
             "openAI_BaseURL": "https://api.openai.com/v1"
         ])
         
@@ -92,6 +92,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             if !self.launchedAsLoginItem {
                 self.showAssistant()
+                
+                // If API key is not set, also show settings
+                let apiKey = UserDefaults.standard.string(forKey: "openAI_APIKey") ?? ""
+                if apiKey.isEmpty {
+                    UserDefaults.standard.set("api", forKey: "settingsSelectedTab")
+                    self.showSettings()
+                }
             }
             self.launchReady = true
         }
