@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sidey - Your Intelligent macOS Sidekick</title>
+    <meta name="description" content="A lightweight, context-aware AI assistant designed specifically for macOS.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #1d1d1f;
+            --secondary-text: #86868b;
+            --accent-color: #007aff;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --border-color: rgba(0, 0, 0, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #000000;
+                --text-color: #f5f5f7;
+                --secondary-text: #86868b;
+                --accent-color: #2997ff;
+                --card-bg: rgba(28, 28, 30, 0.8);
+                --border-color: rgba(255, 255, 255, 0.1);
+                --glass-bg: rgba(0, 0, 0, 0.5);
+                --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.5;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(20px);
+            background: var(--glass-bg);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            text-decoration: none;
+            color: var(--text-color);
+        }
+
+        .logo img {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .hero {
+            padding-top: 8rem;
+            padding-bottom: 4rem;
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInBody 0.6s forwards;
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(180deg, var(--text-color) 0%, var(--secondary-text) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInBody 0.6s 0.1s forwards;
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            color: var(--secondary-text);
+            margin-bottom: 2.5rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInBody 0.6s 0.2s forwards;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInBody 0.6s 0.3s forwards;
+        }
+
+        .btn {
+            padding: 0.8rem 1.8rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .screenshot-container {
+            max-width: 1000px;
+            margin: 4rem auto;
+            padding: 0 2rem;
+            opacity: 0;
+            transform: translateY(40px);
+            animation: fadeInBody 0.8s 0.4s forwards;
+        }
+
+        .screenshot {
+            width: 100%;
+            border-radius: 20px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            max-width: 1100px;
+            margin: 6rem auto;
+            padding: 0 2rem;
+        }
+
+        .feature-card {
+            padding: 2.5rem;
+            border-radius: 24px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: var(--secondary-text);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .lang-switch {
+            cursor: pointer;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        footer {
+            padding: 4rem 2rem;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            color: var(--secondary-text);
+            font-size: 0.875rem;
+        }
+
+        @keyframes fadeInBody {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .hero p { font-size: 1.1rem; }
+            .cta-buttons { flex-direction: column; }
+            .btn { justify-content: center; }
+        }
+
+        /* Localization Hiding */
+        [lang="zh"] { display: none; }
+        body.lang-zh [lang="en"] { display: none; }
+        body.lang-zh [lang="zh"] { display: block; }
+        body.lang-zh [lang="zh"].inline { display: inline; }
+        body.lang-zh [lang="zh"].inline-block { display: inline-block; }
+    </style>
+</head>
+<body class="lang-en">
+    <header>
+        <a href="#" class="logo">
+            <img src="Resources/AppIcon.png" alt="Sidey Icon">
+            <span>Sidey</span>
+        </a>
+        <div class="nav-right">
+            <!-- GitHub Star Button -->
+            <iframe src="https://ghbtns.com/github-btn.html?user=chentao1006&repo=sidey&type=star&count=true&size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
+            <button class="lang-switch" onclick="toggleLang()">
+                <span lang="en">中文</span>
+                <span lang="zh">English</span>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="badge">
+                <span lang="en">v1.1.2 Available Now</span>
+                <span lang="zh">v1.1.2 现已发布</span>
+            </div>
+            <h1 lang="en">Your Intelligent macOS Sidekick</h1>
+            <h1 lang="zh">你的 macOS 智能旁白</h1>
+            <p lang="en">A lightweight, context-aware AI assistant that understands your workflow. Summon your sidekick with a shortcut and get help instantly.</p>
+            <p lang="zh">一款轻量级、场景感知的 AI 助手。一键唤醒，它能实时理解你的工作上下文并提供智能建议。</p>
+            
+            <div class="cta-buttons">
+                <a href="https://github.com/chentao1006/Sidey/releases/latest" class="btn btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM13 12V16H11V12H8L12 8L16 12H13Z"></path></svg>
+                    <span lang="en">Download for Mac</span>
+                    <span lang="zh">下载 macOS 版</span>
+                </a>
+                <a href="https://github.com/chentao1006/Sidey" class="btn btn-secondary">
+                    <span lang="en">View on GitHub</span>
+                    <span lang="zh">前往 GitHub</span>
+                </a>
+            </div>
+        </section>
+
+        <section class="screenshot-container">
+            <img src="Resources/Screenshot-en.jpg" alt="Sidey Screenshot" class="screenshot" lang="en">
+            <img src="Resources/Screenshot.jpg" alt="Sidey Screenshot" class="screenshot" lang="zh">
+        </section>
+
+        <section class="features">
+            <div class="feature-card">
+                <span class="feature-icon">🔍</span>
+                <h3 lang="en">Context Awareness</h3>
+                <h3 lang="zh">场景感知</h3>
+                <p lang="en">Automatically detects the frontmost application and suggests relevant prompts tailored for your current task.</p>
+                <p lang="zh">自动检测当前活动的应用程序，并根据你正在处理的任务推荐最相关的 AI 指令。</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">⌨️</span>
+                <h3 lang="en">Global Hotkey</h3>
+                <h3 lang="zh">全局唤醒</h3>
+                <p lang="en">Summon your assistant instantly from anywhere with a customizable keyboard shortcut. Fast and fluid.</p>
+                <p lang="zh">通过可点击或自定义的全局快捷键随时随地呼出助手。极速响应，无缝衔接。</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">☁️</span>
+                <h3 lang="en">Sync Everywhere</h3>
+                <h3 lang="zh">多端同步</h3>
+                <p lang="en">Keep your prompts and settings synced across devices via iCloud or a custom sync folder (Dropbox, WebDAV, etc.).</p>
+                <p lang="zh">支持通过 iCloud 或自定义同步目录（如 Dropbox、iCloud Drive）在多台 Mac 之间同步你的设置。</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🪄</span>
+                <h3 lang="en">Customizable Prompts</h3>
+                <h3 lang="zh">高度自定义</h3>
+                <p lang="en">Create different AI personas for specific apps (e.g., Code Review for Xcode, Summarize for Safari).</p>
+                <p lang="zh">为不同的应用创建专属的 AI 角色。Xcode 里的代码审计，Safari 里的文章总结，随心定制。</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2026 Sidey. Made by chentao1006.</p>
+    </footer>
+
+    <script>
+        function toggleLang() {
+            const body = document.body;
+            if (body.classList.contains('lang-en')) {
+                body.classList.replace('lang-en', 'lang-zh');
+                document.title = "Sidey - 你的 macOS 智能旁白";
+            } else {
+                body.classList.replace('lang-zh', 'lang-en');
+                document.title = "Sidey - Your Intelligent macOS Sidekick";
+            }
+        }
+
+        // Auto language detection
+        const userLang = navigator.language || navigator.userLanguage;
+        if (userLang.startsWith('zh')) {
+            document.body.classList.replace('lang-en', 'lang-zh');
+            document.title = "Sidey - 你的 macOS 智能旁白";
+        }
+    </script>
+</body>
+</html>
