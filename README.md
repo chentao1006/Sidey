@@ -19,7 +19,7 @@
 - **Global Hotkey**: Summon your assistant instantly from anywhere with a customizable keyboard shortcut.
 - **Smart Clipboard**: Automatically paste clipboard content when activated, with a one-click "Undo" to restore your previous input.
 - **Markdown Support**: Beautifully rendered AI responses with full Markdown support.
-- **iCloud & File Sync**: Keep your prompts and settings synced across devices via iCloud or a custom sync folder (Dropbox, iCloud Drive, etc.).
+- **iCloud Sync**: Keep your assistants and settings seamlessly synced across your devices via your Apple ID.
 - **App Switcher**: Quickly switch back to your recently used applications or explore running apps directly from the assistant.
 
 ![Sidey Screenshot](Resources/Screenshot-en.jpg)

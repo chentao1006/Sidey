@@ -116,6 +116,7 @@
             margin-bottom: 1.5rem;
             background: linear-gradient(180deg, var(--text-color) 0%, var(--secondary-text) 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             opacity: 0;
             transform: translateY(20px);
@@ -272,7 +273,8 @@
     <header>
         <a href="#" class="logo">
             <img src="Resources/AppIcon.png" alt="Sidey Icon">
-            <span>Sidey</span>
+            <span lang="en" class="inline">Sidey</span>
+            <span lang="zh" class="inline">旁白</span>
         </a>
         <div class="nav-right">
             <!-- GitHub Star Button -->
@@ -291,7 +293,7 @@
                 <span lang="zh">v1.1.2 现已发布</span>
             </div>
             <h1 lang="en">Your Intelligent macOS Sidekick</h1>
-            <h1 lang="zh">你的 macOS 智能旁白</h1>
+            <h1 lang="zh">你的智能 macOS 助手 - 旁白</h1>
             <p lang="en">A lightweight, context-aware AI assistant that understands your workflow. Summon your sidekick with a shortcut and get help instantly.</p>
             <p lang="zh">一款轻量级、场景感知的 AI 助手。一键唤醒，它能实时理解你的工作上下文并提供智能建议。</p>
             
@@ -330,34 +332,56 @@
             </div>
             <div class="feature-card">
                 <span class="feature-icon">☁️</span>
-                <h3 lang="en">Sync Everywhere</h3>
-                <h3 lang="zh">多端同步</h3>
-                <p lang="en">Keep your prompts and settings synced across devices via iCloud or a custom sync folder (Dropbox, WebDAV, etc.).</p>
-                <p lang="zh">支持通过 iCloud 或自定义同步目录（如 Dropbox、iCloud Drive）在多台 Mac 之间同步你的设置。</p>
+                <h3 lang="en">iCloud Sync</h3>
+                <h3 lang="zh">iCloud 同步</h3>
+                <p lang="en">Keep your assistants and settings seamlessly synced across your devices via your Apple ID.</p>
+                <p lang="zh">通过 Apple ID 在您的多台 Mac 之间自动、安全地同步设置与助手指令。</p>
             </div>
             <div class="feature-card">
                 <span class="feature-icon">🪄</span>
                 <h3 lang="en">Customizable Prompts</h3>
                 <h3 lang="zh">高度自定义</h3>
                 <p lang="en">Create different AI personas for specific apps (e.g., Code Review for Xcode, Summarize for Safari).</p>
-                <p lang="zh">为不同的应用创建专属的 AI 角色。Xcode 里的代码审计，Safari 里的文章总结，随心定制。</p>
+                <p lang="zh">为不同的应用创建专属的 AI 角色。Xcode 里的代码审计，Safari 里的内容总结，随心定制。</p>
             </div>
         </section>
     </main>
 
     <footer>
-        <p>© 2026 Sidey. Made by chentao1006.</p>
+        <p>
+            <span lang="en">© 2026 Sidey. Made by chentao1006.</span>
+            <span lang="zh">© 2026 旁白. 由 chentao1006 打造。</span>
+        </p>
     </footer>
 
     <script>
+        const translations = {
+            en: {
+                title: "Sidey - Your Intelligent macOS Sidekick",
+                description: "A lightweight, context-aware AI assistant designed specifically for macOS."
+            },
+            zh: {
+                title: "旁白 - 你的智能 macOS 助手",
+                description: "一款专为 macOS 设计的轻量级、场景感知 AI 助手。"
+            }
+        };
+
+        function updateMeta(lang) {
+            document.title = translations[lang].title;
+            const metaDesc = document.querySelector('meta[name="description"]');
+            if (metaDesc) {
+                metaDesc.setAttribute('content', translations[lang].description);
+            }
+        }
+
         function toggleLang() {
             const body = document.body;
             if (body.classList.contains('lang-en')) {
                 body.classList.replace('lang-en', 'lang-zh');
-                document.title = "Sidey - 你的 macOS 智能旁白";
+                updateMeta('zh');
             } else {
                 body.classList.replace('lang-zh', 'lang-en');
-                document.title = "Sidey - Your Intelligent macOS Sidekick";
+                updateMeta('en');
             }
         }
 
@@ -365,7 +389,7 @@
         const userLang = navigator.language || navigator.userLanguage;
         if (userLang.startsWith('zh')) {
             document.body.classList.replace('lang-en', 'lang-zh');
-            document.title = "Sidey - 你的 macOS 智能旁白";
+            updateMeta('zh');
         }
     </script>
 </body>
