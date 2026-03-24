@@ -144,3 +144,8 @@
 "Debug Logs" = "Debug Logs";
 "Clear Logs" = "Clear Logs";
 "Click to expand" = "Click to expand";
+"Check for Updates..." = "Check for Updates...";
+"Check for Updates" = "Check for Updates";
+"Updater.Checking" = "Checking for updates...";
+"Updater.NoUpdate" = "You're up to date!";
+"Updater.UpdateFound" = "A new version is available!";

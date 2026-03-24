@@ -2,16 +2,29 @@
 
 # Configuration
 PLIST_PATH="Info.plist"
+PBXPROJ_PATH="Sidey.xcodeproj/project.pbxproj"
 RESULT_DIR="./dist"
-PROJECT_NAME="Sidey"
 
-# Helper functions
+# Helper function to get current version
 get_current_version() {
-    grep -A 1 "CFBundleShortVersionString" "$PLIST_PATH" | grep "<string>" | sed -E 's/.*<string>(.*)<\/string>.*/\1/'
+    # Try to get from pbxproj first as it's the source of truth if variables are used
+    VERSION=$(grep "MARKETING_VERSION =" "$PBXPROJ_PATH" | head -n 1 | sed -E 's/.*MARKETING_VERSION = (.*);/\1/')
+    if [ -z "$VERSION" ]; then
+        # Fallback to Info.plist
+        VERSION=$(grep -A 1 "CFBundleShortVersionString" "$PLIST_PATH" | grep "<string>" | sed -E 's/.*<string>(.*)<\/string>.*/\1/')
+    fi
+    echo "$VERSION"
 }
 
+# Helper function to get current build
 get_current_build() {
-    grep -A 1 "CFBundleVersion" "$PLIST_PATH" | grep "<string>" | sed -E 's/.*<string>(.*)<\/string>.*/\1/'
+    # Try to get from pbxproj first
+    BUILD=$(grep "CURRENT_PROJECT_VERSION =" "$PBXPROJ_PATH" | head -n 1 | sed -E 's/.*CURRENT_PROJECT_VERSION = (.*);/\1/')
+    if [ -z "$BUILD" ]; then
+        # Fallback to Info.plist
+        BUILD=$(grep -A 1 "CFBundleVersion" "$PLIST_PATH" | grep "<string>" | sed -E 's/.*<string>(.*)<\/string>.*/\1/')
+    fi
+    echo "$BUILD"
 }
 
 CURRENT_VERSION=$(get_current_version)
@@ -23,7 +36,7 @@ echo "Current Build  : $CURRENT_BUILD"
 echo "----------------------------------------"
 
 if [ -z "$1" ]; then
-    read -p "Enter NEW Version (e.g. 1.1.1): " NEW_VERSION
+    read -p "Enter NEW Version (e.g. 1.0.6): " NEW_VERSION
 else
     NEW_VERSION=$1
 fi
@@ -33,27 +46,25 @@ if [ -z "$NEW_VERSION" ]; then
     exit 1
 fi
 
-# Determine NEW_BUILD
-if [[ "$NEW_VERSION" != "$CURRENT_VERSION" ]]; then
-    NEW_BUILD=1
-else
-    NEW_BUILD=$((CURRENT_BUILD + 1))
-fi
+# Determine NEW_BUILD (Always increment to ensure Sparkle compatibility)
+NEW_BUILD=$((CURRENT_BUILD + 1))
 
 echo "🚀 Preparing local release $NEW_VERSION (Build $NEW_BUILD)..."
 
-# 1. Update Info.plist
+# 1. Update Version Files
 sed -i '' -E "/<key>CFBundleShortVersionString<\/key>/{n;s/<string>.*<\/string>/<string>$NEW_VERSION<\/string>/;}" "$PLIST_PATH"
 sed -i '' -E "/<key>CFBundleVersion<\/key>/{n;s/<string>.*<\/string>/<string>$NEW_BUILD<\/string>/;}" "$PLIST_PATH"
+sed -i '' "s/MARKETING_VERSION = .*;/MARKETING_VERSION = $NEW_VERSION;/" "$PBXPROJ_PATH"
+sed -i '' "s/CURRENT_PROJECT_VERSION = .*;/CURRENT_PROJECT_VERSION = $NEW_BUILD;/" "$PBXPROJ_PATH"
 
-echo "✅ Configuration updated."
+echo "✅ Local configuration updated."
 
-# 2. Run Packaging (uses working local keychain)
+# 2. Run Local Build (Uses your working local keychain)
 chmod +x package.sh
-./package.sh
+./package.sh "$NEW_VERSION"
 
-if [ ! -f "${RESULT_DIR}/${PROJECT_NAME}.dmg" ]; then
-    echo "❌ Packaging Failed: ${PROJECT_NAME}.dmg not found in ${RESULT_DIR}"
+if [ ! -f "${RESULT_DIR}/Sidey.dmg" ]; then
+    echo "❌ Local Build Failed: Sidey.dmg not found in ${RESULT_DIR}"
     exit 1
 fi
 
@@ -72,18 +83,25 @@ git push origin "v$NEW_VERSION"
 # Use GitHub CLI to create release and upload assets
 if command -v gh >/dev/null 2>&1; then
     echo "📡 Creating GitHub Release and uploading assets..."
+    # DMG is the primary asset
+    ASSETS=("${RESULT_DIR}/Sidey.dmg")
+    
+    # If re-releasing the same version, we need to delete the old one first
+    echo "🧹 Removing existing release and tag if they exist..."
+    gh release delete "v$NEW_VERSION" --yes 2>/dev/null || true
+    git push origin --delete "v$NEW_VERSION" 2>/dev/null || true
+    git tag -d "v$NEW_VERSION" 2>/dev/null || true
+
     gh release create "v$NEW_VERSION" \
-        "${RESULT_DIR}/${PROJECT_NAME}.dmg" \
+        "${ASSETS[@]}" \
         --title "Release v$NEW_VERSION" \
-        --notes "Automatic local release of version $NEW_VERSION"
+        --notes "Automatic local release of version $NEW_VERSION (Build $NEW_BUILD)"
     
     if [ $? -eq 0 ]; then
         echo "🎉 Release completed successfully!"
     else
-        echo "❌ GitHub CLI failed to create release. Check the error above."
+        echo "❌ Error: GitHub Release failed to create. Please check the error above."
     fi
 else
-    echo "⚠️  GitHub CLI (gh) not found or not authenticated. Please upload ${RESULT_DIR}/${PROJECT_NAME}.dmg and appcast.xml manually to the GitHub release page."
+    echo "⚠️  Note: GitHub CLI (gh) not found or not authenticated. Please upload ${RESULT_DIR}/Sidey.dmg and appcast.xml manually to the GitHub release page."
 fi
-
-echo "🎉 Release process complete!"

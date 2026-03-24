@@ -71,3 +71,4 @@ Sparkle_tmp/
 xcuserdata/
 *.xcuserstate
 .DS_Store
+bin/

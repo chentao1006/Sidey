@@ -24,6 +24,7 @@
 		C6C655632F6C44B4003A4BBD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C6C655472F6C44B4003A4BBD /* Assets.xcassets */; };
 		C6C655642F6C44B4003A4BBD /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554D2F6C44B4003A4BBD /* Localizable.strings */; };
 		C6C655652F6C44B4003A4BBD /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554A2F6C44B4003A4BBD /* InfoPlist.strings */; };
+		C6C656012F6C44B4003A4BBD /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C656002F6C44B4003A4BBD /* Updater.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +49,7 @@
 		C6C655542F6C44B4003A4BBD /* Sidey.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sidey.entitlements; sourceTree = "<group>"; };
 		E5A0020129C12345001A2B3C /* Sidey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sidey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E5A0020229C12345001A2B3C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C6C656002F6C44B4003A4BBD /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -105,6 +107,7 @@
 				C6C6554F2F6C44B4003A4BBD /* Resources */,
 				C6C655522F6C44B4003A4BBD /* UI */,
 				C6C655532F6C44B4003A4BBD /* ContextAIApp.swift */,
+				C6C656002F6C44B4003A4BBD /* Updater.swift */,
 				C6C655542F6C44B4003A4BBD /* Sidey.entitlements */,
 			);
 			path = Sidey;
@@ -153,6 +156,7 @@
 			name = Sidey;
 			packageProductDependencies = (
 				E5A0090129C12345001A2B3C /* MarkdownUI */,
+				E5A0090229C12345001A2B3C /* Sparkle */,
 			);
 			productName = Sidey;
 			productReference = E5A0020129C12345001A2B3C /* Sidey.app */;
@@ -186,6 +190,7 @@
 			mainGroup = E5A0040129C12345001A2B3C;
 			packageReferences = (
 				E5A00A0129C12345001A2B3C /* XCRemoteSwiftPackageReference "MarkdownUI" */,
+				E5A00A0229C12345001A2B3C /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			productRefGroup = E5A0040529C12345001A2B3C /* Products */;
 			projectDirPath = "";
@@ -227,6 +232,7 @@
 				C6C6555F2F6C44B4003A4BBD /* DebugLogger.swift in Sources */,
 				C6C655602F6C44B4003A4BBD /* SettingsView.swift in Sources */,
 				C6C655612F6C44B4003A4BBD /* ContextDetector.swift in Sources */,
+				C6C656012F6C44B4003A4BBD /* Updater.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -263,7 +269,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -278,7 +284,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ct106.sidey;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -295,7 +301,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -310,7 +316,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ct106.sidey;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -465,6 +471,14 @@
 				minimumVersion = 2.4.0;
 			};
 		};
+		E5A00A0229C12345001A2B3C /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -472,6 +486,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = E5A00A0129C12345001A2B3C /* XCRemoteSwiftPackageReference "MarkdownUI" */;
 			productName = MarkdownUI;
+		};
+		E5A0090229C12345001A2B3C /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E5A00A0229C12345001A2B3C /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -732,6 +732,8 @@ struct DataSettingsView: View {
 }
 
 struct AboutSettingsView: View {
+    @StateObject private var updater = UpdaterViewModel()
+    
     var version: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     }
@@ -752,6 +754,15 @@ struct AboutSettingsView: View {
                 Text("\(L("Version")) \(version)")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+                
+                Button(action: {
+                    updater.checkForUpdates()
+                }) {
+                    Label(L("Check for Updates..."), systemImage: "arrow.clockwise.circle")
+                }
+                .buttonStyle(.bordered)
+                .disabled(!updater.canCheckForUpdates)
+                .padding(.top, 4)
             }
             
             Text(L("A lightweight, context-aware AI assistant for macOS."))

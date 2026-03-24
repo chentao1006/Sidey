@@ -7,14 +7,42 @@ BUNDLE_ID="com.ct106.sidey"
 TEAM_ID="U2NEAJ73J2"
 APP_NAME="${PROJECT_NAME}.app"
 RESULT_DIR="./dist"
-APP_BUNDLE="${RESULT_DIR}/${APP_NAME}"
+ARCHIVE_PATH="${RESULT_DIR}/${PROJECT_NAME}.xcarchive"
+EXPORT_PATH="${RESULT_DIR}/exported"
 DMG_NAME="${PROJECT_NAME}.dmg"
 DMG_PATH="${RESULT_DIR}/${DMG_NAME}"
+VERSION="$1"
 
 # --- Check for Notarization Credentials ---
 # You can set these environment variables globally or replace them here
 APPLE_ID="${APPLE_ID}"
 APPLE_PASSWORD="${APPLE_PASSWORD}"
+SPARKLE_BIN_PATH="./Sparkle/bin" # Downloaded during build if missing
+
+# --- Ensure Sparkle tools exist locally ---
+if [ ! -x "${SPARKLE_BIN_PATH}/generate_appcast" ]; then
+    echo "⬇️ Sparkle tools not found at ${SPARKLE_BIN_PATH}. Downloading..."
+    mkdir -p Sparkle_tmp
+    
+    # Simple logic to find latest Sparkle release asset (.tar.xz)
+    SPARKLE_URL=$(curl -s https://api.github.com/repos/sparkle-project/Sparkle/releases/latest | grep "browser_download_url" | grep "tar.xz" | head -n 1 | cut -d '"' -f 4)
+    
+    if [ -z "$SPARKLE_URL" ]; then
+        echo "❌ Error: Failed to find Sparkle download URL."
+        exit 1
+    fi
+    
+    curl -L "$SPARKLE_URL" -o sparkle_dist.tar.xz
+    tar -xf sparkle_dist.tar.xz -C Sparkle_tmp
+    
+    # Move bin to our local Sparkle folder
+    mkdir -p Sparkle
+    cp -R Sparkle_tmp/bin Sparkle/
+    
+    # Cleanup
+    rm -rf Sparkle_tmp sparkle_dist.tar.xz
+    echo "✅ Sparkle tools installed to ./Sparkle/bin"
+fi
 
 set -e
 
@@ -23,102 +51,125 @@ echo "🚀 Starting packaging process for ${PROJECT_NAME}..."
 # 1. Clean and Create result directory
 rm -rf "${RESULT_DIR}"
 mkdir -p "${RESULT_DIR}"
-mkdir -p "${APP_BUNDLE}/Contents/MacOS"
-mkdir -p "${APP_BUNDLE}/Contents/Resources"
 
-# 2. Build in Release mode (using SPM)
-echo "🏗️ Building ${PROJECT_NAME} in release mode..."
-swift build -c release --arch arm64 --arch x86_64
+# 2. Archive
+echo "📦 Archiving the app..."
+xcodebuild archive \
+    -project "${PROJECT_NAME}.xcodeproj" \
+    -scheme "${SCHEME}" \
+    -configuration Release \
+    -archivePath "${ARCHIVE_PATH}" \
+    AD_HOC_CODE_SIGNING_ALLOWED=YES \
+    ENABLE_HARDENED_RUNTIME=YES
 
-# 3. Assemble App Bundle
-echo "📂 Assembling App Bundle..."
-
-# Handle Icons
-ICONSET_DIR="/tmp/${PROJECT_NAME}.iconset"
-rm -rf "$ICONSET_DIR"
-mkdir -p "$ICONSET_DIR"
-SRC_ICON_DIR="Sidey/Resources/Assets.xcassets/AppIcon.appiconset"
-cp "$SRC_ICON_DIR/Mac-16.png" "$ICONSET_DIR/icon_16x16.png"
-cp "$SRC_ICON_DIR/Mac-16@2x.png" "$ICONSET_DIR/icon_16x16@2x.png"
-cp "$SRC_ICON_DIR/Mac-32.png" "$ICONSET_DIR/icon_32x32.png"
-cp "$SRC_ICON_DIR/Mac-32@2x.png" "$ICONSET_DIR/icon_32x32@2x.png"
-cp "$SRC_ICON_DIR/Mac-128.png" "$ICONSET_DIR/icon_128x128.png"
-cp "$SRC_ICON_DIR/Mac-128@2x.png" "$ICONSET_DIR/icon_128x128@2x.png"
-cp "$SRC_ICON_DIR/Mac-256.png" "$ICONSET_DIR/icon_256x256.png"
-cp "$SRC_ICON_DIR/Mac-256@2x.png" "$ICONSET_DIR/icon_256x256@2x.png"
-cp "$SRC_ICON_DIR/Mac-512.png" "$ICONSET_DIR/icon_512x512.png"
-cp "$SRC_ICON_DIR/App Store-512@2x.png" "$ICONSET_DIR/icon_512x512@2x.png"
-iconutil -c icns "$ICONSET_DIR" -o "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
-rm -rf "$ICONSET_DIR"
-
-# Handle Info.plist
-cp "Info.plist" "$APP_BUNDLE/Contents/Info.plist"
-plutil -replace CFBundleExecutable -string "$PROJECT_NAME" "$APP_BUNDLE/Contents/Info.plist"
-# Important for localization: ensure CFBundleName and CFBundleDisplayName are present
-plutil -replace CFBundleName -string "$PROJECT_NAME" "$APP_BUNDLE/Contents/Info.plist"
-plutil -replace CFBundleDisplayName -string "$PROJECT_NAME" "$APP_BUNDLE/Contents/Info.plist"
-
-# Copy binary and resources
-cp ".build/apple/Products/Release/$PROJECT_NAME" "$APP_BUNDLE/Contents/MacOS/"
-# SPM generates a resource bundle file
-find ".build/apple/Products/Release" -name "${PROJECT_NAME}_${PROJECT_NAME}.bundle" -exec cp -R {} "$APP_BUNDLE/Contents/Resources/" \;
-# Copy .lproj folders to top-level Resources (correct path for SPM-generated bundle)
-cp -R "$APP_BUNDLE/Contents/Resources/${PROJECT_NAME}_${PROJECT_NAME}.bundle/Contents/Resources"/*.lproj "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
-
-
-# 4. Code Signing (if developer ID set, else ad-hoc)
-echo "🖋️ Code signing..."
-CODESIGN_IDENTITY="Developer ID Application"
-ENTITLEMENTS="Sidey/Sidey.entitlements"
-TMP_ENTITLEMENTS="/tmp/Sidey.tmp.entitlements"
-
-# Prepare entitlements with Team ID
-if [ -f "$ENTITLEMENTS" ]; then
-    sed "s/\$(TeamIdentifierPrefix)/${TEAM_ID}./g" "$ENTITLEMENTS" > "$TMP_ENTITLEMENTS"
-    ENT_OPT="--entitlements $TMP_ENTITLEMENTS"
-else
-    echo "⚠️  Entitlements file not found at $ENTITLEMENTS"
-    ENT_OPT=""
+# 3. Export Archive
+# Ensure ExportOptions.plist exists
+if [ ! -f "ExportOptions.plist" ]; then
+    echo "📝 ExportOptions.plist not found, creating a default one..."
+    cat <<EOF > ExportOptions.plist
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>destination</key>
+    <string>export</string>
+    <key>method</key>
+    <string>developer-id</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>teamID</key>
+    <string>${TEAM_ID}</string>
+</dict>
+</plist>
+EOF
 fi
 
-if security find-identity -v -p codesigning | grep -q "$CODESIGN_IDENTITY"; then
-    echo "Found $CODESIGN_IDENTITY, signing..."
-    # Sign nested components first (frameworks, apps)
-    find "$APP_BUNDLE/Contents" -maxdepth 2 -name "*.framework" -o -name "*.bundle" | while read component; do
-        codesign --force --options runtime --sign "$CODESIGN_IDENTITY" "$component"
-    done
-    # Finally sign the main app bundle
-    codesign --force --options runtime --deep $ENT_OPT --sign "$CODESIGN_IDENTITY" "$APP_BUNDLE"
-else
-    echo "⚠️  $CODESIGN_IDENTITY not found. Using ad-hoc signing (some features may not work)."
-    codesign --force --options runtime --deep --sign - "$APP_BUNDLE"
-fi
-rm -f "$TMP_ENTITLEMENTS"
+echo "📤 Exporting the archive..."
+xcodebuild -exportArchive \
+    -archivePath "${ARCHIVE_PATH}" \
+    -exportOptionsPlist ExportOptions.plist \
+    -exportPath "${EXPORT_PATH}" \
+    -allowProvisioningUpdates
 
-# 5. Create DMG
+# Find the exported .app
+EXPORTED_APP="${EXPORT_PATH}/${APP_NAME}"
+
+if [ ! -d "${EXPORTED_APP}" ]; then
+    echo "❌ Exported app not found at ${EXPORTED_APP}"
+    exit 1
+fi
+
+# --- NEW: Notarize and Staple the .app itself BEFORE putting it in DMG ---
+if [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ]; then
+    echo "🔐 Notarizing the .app bundle directly..."
+    # Zip the app for notarization
+    rm -f "${RESULT_DIR}/${PROJECT_NAME}_app.zip"
+    /usr/bin/ditto -c -k --keepParent "${EXPORTED_APP}" "${RESULT_DIR}/${PROJECT_NAME}_app.zip"
+    
+    xcrun notarytool submit "${RESULT_DIR}/${PROJECT_NAME}_app.zip" \
+        --apple-id "${APPLE_ID}" \
+        --password "${APPLE_PASSWORD}" \
+        --team-id "${TEAM_ID}" \
+        --wait
+    
+    echo "🖋️ Stapling notarization ticket to the .app..."
+    xcrun stapler staple "${EXPORTED_APP}"
+    rm -f "${RESULT_DIR}/${PROJECT_NAME}_app.zip"
+fi
+
+# 4. Create DMG
 echo "💿 Creating DMG..."
+# Simple DMG creation using hdiutil
 TMP_DMG_DIR="${RESULT_DIR}/dmg_tmp"
 mkdir -p "${TMP_DMG_DIR}"
-cp -R "${APP_BUNDLE}" "${TMP_DMG_DIR}/"
+cp -R "${EXPORTED_APP}" "${TMP_DMG_DIR}/"
+# Add a link to Applications folder
 ln -s /Applications "${TMP_DMG_DIR}/Applications"
+
 hdiutil create -volname "${PROJECT_NAME}" -srcfolder "${TMP_DMG_DIR}" -ov -format UDZO "${DMG_PATH}"
 rm -rf "${TMP_DMG_DIR}"
 
-# 6. Notarize (if credentials provided)
+# 5. Notarize DMG (if credentials provided)
 if [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ]; then
-    echo "🔐 Submitting for notarization..."
+    echo "🔐 Submitting DMG for notarization..."
+    # Using notarytool (modern way)
     xcrun notarytool submit "${DMG_PATH}" \
         --apple-id "${APPLE_ID}" \
         --password "${APPLE_PASSWORD}" \
         --team-id "${TEAM_ID}" \
         --wait
 
-    echo "🖋️ Stapling notarization ticket..."
+    echo "🖋️ Stapling notarization ticket to DMG..."
     xcrun stapler staple "${DMG_PATH}"
+    
     echo "✅ Notarization and stapling complete!"
 else
-    echo "⚠️  Notarization skipped (APPLE_ID/APPLE_PASSWORD not set)."
+    echo "⚠️ Notarization skipped because APPLE_ID and APPLE_PASSWORD are not set."
+    echo "Please set them to ensure the DMG runs directly on other users' Macs."
 fi
 
+# 6. Generate Sparkle Appcast (Now automated)
+if [ -x "${SPARKLE_BIN_PATH}/generate_appcast" ]; then
+    # Try to find private key for signing
+    PRIV_KEY="Sparkle/ed_priv.pem"
+    SIGN_ARGS=""
+    if [ -f "$PRIV_KEY" ]; then
+        echo "🔑 Using private key at $PRIV_KEY for signing appcast..."
+        # In Sparkle 2, generate_appcast can take the private key via environment variable
+        export SPARKLE_EDID_PRIVATE_KEY=$(cat "$PRIV_KEY")
+    fi
 
-echo "🎉 All done! DMG is at ${DMG_PATH}"
+    if [ -n "$VERSION" ]; then
+        DOWNLOAD_URL_PREFIX="https://github.com/chentao1006/sidey/releases/download/v${VERSION}/"
+        echo "📡 Generating Sparkle appcast with prefix ${DOWNLOAD_URL_PREFIX} to project root..."
+        "${SPARKLE_BIN_PATH}/generate_appcast" -o appcast.xml --download-url-prefix "${DOWNLOAD_URL_PREFIX}" "${RESULT_DIR}"
+    else
+        echo "📡 Generating Sparkle appcast to project root..."
+        "${SPARKLE_BIN_PATH}/generate_appcast" -o appcast.xml "${RESULT_DIR}"
+    fi
+    echo "✅ appcast.xml generated in project root."
+else
+    echo "⚠️ Sparkle generate_appcast tool not found at ${SPARKLE_BIN_PATH}."
+fi
+
+echo "🎉 All done! Your DMG is at: ${DMG_PATH}"

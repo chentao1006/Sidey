@@ -1,0 +1,14 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Sidey</title>
+        <item>
+            <title>1.1.2</title>
+            <pubDate>Wed, 25 Mar 2026 01:55:45 +0800</pubDate>
+            <sparkle:version>2</sparkle:version>
+            <sparkle:shortVersionString>1.1.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/chentao1006/sidey/releases/download/v1.1.2/Sidey.dmg" length="4021900" type="application/octet-stream" sparkle:edSignature="7sWa+50Oru4Vzl/EzOEw323ySGaFwDgFR2GprtbvpfQwVgsVdc0G94O+oyhRpGVS5J1v5suS7MsPmnDSeDOpAg=="/>
+        </item>
+    </channel>
+</rss>

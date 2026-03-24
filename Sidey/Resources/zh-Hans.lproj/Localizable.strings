@@ -148,3 +148,8 @@
 "Debug Logs" = "调试日志";
 "Clear Logs" = "清空日志";
 "Click to expand" = "点击展开";
+"Check for Updates..." = "检查更新...";
+"Check for Updates" = "检查更新";
+"Updater.Checking" = "正在检查更新...";
+"Updater.NoUpdate" = "当前已是最新版本！";
+"Updater.UpdateFound" = "发现新版本！";
