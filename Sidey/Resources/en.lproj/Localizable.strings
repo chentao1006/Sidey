@@ -128,13 +128,10 @@
 " (Thinking...)" = " (Thinking...)";
 "Recent Apps" = "Recent Apps";
 "Running Apps" = "Running Apps";
-"Enable File Sync" = "Enable Settings Sync";
-"File Sync" = "Settings Sync";
-"Sync Folder:" = "Sync Folder:";
-"Choose..." = "Choose...";
-"Select Sync Folder" = "Select Sync Folder";
-"Default (iCloud Drive)" = "Default (iCloud Drive)";
-"You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices." = "You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices.";
+"iCloud Sync" = "iCloud Sync";
+"Sync to iCloud Now" = "Sync to iCloud Now";
+"Load from iCloud" = "Load from iCloud";
+"Sync settings and prompts across your devices using iCloud." = "Sync settings and assistants across your devices using iCloud.";
 "Loaded!" = "Loaded!";
 "No Data Found" = "No Data Found";
 "Automatically pasted from clipboard" = "Automatically pasted from clipboard";

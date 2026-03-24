@@ -21,42 +21,21 @@ class PromptStore: ObservableObject {
     @Published var allPrompts: [Prompt] = []
     @Published var editingPromptID: String? = nil
     
-    @AppStorage("isFileSyncEnabled") var isFileSyncEnabled = false
-    @AppStorage("customSyncBookmark") private var customSyncBookmarkData = Data()
+    @AppStorage("isiCloudSyncEnabled") var isiCloudSyncEnabled = false
     
     private var fileWatcher: DispatchSourceFileSystemObject?
-    private var currentAccessingURL: URL? = nil
     private var isInitialLoading = false
     
     private var fileURL: URL {
-        // 1. Try Custom Sync Folder via Bookmark (User selected)
-        if !customSyncBookmarkData.isEmpty {
-            let bookmarkData = customSyncBookmarkData
-            var isStale = false
-            do {
-                let url = try URL(resolvingBookmarkData: bookmarkData, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
-                if isStale {
-                    // Update stale bookmark if possible
-                    updateBookmark(for: url)
-                }
-                if url.startAccessingSecurityScopedResource() {
-                    currentAccessingURL = url
-                    return url.appendingPathComponent("settings.json")
-                }
-            } catch {
-                print("Failed to resolve bookmark: \(error)")
-            }
-        }
-
-        // 2. Try App's iCloud Container (Standard Sandbox way)
-        if let iCloudURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") {
+        // 1. Try App's iCloud Container (Standard Sandbox way)
+        if isiCloudSyncEnabled, let iCloudURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents") {
             if !FileManager.default.fileExists(atPath: iCloudURL.path) {
                 try? FileManager.default.createDirectory(at: iCloudURL, withIntermediateDirectories: true, attributes: nil)
             }
             return iCloudURL.appendingPathComponent("settings.json")
         }
         
-        // 3. Fallback to local Application Support (Sandboxed path)
+        // 2. Fallback to local Application Support (Sandboxed path)
         let fileManager = FileManager.default
         if let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
             let appDir = appSupport.appendingPathComponent("Sidey", isDirectory: true)
@@ -70,21 +49,6 @@ class PromptStore: ObservableObject {
         return fileManager.temporaryDirectory.appendingPathComponent("settings.json")
     }
     
-    func updateBookmark(for url: URL) {
-        do {
-            let data = try url.bookmarkData(options: .withSecurityScope, includingResourceValuesForKeys: nil, relativeTo: nil)
-            customSyncBookmarkData = data
-            UserDefaults.standard.set(url.path, forKey: "customSyncPath")
-        } catch {
-            print("Failed to update bookmark: \(error)")
-        }
-    }
-    
-    private func stopAccessing() {
-        currentAccessingURL?.stopAccessingSecurityScopedResource()
-        currentAccessingURL = nil
-    }
-    
     init() {
         loadPrompts()
         setupFileWatcher()
@@ -92,7 +56,6 @@ class PromptStore: ObservableObject {
     
     func setupFileWatcher() {
         fileWatcher?.cancel()
-        guard isFileSyncEnabled else { return }
         
         let url = fileURL
         let descriptor = open(url.deletingLastPathComponent().path, O_EVTONLY)
@@ -116,24 +79,10 @@ class PromptStore: ObservableObject {
     func loadPrompts() {
         guard !isInitialLoading else { return }
         
-        if !isFileSyncEnabled {
-            // If disabled, we still need initial prompts (from local/bundle)
-            if allPrompts.isEmpty {
-                let localURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-                    .appendingPathComponent("Sidey/settings.json")
-                let loadURL = FileManager.default.fileExists(atPath: localURL.path) ? localURL : Bundle.sideyModule.url(forResource: "prompts", withExtension: "json")
-                if let loadURL = loadURL, let data = try? Data(contentsOf: loadURL),
-                   let decoded = try? JSONDecoder().decode(SyncData.self, from: data) {
-                    self.allPrompts = decoded.prompts
-                }
-            }
-            return
-        }
-        
         let url = fileURL
         isInitialLoading = true
         
-        // 1. If remote file exists, strictly read it (Remote wins)
+        // 1. If remote/local file exists, strictly read it
         if FileManager.default.fileExists(atPath: url.path) {
             do {
                 let data = try Data(contentsOf: url)
@@ -149,11 +98,9 @@ class PromptStore: ObservableObject {
                         self.allPrompts = decoded.prompts
                     }
                 }
-                self.stopAccessing()
             } catch {
                 print("Error parsing sync file: \(error)")
                 isInitialLoading = false
-                self.stopAccessing()
             }
             return
         }
@@ -212,7 +159,7 @@ class PromptStore: ObservableObject {
     }
     
     func savePrompts() {
-        guard isFileSyncEnabled, !isInitialLoading else { return }
+        guard !isInitialLoading else { return }
         
         var settings: [String: String] = [:]
         for key in settingsKeys {
@@ -226,9 +173,8 @@ class PromptStore: ObservableObject {
             let url = fileURL
             let data = try JSONEncoder().encode(syncData)
             try data.write(to: url)
-            stopAccessing()
             
-            // Automatically push to cloud KVS (legacy/option)
+            // Automatically push to cloud KVS (legacy/backup)
             SyncManager.shared.syncPromptsToCloud(prompts: allPrompts)
             
             DispatchQueue.main.async {
@@ -236,7 +182,6 @@ class PromptStore: ObservableObject {
             }
         } catch {
             print("Failed to save sync data: \(error)")
-            stopAccessing()
         }
     }
     

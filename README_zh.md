@@ -32,7 +32,7 @@
 
 #### 安装步骤
 1. 下载最新发行版，或使用内置的 `build_app.sh` 脚本进行编译。
-2. 将 **Sidey.app** 移动到 `/Applications`（应用程序）文件夹。
+2. 将 **旁白** (Sidey.app) 移动到 `/Applications`（应用程序）文件夹。
 3. 启动应用，前往 **设置 > API** 输入你的 API 密钥和接口地址 (Base URL)。
 
 #### 源码编译

@@ -559,68 +559,22 @@ struct DataSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Toggle(L("Enable File Sync"), isOn: $store.isFileSyncEnabled)
-                    .onChangeCompatible(of: store.isFileSyncEnabled) { enabled in
+                Toggle(L("iCloud Sync"), isOn: $store.isiCloudSyncEnabled)
+                    .onChangeCompatible(of: store.isiCloudSyncEnabled) { enabled in
+                        store.loadPrompts()
+                        store.setupFileWatcher()
                         if enabled {
-                            store.loadPrompts()
-                            store.setupFileWatcher()
-                        } else {
-                            store.setupFileWatcher() // This will cancel it
+                            SyncManager.shared.syncToCloud()
                         }
                     }
                 
-                HStack {
-                    Text(L("Sync Folder:"))
-                    Spacer()
-                    if let userPath = UserDefaults.standard.string(forKey: "customSyncPath"), !userPath.isEmpty {
-                        Text(userPath)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    } else {
-                        Text(L("Default (iCloud Drive)"))
-                            .foregroundColor(.secondary)
-                    }
-                    Button(L("Choose...")) {
-                        let panel = NSOpenPanel()
-                        panel.canChooseFiles = false
-                        panel.canChooseDirectories = true
-                        panel.canCreateDirectories = true
-                        panel.allowsMultipleSelection = false
-                        panel.prompt = L("Select Sync Folder")
-                        if let userPath = UserDefaults.standard.string(forKey: "customSyncPath"), !userPath.isEmpty {
-                            panel.directoryURL = URL(fileURLWithPath: userPath)
-                        }
-                        
-                        if panel.runModal() == .OK, let url = panel.url {
-                            store.updateBookmark(for: url)
-                            // Immediately migrate or load from the new path
-                            store.loadPrompts()
-                            store.setupFileWatcher()
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    
-                    if let userPath = UserDefaults.standard.string(forKey: "customSyncPath"), !userPath.isEmpty {
-                        Button(action: {
-                            UserDefaults.standard.removeObject(forKey: "customSyncPath")
-                            store.loadPrompts()
-                            store.setupFileWatcher()
-                        }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                
-                Text(L("You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices."))
+                Text(L("Sync settings and prompts across your devices using iCloud."))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 
             } header: {
-                Text(L("File Sync")).font(.headline)
+                Text(L("iCloud Sync")).font(.headline)
             }
 
             Section {

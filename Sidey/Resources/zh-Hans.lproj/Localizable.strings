@@ -132,13 +132,10 @@
 " (Thinking...)" = " (思考中)";
 "Recent Apps" = "最近使用";
 "Running Apps" = "运行中的应用";
-"Enable File Sync" = "启用配置同步";
-"File Sync" = "配置同步";
-"Sync Folder:" = "同步目录:";
-"Choose..." = "选择...";
-"Select Sync Folder" = "选择同步目录";
-"Default (iCloud Drive)" = "默认 (iCloud Drive)";
-"You can choose an iCloud Drive or DropBox folder to automatically sync your data across devices." = "您可以选择 iCloud Drive 或 Dropbox 目录来在多台设备间自动同步数据。";
+"iCloud Sync" = "iCloud 同步";
+"Sync to iCloud Now" = "立即同步到云端";
+"Load from iCloud" = "从云端加载";
+"Sync settings and prompts across your devices using iCloud." = "使用 iCloud 在您的多台设备之间同步设置和助手提示词。";
 "Loaded!" = "已加载";
 "No Data Found" = "未发现数据";
 "Automatically pasted from clipboard" = "已自动粘贴自剪贴板";
