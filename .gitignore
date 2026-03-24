@@ -66,7 +66,6 @@ fastlane/test_output
 Sparkle/
 Sparkle_tmp/
 *.pem
-appcast.xml
 ExportOptions.plist
 Sidey_app.zip
 
