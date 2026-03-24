@@ -10,6 +10,8 @@
 
 **Sidey** is a lightweight, context-aware AI assistant designed specifically for macOS. It stays by your side, understanding which application you are currently using and providing tailored AI assistance through customizable prompts.
 
+[![Download Sidey](https://img.shields.io/badge/Download-Latest%20Release-blue?style=for-the-badge&logo=apple)](https://github.com/chentao1006/Sidey/releases/latest)
+
 ### ✨ Key Features
 
 - **Context Awareness**: Automatically detects the frontmost application and suggests relevant prompts.

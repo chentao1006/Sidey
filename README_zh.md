@@ -10,6 +10,8 @@
 
 **旁白** 是一款专为 macOS 设计的轻量级、场景感知 AI 助手。它能实时理解你正在使用的应用程序，并根据当前环境提供定制化的 AI 建议。
 
+[![下载最新版本](https://img.shields.io/badge/下载最新版本-Latest%20Release-blue?style=for-the-badge&logo=apple)](https://github.com/chentao1006/Sidey/releases/latest)
+
 ### ✨ 核心功能
 
 - **场景感知**：自动检测当前前台应用，并推荐与之关联的助手指令。
