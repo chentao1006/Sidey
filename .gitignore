@@ -62,7 +62,13 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 
+# Sparkle tools and temporary files
+Sparkle/
 Sparkle_tmp/
+*.pem
+appcast.xml
+ExportOptions.plist
+Sidey_app.zip
 
 # Xcode Project Files
 !Sidey.xcodeproj/project.pbxproj
