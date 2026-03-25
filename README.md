@@ -15,7 +15,8 @@
 ### ✨ Key Features
 
 - **Context Awareness**: Automatically detects the frontmost application and suggests relevant prompts.
-- **Customizable Prompts**: Create and manage different AI personas or tasks for specific apps (e.g., "Code Review" for Xcode, "Summarize" for Safari).
+- **Customizable Assistants**: Create and manage different AI personas or tasks for specific apps (e.g., "Code Review" for Xcode, "Summarize" for Safari).
+- **Auto Create Assistants**: AI analyzes your active application and automatically designs professional personas like "Code Auditor" (Serious) or "Creative Editor" (Lively) with one click.
 - **Global Hotkey**: Summon your assistant instantly from anywhere with a customizable keyboard shortcut.
 - **Smart Clipboard**: Automatically paste clipboard content when activated, with a one-click "Undo" to restore your previous input.
 - **Markdown Support**: Beautifully rendered AI responses with full Markdown support.
