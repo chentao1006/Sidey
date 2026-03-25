@@ -174,6 +174,11 @@ struct APISettingsView: View {
     var body: some View {
         Form {
             Section {
+                TextField(L("Base URL"), text: $baseURL)
+                    .textFieldStyle(.roundedBorder)
+                    .help(L("Default: https://api.openai.com/v1"))
+                    .onChangeCompatible(of: baseURL) { _ in SyncManager.shared.syncToCloud() }
+
                 VStack(alignment: .leading, spacing: 4) {
                     SecureField(L("API Key"), text: $apiKey)
                         .textFieldStyle(.roundedBorder)
@@ -185,11 +190,6 @@ struct APISettingsView: View {
                             .font(.caption)
                     }
                 }
-                
-                TextField(L("Base URL"), text: $baseURL)
-                    .textFieldStyle(.roundedBorder)
-                    .help(L("Default: https://api.openai.com/v1"))
-                    .onChangeCompatible(of: baseURL) { _ in SyncManager.shared.syncToCloud() }
                 
                 TextField(L("Model"), text: $model)
                     .textFieldStyle(.roundedBorder)
@@ -245,6 +245,9 @@ struct PromptSettingsView: View {
     @State private var promptToDelete: String?
     @AppStorage("appLanguage") private var appLanguage = "system"
     
+    @State private var showingAutoCreateSheet = false
+    @State private var autoCreateApps: [(bundleID: String, name: String)] = []
+    
     var body: some View {
         HStack(spacing: 0) {
             // Sidebar List
@@ -288,6 +291,33 @@ struct PromptSettingsView: View {
                     .buttonStyle(.plain)
                     .disabled(selectedPromptID == nil)
                     Spacer()
+                    
+                    Button(action: {
+                        let panel = NSOpenPanel()
+                        panel.allowedContentTypes = [UTType.application]
+                        panel.allowsMultipleSelection = true
+                        panel.canChooseDirectories = false
+                        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+                        
+                        if panel.runModal() == .OK {
+                            autoCreateApps = panel.urls.compactMap { url in
+                                // Resolve symlinks for system apps (like Shortcuts.app which is in /System/Applications)
+                                let resolvedURL = url.resolvingSymlinksInPath()
+                                guard let bundleID = Bundle(url: resolvedURL)?.bundleIdentifier else { return nil }
+                                let name = FileManager.default.displayName(atPath: resolvedURL.path)
+                                return (bundleID: bundleID, name: name)
+                            }
+                            if !autoCreateApps.isEmpty {
+                                showingAutoCreateSheet = true
+                            }
+                        }
+                    }) {
+                        Image(systemName: "wand.and.stars")
+                            .frame(width: 24, height: 24)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help(L("Auto Create Assistants"))
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
@@ -402,6 +432,17 @@ struct PromptSettingsView: View {
         } message: {
             Text(L("Are you sure you want to delete this prompt? This action cannot be undone."))
         }
+        .sheet(isPresented: $showingAutoCreateSheet) {
+            AutoCreatePromptsSheet(initialApps: autoCreateApps) { newPrompts in
+                for prompt in newPrompts {
+                    store.allPrompts.append(prompt)
+                }
+                store.savePrompts()
+                if let first = newPrompts.first {
+                    selectedPromptID = first.id
+                }
+            }
+        }
     }
 }
 
@@ -493,11 +534,10 @@ struct ShortcutRecorderView: View {
     
     private func formattedShortcut() -> String {
         var parts: [String] = []
-        // Carbon modifiers mapping
-        if (modifiers & 4096) != 0 { parts.append("⌃") } // controlKey
-        if (modifiers & 2048) != 0 { parts.append("⌥") } // optionKey
-        if (modifiers & 512) != 0 { parts.append("⇧") }  // shiftKey
-        if (modifiers & 256) != 0 { parts.append("⌘") }  // cmdKey
+        if (modifiers & 4096) != 0 { parts.append("⌃") } 
+        if (modifiers & 2048) != 0 { parts.append("⌥") } 
+        if (modifiers & 512) != 0 { parts.append("⇧") }  
+        if (modifiers & 256) != 0 { parts.append("⌘") }  
         
         let charMap: [Int: String] = [
             49: "Space", 53: "Esc", 36: "Return", 48: "Tab", 51: "Delete",
@@ -513,31 +553,22 @@ struct ShortcutRecorderView: View {
     
     private func startRecording() {
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            // Map NSEvent flags to Carbon modifiers
             var carbonFlags: Int = 0
             if event.modifierFlags.contains(.control) { carbonFlags |= 4096 }
             if event.modifierFlags.contains(.option) { carbonFlags |= 2048 }
             if event.modifierFlags.contains(.shift) { carbonFlags |= 512 }
             if event.modifierFlags.contains(.command) { carbonFlags |= 256 }
             
-            // Refuse pure modifier keys
             let code = Int(event.keyCode)
-            if [54, 55, 56, 59, 60, 61, 62, 63].contains(code) {
-                return event
-            }
+            if [54, 55, 56, 59, 60, 61, 62, 63].contains(code) { return event }
             
-            // Save newly captured keys
             keyCode = code
             modifiers = carbonFlags
-            
-            // Re-register via HotKeyManager
             HotKeyManager.shared.registerHotkey()
             SyncManager.shared.syncToCloud()
-            
             isRecording = false
             stopRecording()
-            
-            return nil // Swallow event
+            return nil
         }
     }
     
@@ -563,109 +594,61 @@ struct DataSettingsView: View {
                     .onChangeCompatible(of: store.isiCloudSyncEnabled) { enabled in
                         store.loadPrompts()
                         store.setupFileWatcher()
-                        if enabled {
-                            SyncManager.shared.syncToCloud()
-                        }
+                        if enabled { SyncManager.shared.syncToCloud() }
                     }
-                
                 Text(L("Sync settings and prompts across your devices using iCloud."))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                
-            } header: {
-                Text(L("iCloud Sync")).font(.headline)
-            }
+                    .font(.caption).foregroundColor(.secondary).fixedSize(horizontal: false, vertical: true)
+            } header: { Text(L("iCloud Sync")).font(.headline) }
 
             Section {
-                Button(action: {
-                    if let _ = store.exportBackup() {
-                        exportSuccess = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { exportSuccess = false }
-                    }
-                }) {
-                    Label(exportSuccess ? L("Exported!") : L("Export Backup..."), systemImage: "square.and.arrow.up")
+                HStack {
+                    Button(action: {
+                        if let _ = store.exportBackup() {
+                            exportSuccess = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { exportSuccess = false }
+                        }
+                    }) {
+                        Label(exportSuccess ? L("Exported!") : L("Export Backup..."), systemImage: "square.and.arrow.up").frame(maxWidth: .infinity)
+                    }.buttonStyle(.bordered)
+                    
+                    Button(action: {
+                        if store.importBackup() {
+                            importSuccess = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { importSuccess = false }
+                        }
+                    }) {
+                        Label(importSuccess ? L("Imported!") : L("Import Backup..."), systemImage: "square.and.arrow.down").frame(maxWidth: .infinity)
+                    }.buttonStyle(.bordered)
                 }
-                
-                Button(action: {
-                    if store.importBackup() {
-                        importSuccess = true
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { importSuccess = false }
-                    }
-                }) {
-                    Label(importSuccess ? L("Imported!") : L("Import Backup..."), systemImage: "square.and.arrow.down")
-                }
-            } header: {
-                Text(L("Backup & Restore")).font(.headline)
-            }
+            } header: { Text(L("Backup & Restore")).font(.headline) }
             
             Section {
                 VStack(spacing: 0) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 4) {
                             if logger.logs.isEmpty {
-                                Text(L("No logs available."))
-                                    .foregroundColor(.secondary)
-                                    .italic()
-                                    .frame(maxWidth: .infinity, alignment: .center)
-                                    .padding(.top, 80)
+                                Text(L("No logs available.")).foregroundColor(.secondary).italic().frame(maxWidth: .infinity, alignment: .center).padding(.top, 80)
                             } else {
                                 ForEach(logger.logs) { entry in
                                     VStack(alignment: .leading, spacing: 2) {
                                         HStack {
-                                            Text(entry.timestamp, style: .time)
-                                                .font(.system(.caption2, design: .monospaced))
-                                                .foregroundColor(.secondary)
-                                            
-                                            Text(entry.type.rawValue.uppercased())
-                                                .font(.system(size: 8, weight: .bold))
-                                                .padding(.horizontal, 4)
-                                                .padding(.vertical, 1)
-                                                .background(colorForType(entry.type))
-                                                .foregroundColor(.white)
-                                                .cornerRadius(3)
+                                            Text(entry.timestamp, style: .time).font(.system(.caption2, design: .monospaced)).foregroundColor(.secondary)
+                                            Text(entry.type.rawValue.uppercased()).font(.system(size: 8, weight: .bold)).padding(.horizontal, 4).padding(.vertical, 1).background(colorForType(entry.type)).foregroundColor(.white).cornerRadius(3)
                                         }
-                                        
-                                        Text(entry.message)
-                                            .font(.system(.caption, design: .monospaced))
-                                            .textSelection(.enabled)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                        
-                                        Divider()
-                                            .padding(.vertical, 4)
+                                        Text(entry.message).font(.system(.caption, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                                        Divider().padding(.vertical, 4)
                                     }
                                 }
                             }
-                        }
-                        .padding(8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .frame(height: 200)
-                    .frame(maxWidth: .infinity)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
-                    )
-                    
+                        }.padding(8).frame(maxWidth: .infinity, alignment: .leading)
+                    }.frame(height: 200).frame(maxWidth: .infinity).background(Color(NSColor.textBackgroundColor)).cornerRadius(4).overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.2), lineWidth: 1))
                     HStack {
                         Spacer()
-                        Button(L("Clear Logs")) {
-                            logger.clear()
-                        }
-                        .buttonStyle(.borderless)
-                        .controlSize(.small)
-                        .foregroundColor(.red)
-                    }
-                    .padding(.top, 4)
-                }
-                .frame(maxWidth: .infinity)
-            } header: {
-                Text(L("Debug Logs")).font(.headline)
-            }
-        }
-        .formStyle(.grouped)
+                        Button(L("Clear Logs")) { logger.clear() }.buttonStyle(.borderless).controlSize(.small).foregroundColor(.red)
+                    }.padding(.top, 4)
+                }.frame(maxWidth: .infinity)
+            } header: { Text(L("Debug Logs")).font(.headline) }
+        }.formStyle(.grouped)
     }
     
     private func colorForType(_ type: LogEntry.LogType) -> Color {
@@ -676,70 +659,204 @@ struct DataSettingsView: View {
         case .response: return .green
         }
     }
-    
-    private func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
-    }
 }
 
 struct AboutSettingsView: View {
     @StateObject private var updater = UpdaterViewModel()
-    
-    var version: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
-    }
-    
+    var version: String { Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0" }
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
-            Image(nsImage: NSImage(named: NSImage.applicationIconName) ?? NSImage())
-                .resizable()
-                .frame(width: 100, height: 100)
-                .shadow(radius: 5)
-            
+            Image(nsImage: NSImage(named: NSImage.applicationIconName) ?? NSImage()).resizable().frame(width: 100, height: 100).shadow(radius: 5)
             VStack(spacing: 8) {
-                Text(L("Sidey"))
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-                Text("\(L("Version")) \(version)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                Button(action: {
-                    updater.checkForUpdates()
-                }) {
-                    Label(L("Check for Updates..."), systemImage: "arrow.clockwise.circle")
-                }
-                .buttonStyle(.bordered)
-                .disabled(!updater.canCheckForUpdates)
-                .padding(.top, 4)
+                Text(L("Sidey")).font(.title).fontWeight(.bold)
+                Text("\(L("Version")) \(version)").font(.subheadline).foregroundColor(.secondary)
+                Button(action: { updater.checkForUpdates() }) { Label(L("Check for Updates..."), systemImage: "arrow.clockwise.circle") }.buttonStyle(.bordered).disabled(!updater.canCheckForUpdates).padding(.top, 4)
             }
-            
-            Text(L("A lightweight, context-aware AI assistant for macOS."))
-                .font(.body)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-                .frame(maxWidth: 300)
-            
-            Link(destination: URL(string: "https://github.com/chentao1006/Sidey")!) {
-                HStack {
-                    Image(systemName: "link")
-                    Text("GitHub")
-                }
-                .foregroundColor(.accentColor)
-            }
-            
+            Text(L("A lightweight, context-aware AI assistant for macOS.")).font(.body).multilineTextAlignment(.center).padding(.horizontal).frame(maxWidth: 300)
+            Link(destination: URL(string: "https://github.com/chentao1006/Sidey")!) { HStack { Image(systemName: "link"); Text("GitHub") }.foregroundColor(.accentColor) }
             Spacer()
-            
-            Text("© 2026 chentao1006")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-                .padding(.bottom, 20)
+            Text("© 2026 chentao1006").font(.caption2).foregroundColor(.secondary).padding(.bottom, 20)
+        }.frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+// MARK: - Auto Create Assistants Sheet
+
+struct AutoCreatePromptsSheet: View {
+    let initialApps: [(bundleID: String, name: String)]
+    let onAdd: ([Prompt]) -> Void
+    
+    @Environment(\.dismiss) private var dismiss
+    @State private var apps: [(bundleID: String, name: String)] = []
+    @State private var suggestions: [PromptSuggestion] = []
+    @State private var isGenerating = true
+    @State private var errorMessage: String?
+    @State private var currentStyle: ResponseStyle = ResponseStyle(rawValue: PromptStore.shared.lastUsedResponseStyle) ?? .serious
+    
+    struct PromptSuggestion: Identifiable {
+        let id = UUID().uuidString
+        var name: String
+        var system: String
+        var isSelected: Bool = true
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.title2)
+                    .foregroundStyle(.accent)
+                Text(L("Auto Create Assistants")).font(.headline)
+                Spacer()
+            }.padding()
+            Divider()
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    Button(action: {
+                        let panel = NSOpenPanel()
+                        panel.allowedContentTypes = [UTType.application]
+                        panel.allowsMultipleSelection = true
+                        panel.canChooseDirectories = false
+                        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+                        if panel.runModal() == .OK {
+                            let newApps: [(bundleID: String, name: String)] = panel.urls.compactMap { url in
+                                let resolvedURL = url.resolvingSymlinksInPath()
+                                guard let bundleID = Bundle(url: resolvedURL)?.bundleIdentifier else { return nil }
+                                let name = FileManager.default.displayName(atPath: resolvedURL.path)
+                                return (bundleID: bundleID, name: name)
+                            }
+                            apps.append(contentsOf: newApps)
+                            if !apps.isEmpty {
+                                generateSuggestions(apps)
+                            }
+                        }
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus.circle")
+                            Text(apps.isEmpty ? L("Pick Apps...") : L("Add..."))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.accentColor.opacity(0.1))
+                        .cornerRadius(6)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    ForEach(apps, id: \.bundleID) { app in
+                            HStack(spacing: 4) {
+                                if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app.bundleID) {
+                                    Image(nsImage: NSWorkspace.shared.icon(forFile: url.path)).resizable().frame(width: 16, height: 16)
+                                } else { Image(systemName: "app.fill").frame(width: 16, height: 16).foregroundColor(.secondary) }
+                                Text(app.name).font(.caption).lineLimit(1)
+                            }.padding(.horizontal, 8).padding(.vertical, 4).background(Color.secondary.opacity(0.1)).cornerRadius(6)
+                        }
+                    }
+                }.padding(.horizontal).padding(.vertical, 8)
+            Divider()
+            if isGenerating {
+                VStack(spacing: 16) { ProgressView().controlSize(.large); Text(L("AI is generating assistant suggestions...")).foregroundColor(.secondary).font(.subheadline) }.frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = errorMessage {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 36)).foregroundColor(.orange)
+                    Text(error).foregroundColor(.secondary).multilineTextAlignment(.center).padding(.horizontal)
+                    Button(L("Retry")) { generateSuggestions() }.buttonStyle(.bordered)
+                }.frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    VStack(spacing: 8) {
+                        ForEach($suggestions) { $suggestion in
+                            HStack(alignment: .top, spacing: 12) {
+                                Toggle("", isOn: $suggestion.isSelected).toggleStyle(.checkbox).labelsHidden().padding(.top, 4)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(suggestion.name).font(.system(.body, weight: .semibold))
+                                    Text(suggestion.system).font(.caption).foregroundColor(.secondary).lineLimit(4)
+                                }
+                                Spacer()
+                            }.padding(12).background(RoundedRectangle(cornerRadius: 8).fill(suggestion.isSelected ? Color.accentColor.opacity(0.08) : Color.clear)).overlay(RoundedRectangle(cornerRadius: 8).stroke(suggestion.isSelected ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.15), lineWidth: 1)).contentShape(Rectangle()).onTapGesture { suggestion.isSelected.toggle() }
+                        }
+                    }.padding()
+                }
+            }
+            Divider()
+            HStack {
+                if !isGenerating && !suggestions.isEmpty {
+                    Menu {
+                        ForEach(ResponseStyle.allCases) { style in
+                            Button {
+                                currentStyle = style
+                                PromptStore.shared.lastUsedResponseStyle = style.rawValue
+                                generateSuggestions(apps)
+                            } label: {
+                                if currentStyle == style {
+                                    Label(style.localizedName, systemImage: "checkmark")
+                                } else {
+                                    Text(style.localizedName)
+                                }
+                            }
+                        }
+                    } label: { Label(L("Regenerate"), systemImage: "arrow.clockwise").font(.subheadline) }.menuStyle(.borderedButton)
+                }
+                
+                Spacer()
+                Button(L("Cancel")) { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(L("Add Selected")) {
+                    let selected = suggestions.filter(\.isSelected)
+                    let bundleIDs = apps.map(\.bundleID)
+                    let prompts = selected.map { s in Prompt(id: UUID().uuidString, name: s.name, system: s.system, apps: bundleIDs) }
+                    onAdd(prompts)
+                    dismiss()
+                }.keyboardShortcut(.defaultAction).disabled(suggestions.filter(\.isSelected).isEmpty)
+            }.padding()
+        }.frame(width: 520, height: 480).onAppear {
+            self.apps = initialApps
+            if !initialApps.isEmpty {
+                generateSuggestions(initialApps)
+            } else {
+                isGenerating = false
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private func generateSuggestions(_ targetApps: [(bundleID: String, name: String)]? = nil) {
+        let activeApps = targetApps ?? self.apps
+        if activeApps.isEmpty { return }
+        
+        isGenerating = true; errorMessage = nil; suggestions = []
+        let appDescriptions = activeApps.map { "\($0.name) (\($0.bundleID))" }.joined(separator: ", ")
+        let appLang = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
+        let lang = (appLang == "system" ? (Locale.preferredLanguages.first?.lowercased().hasPrefix("zh") == true ? "Chinese" : "English") : (appLang.hasPrefix("zh") ? "Chinese" : "English"))
+        let systemPrompt = """
+Objective: Design 2-3 professional AI assistant personas specifically for the provided applications.
+CRITICAL: ALL OUTPUT (NAMES AND SYSTEM INSTRUCTIONS) MUST BE IN \(lang.uppercased()).
+
+Persona Style: \(currentStyle.generationHint).
+
+STRICT RULES:
+1. LANGUAGE: Use ONLY \(lang). 
+2. DISTINCT NAMES: The name MUST reflect the chosen persona style. 
+   - SERIOUS style: Use formal, cold, or academic names (e.g., '逻辑核验', '技术审计', '文法把关'). 
+   - LIVELY style: Use warm, energetic, or creative names (e.g., '灵感推手', '效率飞升', '文笔大咖').
+3. SHORT NAMES: Use extremely short role names (1-3 words/characters).
+4. DESIGN PERSONAS: Do not describe the app. Create a functional assistant role.
+5. STRICTLY NO ACTIONS: The assistant MUST NOT claim to manage, operate, automate, or control the system or applications. They are PURELY for text-based Q&A, generation, and analysis.
+6. NO SMALL TALK: Be direct and practical. Focus strictly on task-specific content.
+7. JSON FORMAT: Only respond with [{\"name\": \"...\", \"system\": \"...\"}].
+"""
+        let userMessage = "Applications selected: \(appDescriptions). Please design practical, role-based AI assistant configurations specifically for use within these applications' context."
+        let client = LLMClient()
+        client.sendRequest(systemPrompt: systemPrompt, messages: [ChatMessage(role: "user", content: userMessage)]) { response in
+            var jsonStr = response.trimmingCharacters(in: .whitespacesAndNewlines)
+            if jsonStr.hasPrefix("```") {
+                if let firstNewline = jsonStr.firstIndex(of: "\n") { jsonStr = String(jsonStr[jsonStr.index(after: firstNewline)...]) }
+                if let lastFence = jsonStr.range(of: "```", options: .backwards) { jsonStr = String(jsonStr[..<lastFence.lowerBound]) }
+                jsonStr = jsonStr.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            struct RawSuggestion: Codable { let name: String; let system: String }
+            guard let data = jsonStr.data(using: .utf8), let raw = try? JSONDecoder().decode([RawSuggestion].self, from: data) else {
+                errorMessage = L("Failed to parse AI response. Please try again."); isGenerating = false; return
+            }
+            suggestions = raw.map { PromptSuggestion(name: $0.name, system: $0.system) }; isGenerating = false
+        }
     }
 }

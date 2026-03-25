@@ -10,6 +10,32 @@ struct Prompt: Codable, Identifiable, Hashable {
     var apps: [String]
 }
 
+enum ResponseStyle: String, CaseIterable, Identifiable {
+    case serious, lively
+    var id: String { self.rawValue }
+    
+    var localizedName: String {
+        switch self {
+        case .serious: return L("Serious")
+        case .lively: return L("Lively")
+        }
+    }
+    
+    var instruction: String {
+        switch self {
+        case .serious: return "\n\nStyle Instruction: [CRITICAL: USE SERIOUS STYLE] Be strictly formal, academic, and professional. Use cold, efficient language. No exclamation marks. Focus purely on technical/practical facts."
+        case .lively: return "\n\nStyle Instruction: [STYLE: LIVELY] Be enthusiastic, friendly, and energetic. Use active verbs and a helpful, warm persona. You can be more expressive while still being concise and practical."
+        }
+    }
+    
+    var generationHint: String {
+        switch self {
+        case .serious: return "Persona: Cold, efficient, and professional. Naming: Use rigid, academic terms (e.g., '逻辑审计', '语法检查', '数据核验'). Tone: Zero emotion, factual output only."
+        case .lively: return "Persona: Energetic, creative, and proactive. Naming: Use inspiring or active terms (e.g., '灵感推手', '效率飞升', '文笔大咖'). Tone: Enthusiastic and warm but still practical."
+        }
+    }
+}
+
 struct SyncData: Codable {
     var prompts: [Prompt]
     var settings: [String: String]?
@@ -22,6 +48,7 @@ class PromptStore: ObservableObject {
     @Published var editingPromptID: String? = nil
     
     @AppStorage("isiCloudSyncEnabled") var isiCloudSyncEnabled = false
+    @AppStorage("lastUsedResponseStyle") var lastUsedResponseStyle: String = ResponseStyle.serious.rawValue
     
     private var fileWatcher: DispatchSourceFileSystemObject?
     private var isInitialLoading = false

@@ -43,6 +43,15 @@ struct AssistantWindow: View {
     @State private var includeClipboard: Bool = true
     @State private var lastFinishedExchangeID: UUID? = nil
     
+    // Auto Creator
+    @State private var appsToAutoCreate: [(bundleID: String, name: String)] = []
+    
+    struct AutoCreateContext: Identifiable {
+        let id = UUID()
+        let apps: [(bundleID: String, name: String)]
+    }
+    @State private var autoCreateContext: AutoCreateContext?
+    
     var body: some View {
         let currentLocale = appLanguage == "system" ? Locale.current : Locale(identifier: appLanguage)
         ZStack(alignment: .bottom) {
@@ -76,11 +85,13 @@ struct AssistantWindow: View {
             switchTo(bundleID: newValue, prompt: targetPrompt)
         }
         .onAppear {
+            contextDetector.refresh()
             let targetPrompt = bestPrompt(for: contextDetector.currentBundleID)
             switchTo(bundleID: contextDetector.currentBundleID, prompt: targetPrompt)
             checkClipboard()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            contextDetector.refresh()
             if !unreadSessions.isEmpty, let lastSession = unreadSessions.first {
                 let parts = lastSession.split(separator: "|")
                 if parts.count == 2 {
@@ -132,6 +143,19 @@ struct AssistantWindow: View {
                     }
                     
                     switchTo(bundleID: targetBundleID, prompt: prompt)
+                }
+            }
+        }
+        .sheet(item: $autoCreateContext) { context in
+            AutoCreatePromptsSheet(initialApps: context.apps) { newPrompts in
+                for prompt in newPrompts {
+                    promptStore.allPrompts.append(prompt)
+                }
+                promptStore.savePrompts()
+                
+                // Switch to the first newly added prompt
+                if let first = newPrompts.first {
+                    switchTo(bundleID: contextDetector.currentBundleID, prompt: first)
                 }
             }
         }
@@ -303,6 +327,16 @@ struct AssistantWindow: View {
                     }) {
                         Text(L("Create New..."))
                     }
+                    
+                    Button(action: {
+                        contextDetector.refresh()
+                        if !contextDetector.currentBundleID.isEmpty {
+                            autoCreateContext = AutoCreateContext(apps: [(bundleID: contextDetector.currentBundleID, name: contextDetector.currentAppName)])
+                        }
+                    }) {
+                        Label(L("Auto Create..."), systemImage: "sparkles")
+                    }
+                    .disabled(contextDetector.currentBundleID.isEmpty || contextDetector.currentBundleID == "*")
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -642,10 +676,29 @@ struct AssistantWindow: View {
                     }
                     .help(L("Copy"))
                     
-                    Button(action: retryLastExchange) {
-                        Label(L("Retry"), systemImage: "arrow.clockwise")
+                    Menu {
+                        ForEach(ResponseStyle.allCases) { style in
+                            Button {
+                                PromptStore.shared.lastUsedResponseStyle = style.rawValue
+                                retryLastExchange(style: style)
+                            } label: {
+                                if PromptStore.shared.lastUsedResponseStyle == style.rawValue {
+                                    Label(style.localizedName, systemImage: "checkmark")
+                                } else {
+                                    Text(style.localizedName)
+                                }
+                            }
+                        }
+                        
+                        Divider()
+                        
+                        Button(L("Retry")) {
+                            retryLastExchange(style: nil)
+                        }
+                    } label: {
+                        Label(L("Regenerate"), systemImage: "arrow.clockwise")
                     }
-                    .help(L("Retry"))
+                    .help(L("Regenerate"))
                     
                     if !contextDetector.currentBundleID.isEmpty {
                         Button(action: {
@@ -666,7 +719,7 @@ struct AssistantWindow: View {
         }
     }
     
-    private func retryLastExchange() {
+    private func retryLastExchange(style: ResponseStyle? = nil) {
         guard let prompt = selectedPrompt, !currentExchanges.isEmpty else { return }
         
         let lastUserMessage = currentExchanges.last?.userMessage ?? ""
@@ -676,7 +729,7 @@ struct AssistantWindow: View {
         currentExchanges.removeLast()
         
         // Call performSend (abstracted from sendMessage)
-        performSend(messageToSend: lastUserMessage, prompt: prompt)
+        performSend(messageToSend: lastUserMessage, prompt: prompt, style: style)
     }
     
     private func sendMessage() {
@@ -698,7 +751,7 @@ struct AssistantWindow: View {
         self.includeClipboard = false
     }
     
-    private func performSend(messageToSend: String, prompt: Prompt) {
+    private func performSend(messageToSend: String, prompt: Prompt, style: ResponseStyle? = nil) {
         let newExchangeID = UUID()
         let newExchange = MessageExchange(id: newExchangeID, userMessage: messageToSend, aiResponse: "Thinking...")
         self.currentExchanges.append(newExchange)
@@ -707,7 +760,13 @@ struct AssistantWindow: View {
         let currentBundleID = contextDetector.currentBundleID
         let currentAppName = contextDetector.currentAppName
         let promptName = prompt.name
-        let systemPrompt = prompt.system
+        var systemPrompt = prompt.system
+        
+        // Apply personality constraints and style
+        systemPrompt += "\n\nCore Constraints: You are a practical, text-based AI assistant. Focus on content output. Be simple, clear, and direct. Avoid flamboyant small talk. Do not claim to be 'omnipotent' or 'omniscient'."
+        let activeStyle = style ?? ResponseStyle(rawValue: PromptStore.shared.lastUsedResponseStyle) ?? .serious
+        systemPrompt += activeStyle.instruction
+        
         let promptID = prompt.id
         
         let sessionKey = self.currentSessionKey

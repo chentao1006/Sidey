@@ -56,59 +56,34 @@ APP_BUNDLE="$DIST_DIR/$DISPLAY_NAME.app"
 
 # 1. Build in Release mode
 echo "🏗️ Building $APP_NAME in release mode..."
-swift build -c release --arch arm64 --arch x86_64
+# Use xcodebuild to create a full app bundle
+xcodebuild -workspace "$APP_NAME.xcworkspace" -scheme "$APP_NAME" -configuration Release -derivedDataPath ".build" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO build
 
-# 2. Setup App Bundle structure
-echo "📂 Creating App Bundle structure..."
+if [ $? -ne 0 ]; then
+    echo "❌ Error: Build failed. Please check the errors above."
+    exit 1
+fi
+
+BUILD_APP_BUNDLE=".build/Build/Products/Release/$APP_NAME.app"
+DIST_DIR="dist"
+APP_BUNDLE="$DIST_DIR/$DISPLAY_NAME.app"
+
+# 2. Prepare Dist folder, copying the entire bundle
+echo "📂 Preparing App Bundle in dist/..."
 rm -rf "$DIST_DIR"
-mkdir -p "$APP_BUNDLE/Contents/MacOS"
-mkdir -p "$APP_BUNDLE/Contents/Resources"
+mkdir -p "$DIST_DIR"
+cp -R "$BUILD_APP_BUNDLE" "$APP_BUNDLE"
 
-# 3. Handle Icons
-echo "🎨 Generating App Icon..."
-ICONSET_DIR="/tmp/$APP_NAME.iconset"
-rm -rf "$ICONSET_DIR"
-mkdir -p "$ICONSET_DIR"
-
-# Mapping files from Assets.xcassets to standard iconset names
-SRC_ICON_DIR="Sidey/Resources/Assets.xcassets/AppIcon.appiconset"
-cp "$SRC_ICON_DIR/Mac-16.png" "$ICONSET_DIR/icon_16x16.png"
-cp "$SRC_ICON_DIR/Mac-16@2x.png" "$ICONSET_DIR/icon_16x16@2x.png"
-cp "$SRC_ICON_DIR/Mac-32.png" "$ICONSET_DIR/icon_32x32.png"
-cp "$SRC_ICON_DIR/Mac-32@2x.png" "$ICONSET_DIR/icon_32x32@2x.png"
-cp "$SRC_ICON_DIR/Mac-128.png" "$ICONSET_DIR/icon_128x128.png"
-cp "$SRC_ICON_DIR/Mac-128@2x.png" "$ICONSET_DIR/icon_128x128@2x.png"
-cp "$SRC_ICON_DIR/Mac-256.png" "$ICONSET_DIR/icon_256x256.png"
-cp "$SRC_ICON_DIR/Mac-256@2x.png" "$ICONSET_DIR/icon_256x256@2x.png"
-cp "$SRC_ICON_DIR/Mac-512.png" "$ICONSET_DIR/icon_512x512.png"
-cp "$SRC_ICON_DIR/App Store-512@2x.png" "$ICONSET_DIR/icon_512x512@2x.png"
-
-iconutil -c icns "$ICONSET_DIR" -o "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
-rm -rf "$ICONSET_DIR"
-
-# 4. Handle Info.plist
-echo "📝 Processing Info.plist..."
-cp "Info.plist" "$APP_BUNDLE/Contents/Info.plist"
-# Ensure the app name, ID and versions in Plist match project configuration
-plutil -replace CFBundleExecutable -string "$APP_NAME" "$APP_BUNDLE/Contents/Info.plist"
+# 3. Rename executable and update Info.plist if needed
+# (Already done by xcodebuild for the original APP_NAME, 
+#  but we need to make sure the renamed bundle is consistent)
+echo "📝 Finalizing Info.plist..."
 plutil -replace CFBundleName -string "$DISPLAY_NAME" "$APP_BUNDLE/Contents/Info.plist"
 plutil -replace CFBundleDisplayName -string "$DISPLAY_NAME" "$APP_BUNDLE/Contents/Info.plist"
-plutil -replace CFBundleIdentifier -string "$BUNDLE_ID" "$APP_BUNDLE/Contents/Info.plist"
-plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP_BUNDLE/Contents/Info.plist"
-plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$APP_BUNDLE/Contents/Info.plist"
-
-# 5. Copy binary and resources
-echo "🚀 Copying binary and artifacts..."
-cp ".build/apple/Products/Release/$APP_NAME" "$APP_BUNDLE/Contents/MacOS/"
-
-# SPM generates a resource bundle file, e.g., Sidey_Sidey.bundle
-# It should be placed in Contents/Resources/ for the app bundle
-find ".build/apple/Products/Release" -name "${APP_NAME}_${APP_NAME}.bundle" -exec cp -R {} "$APP_BUNDLE/Contents/Resources/" \;
-# Copy .lproj folders to top-level Resources so macOS system UI can find them
-cp -R "$APP_BUNDLE/Contents/Resources/${APP_NAME}_${APP_NAME}.bundle"/*.lproj "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
 
 echo "🛑 Quitting existing $APP_NAME process..."
 pkill -x "$APP_NAME" || true
+pkill -x "$DISPLAY_NAME" || true
 sleep 1
 
 echo "📦 Installing to /Applications..."

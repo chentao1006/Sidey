@@ -77,3 +77,4 @@ xcuserdata/
 *.xcuserstate
 .DS_Store
 bin/
+build.log

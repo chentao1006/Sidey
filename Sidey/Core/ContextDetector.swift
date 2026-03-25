@@ -19,9 +19,15 @@ class ContextDetector: ObservableObject {
     @Published var currentAppName: String = ""
     @Published var currentAppIcon: NSImage?
     @Published var recentApps: [AppContext] = []
+    private var timer: Timer?
     
     private init() {
         refresh()
+        
+        // Start proactive polling for high reliability
+        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.refresh()
+        }
         
         NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification,
@@ -31,7 +37,6 @@ class ContextDetector: ObservableObject {
             guard let self = self else { return }
             if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
                let bundleID = app.bundleIdentifier {
-                // Ignore our own app so we don't clear the context when interacting with our AI tool
                 if bundleID != Bundle.main.bundleIdentifier {
                     self.updateContext(with: app)
                 }
