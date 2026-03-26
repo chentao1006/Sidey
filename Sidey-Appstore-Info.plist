@@ -37,7 +37,7 @@
 	<true/>
 	<key>LSHasLocalizedDisplayName</key>
 	<true/>
-	<key>AppUsesNonExemptEncryption</key>
+	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>
 </plist>

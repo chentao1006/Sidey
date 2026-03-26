@@ -26,7 +26,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.1.5</string>
 	<key>CFBundleVersion</key>
-	<string>8</string>
+	<string>9</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
@@ -41,5 +41,7 @@
 	<string>https://raw.githubusercontent.com/chentao1006/sidey/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>T9d+4vUpmrkAXNcwSOu7/MzSO6tIKr8JbVhYe4j0jaE=</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
