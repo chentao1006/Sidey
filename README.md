@@ -17,6 +17,7 @@
 ### ✨ Key Features
 
 - **Context Awareness**: Automatically detects the frontmost application and suggests relevant prompts.
+- **Public AI Service**: Use Sidey instantly with a built-in public AI service — no API key required. Subject to daily rate limits.
 - **Customizable Assistants**: Create and manage different AI personas or tasks for specific apps (e.g., "Code Review" for Xcode, "Summarize" for Safari).
 - **Auto Create Assistants**: AI analyzes your active application and automatically designs professional personas like "Code Auditor" (Serious) or "Creative Editor" (Lively) with one click.
 - **Global Hotkey**: Summon your assistant instantly from anywhere with a customizable keyboard shortcut.
@@ -31,7 +32,7 @@
 
 #### Prerequisites
 - macOS 13.0 or later.
-- An OpenAI-compatible API Key.
+- An OpenAI-compatible API Key (optional — a built-in public service is available for immediate use).
 
 #### Installation
 1. Download the latest release or build from source using the provided `build_app.sh` script.

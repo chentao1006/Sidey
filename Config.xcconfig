@@ -1,9 +1,0 @@
-// Config.xcconfig
-// This file is used to store secret keys.
-// DO NOT commit this file to any public repository.
-// To use this in Xcode: 
-// 1. Go to Project Settings -> Info -> Configurations.
-// 2. Set 'Config' for all configurations.
-// 3. Make sure 'Config.xcconfig' is added to your gitignore.
-
-SERVICE_SECRET = sidey_public_secret_2025

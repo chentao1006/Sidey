@@ -59,6 +59,7 @@ xcodebuild archive \
     -scheme "${SCHEME}" \
     -configuration Release \
     -archivePath "${ARCHIVE_PATH}" \
+    -xcconfig "Sidey/Config.xcconfig" \
     AD_HOC_CODE_SIGNING_ALLOWED=YES \
     ENABLE_HARDENED_RUNTIME=YES
 
@@ -97,6 +98,22 @@ EXPORTED_APP="${EXPORT_PATH}/${APP_NAME}"
 if [ ! -d "${EXPORTED_APP}" ]; then
     echo "❌ Exported app not found at ${EXPORTED_APP}"
     exit 1
+fi
+
+# Inject config values into exported app's Info.plist
+if [ -f "Sidey/Config.xcconfig" ]; then
+    echo "🔑 Injecting configuration from Config.xcconfig..."
+    ALL_SETTINGS=$(xcodebuild -showBuildSettings -project "${PROJECT_NAME}.xcodeproj" -scheme "${SCHEME}" -configuration Release -xcconfig "Sidey/Config.xcconfig" 2>/dev/null)
+    SECRET=$(echo "$ALL_SETTINGS" | grep -w "SERVICE_SECRET" | head -n 1 | cut -d'=' -f2 | xargs)
+    URL_VAL=$(echo "$ALL_SETTINGS" | grep -w "PUBLIC_SERVICE_URL" | head -n 1 | cut -d'=' -f2 | xargs)
+    if [ -n "$SECRET" ]; then
+        plutil -replace ServiceSecret -string "$SECRET" "${EXPORTED_APP}/Contents/Info.plist"
+        echo "   - ServiceSecret: OK"
+    fi
+    if [ -n "$URL_VAL" ]; then
+        plutil -replace PublicServiceURL -string "$URL_VAL" "${EXPORTED_APP}/Contents/Info.plist"
+        echo "   - PublicServiceURL: $URL_VAL"
+    fi
 fi
 
 # --- NEW: Notarize and Staple the .app itself BEFORE putting it in DMG ---
