@@ -162,3 +162,11 @@
 "No apps selected. Please choose apps first." = "No apps selected. Please choose apps first.";
 "Pick Apps..." = "Pick Apps...";
 "Add..." = "Add...";
+
+/* AI Service Settings */
+"Service Mode" = "Service Mode";
+"Public Service (Limited)" = "Public Service (Limited)";
+"Custom (OpenAI Compatible)" = "Custom (OpenAI Compatible)";
+"Public service has rate limits and daily total limits. Use your own API for unrestricted access." = "Public service has rate limits and daily total limits. Use your own API for unrestricted access.";
+"Custom OpenAI Settings" = "Custom OpenAI Settings";
+"Public Service Settings" = "Public Service Settings";

@@ -74,7 +74,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         UserDefaults.standard.register(defaults: [
             "showDockIcon": false,
-            "openAI_BaseURL": "https://api.openai.com/v1"
+            "openAI_BaseURL": "https://api.openai.com/v1",
+            "usePublicService": true
         ])
         
         setupAssistantWindow()
@@ -93,9 +94,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if !self.launchedAsLoginItem {
                 self.showAssistant()
                 
-                // If API key is not set, also show settings
+                // If API key is not set and not using public service, also show settings
                 let apiKey = UserDefaults.standard.string(forKey: "openAI_APIKey") ?? ""
-                if apiKey.isEmpty {
+                let usePublicService = UserDefaults.standard.bool(forKey: "usePublicService")
+                if !usePublicService && apiKey.isEmpty {
                     UserDefaults.standard.set("api", forKey: "settingsSelectedTab")
                     self.showSettings()
                 }

@@ -69,6 +69,7 @@
 		C6C655532F6C44B4003A4BBD /* ContextAIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextAIApp.swift; sourceTree = "<group>"; };
 		C6C655542F6C44B4003A4BBD /* Sidey.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sidey.entitlements; sourceTree = "<group>"; };
 		C6C656002F6C44B4003A4BBD /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
+		C6E161682F75837900988123 /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		E5A0020129C12345001A2B3C /* Sidey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sidey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E5A0020229C12345001A2B3C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -151,6 +152,7 @@
 				E5A0040529C12345001A2B3C /* Products */,
 				E5A0040629C12345001A2B3C /* Frameworks */,
 				C655F1992F74EA830044CC01 /* Sidey-Appstore-Info.plist */,
+				C6E161682F75837900988123 /* Config.xcconfig */,
 			);
 			sourceTree = "<group>";
 		};
@@ -346,6 +348,7 @@
 /* Begin XCBuildConfiguration section */
 		C655F1962F74EA820044CC01 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C6E161682F75837900988123 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -379,6 +382,7 @@
 		};
 		C655F1972F74EA820044CC01 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C6E161682F75837900988123 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -413,6 +417,7 @@
 		};
 		E5A00B0129C12345001A2B3C /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C6E161682F75837900988123 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -446,6 +451,7 @@
 		};
 		E5A00B0229C12345001A2B3C /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C6E161682F75837900988123 /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -480,6 +486,7 @@
 		};
 		E5A00B0329C12345001A2B3C /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C6E161682F75837900988123 /* Config.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -542,6 +549,7 @@
 		};
 		E5A00B0429C12345001A2B3C /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C6E161682F75837900988123 /* Config.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;

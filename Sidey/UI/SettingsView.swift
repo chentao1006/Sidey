@@ -163,6 +163,8 @@ struct GeneralSettingsView: View {
 }
 
 struct APISettingsView: View {
+    @StateObject private var client = LLMClient()
+    @AppStorage("usePublicService") private var usePublicService = true
     @AppStorage("openAI_APIKey") private var apiKey = ""
     @AppStorage("openAI_BaseURL") private var baseURL = "https://api.openai.com/v1"
     @AppStorage("openAI_Model") private var model = "gpt-4o-mini"
@@ -174,49 +176,102 @@ struct APISettingsView: View {
     var body: some View {
         Form {
             Section {
-                TextField(L("Base URL"), text: $baseURL)
-                    .textFieldStyle(.roundedBorder)
-                    .help(L("Default: https://api.openai.com/v1"))
-                    .onChangeCompatible(of: baseURL) { _ in SyncManager.shared.syncToCloud() }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    SecureField(L("API Key"), text: $apiKey)
-                        .textFieldStyle(.roundedBorder)
-                        .help(L("Enter your OpenAI or compatible API key."))
-                        .onChangeCompatible(of: apiKey) { _ in SyncManager.shared.syncToCloud() }
-                    if apiKey.isEmpty {
-                        Text(L("⚠️ You need to provide an API key to use the assistant."))
-                            .foregroundColor(.red)
-                            .font(.caption)
+                Picker(L("AI Service"), selection: $usePublicService) {
+                    Text(L("Public Service (Limited)")).tag(true)
+                    Text(L("Custom (OpenAI Compatible)")).tag(false)
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+                .onChangeCompatible(of: usePublicService) { newValue in
+                    if !newValue && baseURL.isEmpty {
+                        baseURL = "https://"
                     }
+                    SyncManager.shared.syncToCloud()
                 }
                 
-                TextField(L("Model"), text: $model)
-                    .textFieldStyle(.roundedBorder)
-                    .help(L("Default: gpt-4o-mini"))
-                    .onChangeCompatible(of: model) { _ in SyncManager.shared.syncToCloud() }
-                
-                HStack {
-                    Button(action: testConnection) {
-                        if isTesting {
-                            ProgressView()
-                                .controlSize(.small)
-                                .padding(.trailing, 4)
-                        }
-                        Text(L("Test Connection"))
-                    }
-                    .disabled(isTesting || apiKey.isEmpty)
-                    
-                    if let result = testResult {
-                        Text(result)
-                            .font(.caption)
-                            .foregroundColor(result.contains("✅") ? .green : .red)
-                            .lineLimit(1)
-                    }
+                if usePublicService {
+                    Text(L("Public service has rate limits and daily total limits. Use your own API for unrestricted access."))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                .padding(.top, 4)
             } header: {
-                Text(L("OpenAI Settings")).font(.headline)
+                Text(L("Service Mode")).font(.headline)
+            }
+
+            if !usePublicService {
+                Section {
+                    TextField(L("Base URL"), text: $baseURL)
+                        .textFieldStyle(.roundedBorder)
+                        .help(L("Default: https://api.openai.com/v1"))
+                        .onChangeCompatible(of: baseURL) { newValue in
+                            if newValue.isEmpty {
+                                baseURL = "https://"
+                            }
+                            SyncManager.shared.syncToCloud()
+                        }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        SecureField(L("API Key"), text: $apiKey)
+                            .textFieldStyle(.roundedBorder)
+                            .help(L("Enter your OpenAI or compatible API key."))
+                            .onChangeCompatible(of: apiKey) { _ in SyncManager.shared.syncToCloud() }
+                        if apiKey.isEmpty {
+                            Text(L("⚠️ You need to provide an API key to use the assistant."))
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        }
+                    }
+                    
+                    TextField(L("Model"), text: $model)
+                        .textFieldStyle(.roundedBorder)
+                        .help(L("Default: gpt-4o-mini"))
+                        .onChangeCompatible(of: model) { _ in SyncManager.shared.syncToCloud() }
+                    
+                    HStack {
+                        Button(action: testConnection) {
+                            if isTesting {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .padding(.trailing, 4)
+                            }
+                            Text(L("Test Connection"))
+                        }
+                        .disabled(isTesting || apiKey.isEmpty)
+                        
+                        if let result = testResult {
+                            Text(result)
+                                .font(.caption)
+                                .foregroundColor(result.contains("✅") ? .green : .red)
+                                .lineLimit(1)
+                        }
+                    }
+                    .padding(.top, 4)
+                } header: {
+                    Text(L("Custom OpenAI Settings")).font(.headline)
+                }
+            } else {
+                Section {
+                    HStack {
+                        Button(action: testConnection) {
+                            if isTesting {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .padding(.trailing, 4)
+                            }
+                            Text(L("Test Connection"))
+                        }
+                        .disabled(isTesting)
+                        
+                        if let result = testResult {
+                            Text(result)
+                                .font(.caption)
+                                .foregroundColor(result.contains("✅") ? .green : .red)
+                                .lineLimit(1)
+                        }
+                    }
+                } header: {
+                    Text(L("Public Service Settings")).font(.headline)
+                }
             }
         }
         .formStyle(.grouped)
@@ -226,11 +281,15 @@ struct APISettingsView: View {
         isTesting = true
         testResult = nil
         
-        let client = LLMClient()
         client.sendRequest(systemPrompt: "You are a helpful assistant.", messages: [ChatMessage(role: "user", content: "Say 'OK' if you can hear me.")]) { response in
             isTesting = false
-            if response.contains("Error") || response.contains("Failed") {
-                testResult = "❌ " + response
+            let isError = response.localizedCaseInsensitiveContains("Error") || 
+                          response.localizedCaseInsensitiveContains("Failed") || 
+                          response.localizedCaseInsensitiveContains("No content") || 
+                          response.isEmpty
+            
+            if isError {
+                testResult = "❌ " + (response.isEmpty ? L("Unknown Error") : response)
             } else {
                 testResult = "✅ " + L("Connection Successful")
             }

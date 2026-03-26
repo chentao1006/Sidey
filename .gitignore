@@ -78,3 +78,4 @@ xcuserdata/
 .DS_Store
 bin/
 build.log
+Sidey/Config.xcconfig

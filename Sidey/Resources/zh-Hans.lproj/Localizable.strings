@@ -166,3 +166,11 @@
 "No apps selected. Please choose apps first." = "未选择应用，请先选择要为其创建助手的应用。";
 "Pick Apps..." = "选择应用...";
 "Add..." = "添加...";
+
+/* AI Service Settings */
+"Service Mode" = "服务模式";
+"Public Service (Limited)" = "公共服务 (有频率限制)";
+"Custom (OpenAI Compatible)" = "自定义 (兼容 OpenAI)";
+"Public service has rate limits and daily total limits. Use your own API for unrestricted access." = "公共服务有频率限制和每日总额限制。如需无限制使用，请配置您自己的 API。";
+"Custom OpenAI Settings" = "自定义 OpenAI 设置";
+"Public Service Settings" = "公共服务设置";

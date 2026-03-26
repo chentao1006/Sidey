@@ -57,7 +57,7 @@ APP_BUNDLE="$DIST_DIR/$DISPLAY_NAME.app"
 # 1. Build in Release mode
 echo "🏗️ Building $APP_NAME in release mode..."
 # Use xcodebuild to create a full app bundle
-xcodebuild -workspace "$APP_NAME.xcworkspace" -scheme "$APP_NAME" -configuration Release -derivedDataPath ".build" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO build
+xcodebuild -workspace "$APP_NAME.xcworkspace" -scheme "$APP_NAME" -configuration Release -derivedDataPath ".build" -xcconfig "Sidey/Config.xcconfig" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO build
 
 if [ $? -ne 0 ]; then
     echo "❌ Error: Build failed. Please check the errors above."
@@ -80,6 +80,25 @@ cp -R "$BUILD_APP_BUNDLE" "$APP_BUNDLE"
 echo "📝 Finalizing Info.plist..."
 plutil -replace CFBundleName -string "$DISPLAY_NAME" "$APP_BUNDLE/Contents/Info.plist"
 plutil -replace CFBundleDisplayName -string "$DISPLAY_NAME" "$APP_BUNDLE/Contents/Info.plist"
+
+# Sync secret and URL from Config.xcconfig manually to ensure they are compiled in
+if [ -f "Sidey/Config.xcconfig" ]; then
+    echo "🔑 Injecting configuration from Config.xcconfig..."
+    # Get all project settings including those from xcconfig
+    ALL_SETTINGS=$(xcodebuild -showBuildSettings -project "$PROJ_FILE" -scheme "$APP_NAME" -configuration Release -xcconfig "Sidey/Config.xcconfig" 2>/dev/null)
+    
+    SECRET=$(echo "$ALL_SETTINGS" | grep -w "SERVICE_SECRET" | head -n 1 | cut -d'=' -f2 | xargs)
+    URL_VAL=$(echo "$ALL_SETTINGS" | grep -w "PUBLIC_SERVICE_URL" | head -n 1 | cut -d'=' -f2 | xargs)
+    
+    if [ -n "$SECRET" ]; then
+        plutil -replace ServiceSecret -string "$SECRET" "$APP_BUNDLE/Contents/Info.plist"
+        echo "   - ServiceSecret: OK"
+    fi
+    if [ -n "$URL_VAL" ]; then
+        plutil -replace PublicServiceURL -string "$URL_VAL" "$APP_BUNDLE/Contents/Info.plist"
+        echo "   - PublicServiceURL: $URL_VAL"
+    fi
+fi
 
 echo "🛑 Quitting existing $APP_NAME process..."
 pkill -x "$APP_NAME" || true

@@ -9,7 +9,7 @@ class SyncManager: ObservableObject {
     @Published var lastSyncStatus: String = ""
     
     private let kvs = NSUbiquitousKeyValueStore.default
-    private let keysToSync = ["openAI_APIKey", "openAI_BaseURL", "openAI_Model", "alwaysOnTop", "showDockIcon", "windowOpacity", "sendBehavior", "appLanguage", "hotKeyKeyCode", "hotKeyModifiers", "menuBarIcon"]
+    private let keysToSync = ["usePublicService", "openAI_APIKey", "openAI_BaseURL", "openAI_Model", "alwaysOnTop", "showDockIcon", "windowOpacity", "sendBehavior", "appLanguage", "hotKeyKeyCode", "hotKeyModifiers", "menuBarIcon"]
     
     init() {
         NotificationCenter.default.addObserver(self, selector: #selector(externalChange), name: NSUbiquitousKeyValueStore.didChangeExternallyNotification, object: kvs)

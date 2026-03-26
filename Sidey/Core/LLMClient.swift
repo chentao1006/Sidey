@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 struct ChatMessage: Codable {
     let role: String
@@ -17,6 +18,7 @@ struct ChatResponse: Codable {
     let choices: [Choice]
 }
 
+
 class LLMClient: ObservableObject {
     @Published var loadingStates: [String: Bool] = [:]
     
@@ -27,38 +29,84 @@ class LLMClient: ObservableObject {
         return URLSession(configuration: config)
     }()
     
+    // The secret is stored in Config.xcconfig and mapped to Info.plist via $(SERVICE_SECRET)
+    private var serviceSecret: String {
+        return Bundle.main.infoDictionary?["ServiceSecret"] as? String ?? ""
+    }
+    
+    private func getDeviceId() -> String {
+        if let id = UserDefaults.standard.string(forKey: "deviceId") {
+            return id
+        }
+        let id = UUID().uuidString
+        UserDefaults.standard.set(id, forKey: "deviceId")
+        return id
+    }
+    
+    private func generateToken(deviceId: String) -> String {
+        let hour = Int(Date().timeIntervalSince1970 / 3600)
+        let input = serviceSecret + deviceId + "\(hour)"
+        let digest = Insecure.MD5.hash(data: input.data(using: .utf8) ?? Data())
+        return digest.map { String(format: "%02hhx", $0) }.joined()
+    }
+    
+
     func sendRequest(systemPrompt: String, messages: [ChatMessage], sessionKey: String = "", completion: @escaping (String) -> Void) {
         performRequest(systemPrompt: systemPrompt, messages: messages, sessionKey: sessionKey, retryCount: 1, completion: completion)
     }
     
     private func performRequest(systemPrompt: String, messages: [ChatMessage], sessionKey: String, retryCount: Int, completion: @escaping (String) -> Void) {
         let apiKey = UserDefaults.standard.string(forKey: "openAI_APIKey") ?? ""
-        var baseURLStr = UserDefaults.standard.string(forKey: "openAI_BaseURL") ?? "https://api.openai.com/v1"
-        if baseURLStr.isEmpty {
-            baseURLStr = "https://api.openai.com/v1"
-        }
+        let usePublicService = UserDefaults.standard.bool(forKey: "usePublicService")
         
-        let suffix = "/chat/completions"
-        var cleanBaseURL = baseURLStr
-        if cleanBaseURL.hasSuffix("/") {
-            cleanBaseURL.removeLast()
-        }
-        let finalURLStr = cleanBaseURL.hasSuffix(suffix) ? cleanBaseURL : cleanBaseURL + suffix
-        DebugLogger.shared.log("Requesting: \(finalURLStr)", type: .request)
-        
-        guard !apiKey.isEmpty else {
+        guard usePublicService || !apiKey.isEmpty else {
             completion("Error: API Key not set. Please set it in Settings (Cmd+,).")
             return
         }
         
-        guard let url = URL(string: finalURLStr) else {
-            completion("Error: Invalid Base URL (\(finalURLStr)).")
+        let publicServiceURL = Bundle.main.infoDictionary?["PublicServiceURL"] as? String ?? ""
+        let finalURL: URL?
+        
+        if usePublicService {
+            let suffix = "/chat/completions"
+            var cleanURL = publicServiceURL
+            if cleanURL.hasSuffix("/") {
+                cleanURL.removeLast()
+            }
+            finalURL = URL(string: "https://" + cleanURL + suffix)
+        } else {
+            var baseURLStr = UserDefaults.standard.string(forKey: "openAI_BaseURL") ?? "https://api.openai.com/v1"
+            if baseURLStr.isEmpty {
+                baseURLStr = "https://api.openai.com/v1"
+            }
+            
+            let suffix = "/chat/completions"
+            var cleanBaseURL = baseURLStr
+            if cleanBaseURL.hasSuffix("/") {
+                cleanBaseURL.removeLast()
+            }
+            let finalURLStr = cleanBaseURL.hasSuffix(suffix) ? cleanBaseURL : cleanBaseURL + suffix
+            finalURL = URL(string: finalURLStr)
+            DebugLogger.shared.log("Requesting: \(finalURLStr)", type: .request)
+        }
+        
+        guard let url = finalURL else {
+            completion("Error: Invalid URL.")
             return
         }
         
+        
         var request = URLRequest(url: url)
+        if usePublicService {
+            let deviceId = getDeviceId()
+            let token = generateToken(deviceId: deviceId)
+            request.addValue(deviceId, forHTTPHeaderField: "X-Device-Id")
+            request.addValue(token, forHTTPHeaderField: "X-Token")
+        } else {
+            request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        }
+        
         request.httpMethod = "POST"
-        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json", forHTTPHeaderField: "Accept")
         
