@@ -671,8 +671,11 @@ struct AboutSettingsView: View {
             VStack(spacing: 8) {
                 Text(L("Sidey")).font(.title).fontWeight(.bold)
                 Text("\(L("Version")) \(version)").font(.subheadline).foregroundColor(.secondary)
+                #if !APPSTORE
                 Button(action: { updater.checkForUpdates() }) { Label(L("Check for Updates..."), systemImage: "arrow.clockwise.circle") }.buttonStyle(.bordered).disabled(!updater.canCheckForUpdates).padding(.top, 4)
+                #endif
             }
+
             Text(L("A lightweight, context-aware AI assistant for macOS.")).font(.body).multilineTextAlignment(.center).padding(.horizontal).frame(maxWidth: 300)
             Link(destination: URL(string: "https://github.com/chentao1006/Sidey")!) { HStack { Image(systemName: "link"); Text("GitHub") }.foregroundColor(.accentColor) }
             Spacer()
