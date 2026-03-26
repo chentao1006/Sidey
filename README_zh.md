@@ -10,7 +10,7 @@
 
 **旁白** 是一款专为 macOS 设计的轻量级、场景感知 AI 助手。它能实时理解你正在使用的应用程序，并根据当前环境提供定制化的 AI 建议。
 
-[![App Store 下载](https://apple-resources.s3.amazonaws.com/library/images/badges/download-on-the-app-store/zh-cn.svg)](https://apps.apple.com/app/sidey/id6760834274)
+[![App Store 下载](https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-app-store.svg)](https://apps.apple.com/app/sidey/id6760834274)
 [![下载最新安装包](https://img.shields.io/badge/下载最新安装包-Latest%20Release-blue?style=for-the-badge&logo=apple)](https://github.com/chentao1006/Sidey/releases/latest)
 
 ### ✨ 核心功能
