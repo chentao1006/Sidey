@@ -680,29 +680,12 @@ struct AssistantWindow: View {
                     }
                     .help(L("Copy"))
                     
-                    Menu {
-                        ForEach(ResponseStyle.allCases) { style in
-                            Button {
-                                PromptStore.shared.lastUsedResponseStyle = style.rawValue
-                                retryLastExchange(style: style)
-                            } label: {
-                                if PromptStore.shared.lastUsedResponseStyle == style.rawValue {
-                                    Label(style.localizedName, systemImage: "checkmark")
-                                } else {
-                                    Text(style.localizedName)
-                                }
-                            }
-                        }
-                        
-                        Divider()
-                        
-                        Button(L("Retry")) {
-                            retryLastExchange(style: nil)
-                        }
-                    } label: {
-                        Label(L("Regenerate"), systemImage: "arrow.clockwise")
+                    Button(action: {
+                        retryLastExchange(style: nil)
+                    }) {
+                        Label(L("Retry"), systemImage: "arrow.clockwise")
                     }
-                    .help(L("Regenerate"))
+                    .help(L("Retry"))
                     
                     if !contextDetector.currentBundleID.isEmpty {
                         Button(action: {
@@ -766,10 +749,8 @@ struct AssistantWindow: View {
         let promptName = prompt.name
         var systemPrompt = prompt.system
         
-        // Apply personality constraints and style
+        // Apply personality constraints
         systemPrompt += "\n\nCore Constraints: You are a practical, text-based AI assistant. Focus on content output. Be simple, clear, and direct. Avoid flamboyant small talk. Do not claim to be 'omnipotent' or 'omniscient'."
-        let activeStyle = style ?? ResponseStyle(rawValue: PromptStore.shared.lastUsedResponseStyle) ?? .serious
-        systemPrompt += activeStyle.instruction
         
         let promptID = prompt.id
         

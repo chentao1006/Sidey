@@ -142,7 +142,7 @@ struct GeneralSettingsView: View {
                             launchAtLogin = service.status == .enabled
                         }
                     }
-                
+                                
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(L("Global Shortcut:"))

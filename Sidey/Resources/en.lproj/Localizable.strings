@@ -1,119 +1,183 @@
+/* App Info */
 "Sidey" = "Sidey";
+"Version" = "Version";
+"A lightweight, context-aware AI assistant for macOS." = "A lightweight, context-aware AI assistant for macOS.";
+"© 2026 chentao1006" = "© 2026 chentao1006";
+
+/* Navigation & Tabs */
 "General" = "General";
 "API" = "Service";
 "AI Service" = "Service";
 "Prompts" = "Assistants";
+"Data" = "Data";
 "About" = "About";
-"Version" = "Version";
-"A lightweight, context-aware AI assistant for macOS." = "A lightweight, context-aware AI assistant for macOS.";
+"Settings" = "Settings";
+"Settings..." = "Settings...";
+
+/* Appearance */
 "Appearance" = "Appearance";
+"Appearance & Behavior" = "Appearance & Behavior";
 "Always on top" = "Always on top";
 "Keep the Assistant window above all other windows." = "Keep the Assistant window above all other windows.";
+"Window Opacity" = "Window Opacity";
+"Pin Window" = "Pin Window";
+"Unpin Window" = "Unpin Window";
+"Menu Bar Icon" = "Menu Bar Icon";
 "Show application in Dock" = "Show application in Dock";
 "If disabled, the app will only appear in the menu bar." = "If disabled, the app will only appear in the menu bar.";
+"Hide Dock Icon" = "Hide Dock Icon";
+"Show Dock Icon" = "Show Dock Icon";
+
+/* Behavior */
+"Behavior" = "Behavior";
+"Send Behavior" = "Send Behavior";
+"Return to Send, ⇧+Return to Newline" = "Return to Send, ⇧+Return to Newline";
+"⌘+Return to Send, Return to Newline" = "⌘+Return to Send, Return to Newline";
+"Launch at Login" = "Launch at Login";
+"Start the app automatically when you log in." = "Start the app automatically when you log in.";
+
+/* Shortcuts */
 "Shortcuts" = "Shortcuts";
 "Global Shortcut:" = "Global Shortcut:";
 "Brings the Assistant Window to the front globally." = "Brings the Assistant Window to the front globally.";
+"Recording..." = "Recording...";
+
+/* AI Service / OpenAI */
 "OpenAI Settings" = "OpenAI Settings";
+"Custom OpenAI Settings" = "Custom OpenAI Settings";
+"Public Service Settings" = "Public Service Settings";
 "API Key" = "API Key";
 "Enter your OpenAI or compatible API key." = "Enter your OpenAI or compatible API key.";
 "Base URL" = "Base URL";
 "Default: https://api.openai.com/v1" = "Default: https://api.openai.com/v1";
+"Model" = "Model";
+"Service Mode" = "Service Mode";
+"Public Service (Limited)" = "Public Service (Limited)";
+"Custom (OpenAI Compatible)" = "Custom (OpenAI Compatible)";
+"Public service has rate limits and daily total limits. Use your own API for unrestricted access." = "Public service has rate limits and daily total limits. Use your own API for unrestricted access.";
 "⚠️ You need to provide an API key to use the assistant." = "⚠️ You need to provide an API key to use the assistant.";
+"Test Connection" = "Test Connection";
+"Connection Successful" = "Connection Successful";
+
+/* Assistants / Prompts */
 "Prompt Identity" = "Assistant Identity";
 "Name" = "Name";
-"Model" = "Model";
 "System Prompt" = "System Instruction";
+"System:" = "System:";
 "Matched Apps" = "Matched Apps";
 "All Apps (*)" = "All Apps (*)";
+"Match All (*)" = "Match All (*)";
 "Add App..." = "Add App...";
 "App" = "App";
-"Match All (*)" = "Match All (*)";
 "Select a prompt to edit" = "Select an assistant to edit";
-"Current App:" = "Current App:";
-"None" = "None";
-"Refresh Frontmost App" = "Refresh Frontmost App";
+"Edit Assistant" = "Edit Assistant";
+"Edit Prompt" = "Edit Assistant";
+"New Prompt" = "New Assistant";
+"Delete Prompt?" = "Delete Assistant?";
+"Are you sure you want to delete this prompt? This action cannot be undone." = "Are you sure you want to delete this assistant? This action cannot be undone.";
 "Available Prompts" = "Available Assistants";
 "No prompts available for this app. Please check prompts.json or select an app with configured prompts." = "No assistants available for this app.";
-"System:" = "System:";
+"Assign Existing Prompt:" = "Assign Existing Assistant:";
+"Create New..." = "Create New...";
+"Auto Create Assistants" = "Auto Create Assistants";
+"AI is generating assistant suggestions..." = "AI is generating assistant suggestions...";
+"Add Selected" = "Add Selected";
+"selected" = "selected";
+"Failed to parse AI response. Please try again." = "Failed to parse AI response. Please try again.";
+"Please select applications first." = "Please select applications first.";
+"No apps selected. Please choose apps first." = "No apps selected. Please choose apps first.";
+"Pick Apps..." = "Pick Apps...";
+"Add..." = "Add...";
+"Auto Create..." = "Auto Create...";
+"Serious" = "Serious";
+"Lively" = "Lively";
+"Normal" = "Normal";
+
+/* Chat / Conversation */
 "Ask AI..." = "Ask anything...";
 "Send" = "Send";
 "AI Response" = "Response";
 "Output will appear here..." = "Output will appear here...";
 "Thinking..." = "Thinking...";
+" (Thinking...)" = " (Thinking...)";
+" (New Answer)" = " (New Answer)";
+"Response Completed" = "Response Completed";
+"Retry" = "Retry";
+"Regenerate" = "Regenerate";
+"Copy" = "Copy";
+"Copied!" = "Copied!";
+"Preview" = "Preview";
+"Edit" = "Edit";
+"Undo" = "Undo";
+"Clear Input" = "Clear Input";
+"Delete" = "Delete";
+"Cancel" = "Cancel";
+"None" = "None";
+"Back to %@" = "Back to %@";
+"Click to expand" = "Click to expand";
+"No App" = "No App";
+"Current App:" = "Current App:";
+"Refresh Frontmost App" = "Refresh Frontmost App";
+"Recent Apps" = "Recent Apps";
+"Running Apps" = "Running Apps";
+"No Recent Apps" = "No Recent Apps";
+"No Running Apps" = "No Running Apps";
+
+/* Clipboard */
+"Clipboard Content" = "Clipboard Content";
+"New Clipboard Content" = "New Clipboard Content";
+"Clipboard:" = "Clipboard:";
+"Auto Paste from Clipboard" = "Auto Paste from Clipboard";
+"Automatically paste copied text from other apps when Assistant activates." = "Automatically paste copied text from other apps when Assistant activates.";
+"Automatically pasted from clipboard" = "Automatically pasted from clipboard";
+"Overwrite" = "Overwrite";
+"Append" = "Append";
+"Dismiss" = "Dismiss";
+"Paste" = "Paste";
+"Clear Clipboard Preview" = "Clear Clipboard Preview";
+
+/* Language */
 "Language" = "Language";
 "System Default" = "System Default";
 "English" = "English";
 "简体中文" = "简体中文";
 "Restart or reopen windows to apply language changes." = "Restart or reopen windows to apply language changes.";
-"No App" = "No App";
-"New Prompt" = "New Assistant";
-"You are a helpful assistant." = "You are a helpful assistant.";
-"Settings" = "Settings";
-"Show Assistant" = "Open Sidey";
-"Settings..." = "Settings...";
-"Hide Dock Icon" = "Hide Dock Icon";
-"Show Dock Icon" = "Show Dock Icon";
-"Quit" = "Quit";
-"Delete Prompt?" = "Delete Assistant?";
-"Delete" = "Delete";
-"Cancel" = "Cancel";
-"Are you sure you want to delete this prompt? This action cannot be undone." = "Are you sure you want to delete this assistant? This action cannot be undone.";
-"Preview" = "Preview";
-"Edit" = "Edit";
-"Copy" = "Copy";
-"Copied!" = "Copied!";
-"Retry" = "Retry";
-"Back to %@" = "Back to %@";
-"Window Opacity" = "Window Opacity";
-"Pin Window" = "Pin Window";
-"Unpin Window" = "Unpin Window";
-"Recording..." = "Recording...";
-"Send Behavior" = "Send Behavior";
-"Return to Send, ⇧+Return to Newline" = "Return to Send, ⇧+Return to Newline";
-"⌘+Return to Send, Return to Newline" = "⌘+Return to Send, Return to Newline";
-"Appearance & Behavior" = "Appearance & Behavior";
-"Auto Paste from Clipboard" = "Auto Paste from Clipboard";
-"Automatically paste copied text from other apps when Assistant activates." = "Automatically paste copied text from other apps when Assistant activates.";
-"Edit Prompt" = "Edit Assistant";
-"Menu Bar Icon" = "Menu Bar Icon";
-"Launch at Login" = "Launch at Login";
-"Start the app automatically when you log in." = "Start the app automatically when you log in.";
-"Behavior" = "Behavior";
-"Test Connection" = "Test Connection";
-"Connection Successful" = "Connection Successful";
-"Data" = "Data";
+
+/* Data / Sync */
 "Backup & Restore" = "Backup & Restore";
 "Export Backup..." = "Export Backup...";
 "Import Backup..." = "Import Backup...";
-"iCloud Sync" = "iCloud Sync";
-"Sync to iCloud Now" = "Sync to iCloud Now";
-"Load from iCloud" = "Load from iCloud";
-"Settings sync automatically; Prompts can be manually synced (limit 100KB)." = "Settings sync automatically; Assistants can be manually synced (limit 100KB).";
 "Exported!" = "Exported!";
 "Imported!" = "Imported!";
+"iCloud Sync" = "iCloud Sync";
 "Enable iCloud Sync" = "Enable iCloud Sync";
+"Sync to iCloud Now" = "Sync to iCloud Now";
+"Load from iCloud" = "Load from iCloud";
 "Last Sync" = "Last Sync";
 "Sync settings and prompts across your devices using iCloud." = "Sync settings and assistants across your devices using iCloud.";
+"Settings sync automatically; Prompts can be manually synced (limit 100KB)." = "Settings sync automatically; Assistants can be manually synced (limit 100KB).";
 "Cloud -> Local" = "Cloud -> Local";
 "Local -> Cloud" = "Local -> Cloud";
 "Prompts -> Cloud" = "Assistants -> Cloud";
 "Prompts <- Cloud" = "Cloud -> Assistants";
-"Connection Successful" = "Connection Successful";
+"Loaded!" = "Loaded!";
+"No Data Found" = "No Data Found";
 "Error: Data too large" = "Error: Data too large";
 "Error: Sync failed" = "Error: Sync failed";
-"Quit Sidey" = "Quit Sidey";
-"Assign Existing Prompt:" = "Assign Existing Assistant:";
-"Create New..." = "Create New...";
-"Clear Input" = "Clear Input";
-"New Clipboard Content" = "New Clipboard Content";
-"Clipboard:" = "Clipboard:";
-"Overwrite" = "Overwrite";
-"Append" = "Append";
-"Dismiss" = "Dismiss";
-"Paste" = "Paste";
-"Response Completed" = "Response Completed";
-"None" = "None";
+
+/* Updates */
+"Check for Updates..." = "Check for Updates...";
+"Check for Updates" = "Check for Updates";
+"Updater.Checking" = "Checking for updates...";
+"Updater.NoUpdate" = "You're up to date!";
+"Updater.UpdateFound" = "A new version is available!";
+
+/* Debug */
+"Debug Logs" = "Debug Logs";
+"Clear Logs" = "Clear Logs";
+"No logs available." = "No logs available.";
+
+/* Icons */
 "brain" = "Brain";
 "sparkles" = "Sparkles";
 "bolt.fill" = "Bolt";
@@ -124,49 +188,8 @@
 "face.smiling" = "Assistant";
 "command" = "Command";
 "wand.and.stars" = "Magic Wand";
-" (New Answer)" = " (New Answer)";
-" (Thinking...)" = " (Thinking...)";
-"Recent Apps" = "Recent Apps";
-"Running Apps" = "Running Apps";
-"iCloud Sync" = "iCloud Sync";
-"Sync to iCloud Now" = "Sync to iCloud Now";
-"Load from iCloud" = "Load from iCloud";
-"Sync settings and prompts across your devices using iCloud." = "Sync settings and assistants across your devices using iCloud.";
-"Loaded!" = "Loaded!";
-"No Data Found" = "No Data Found";
-"Automatically pasted from clipboard" = "Automatically pasted from clipboard";
-"Undo" = "Undo";
-"Clipboard Content" = "Clipboard Content";
-"Clear Clipboard Preview" = "Clear Clipboard Preview";
-"Debug Logs" = "Debug Logs";
-"Clear Logs" = "Clear Logs";
-"Click to expand" = "Click to expand";
-"Check for Updates..." = "Check for Updates...";
-"Check for Updates" = "Check for Updates";
-"Updater.Checking" = "Checking for updates...";
-"Updater.NoUpdate" = "You're up to date!";
-"Updater.UpdateFound" = "A new version is available!";
-"Auto Create Assistants" = "Auto Create Assistants";
-"AI is generating assistant suggestions..." = "AI is generating assistant suggestions...";
-"Add Selected" = "Add Selected";
-"selected" = "selected";
-"Failed to parse AI response. Please try again." = "Failed to parse AI response. Please try again.";
-"Retry" = "Retry";
-"No logs available." = "No logs available.";
-"Auto Create..." = "Auto Create...";
-"Serious" = "Serious";
-"Normal" = "Normal";
-"Lively" = "Lively";
-"Regenerate" = "Regenerate";
-"Please select applications first." = "Please select applications first.";
-"No apps selected. Please choose apps first." = "No apps selected. Please choose apps first.";
-"Pick Apps..." = "Pick Apps...";
-"Add..." = "Add...";
 
-/* AI Service Settings */
-"Service Mode" = "Service Mode";
-"Public Service (Limited)" = "Public Service (Limited)";
-"Custom (OpenAI Compatible)" = "Custom (OpenAI Compatible)";
-"Public service has rate limits and daily total limits. Use your own API for unrestricted access." = "Public service has rate limits and daily total limits. Use your own API for unrestricted access.";
-"Custom OpenAI Settings" = "Custom OpenAI Settings";
-"Public Service Settings" = "Public Service Settings";
+/* Menu / Status */
+"Show Assistant" = "Open Sidey";
+"Quit" = "Quit";
+"Quit Sidey" = "Quit Sidey";
