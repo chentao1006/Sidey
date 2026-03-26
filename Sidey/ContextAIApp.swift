@@ -144,24 +144,88 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         self.assistantWindow = window
     }
     
-    func showAssistant() {
+    func showAssistant(targetScreen: NSScreen? = nil) {
         guard let window = assistantWindow else {
             setupAssistantWindow()
-            showAssistant()
+            showAssistant(targetScreen: targetScreen)
             return
         }
         
-        // Always enforce move to active space to handle space transitions reliably
-        window.collectionBehavior.insert(.moveToActiveSpace)
+        // Step 1: Make the window visible on ALL Spaces first.
+        // This prevents macOS from switching Spaces when we activate Sidey —
+        // since the window is already on the user's current Space, no switch needed.
+        window.collectionBehavior.insert(.canJoinAllSpaces)
+        window.collectionBehavior.remove(.moveToActiveSpace)
         
+        // Step 2: Move to the target screen (if needed) before making it visible.
+        let screen = targetScreen ?? screenForMouseCursor()
+        if let screen = screen, window.screen != screen {
+            moveWindow(window, toScreen: screen)
+        }
+        
+        // Step 3: Bring Sidey front. Because the window is on all Spaces,
+        // macOS won't switch away from the user's current Space.
         NSApplication.shared.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         
-        // Clear the behavior after a short delay so it doesn't follow the user permanently
-        // unless requested again
+        // Step 4: After the window is visible, anchor it to just this Space,
+        // then re-assert app + key focus (removing canJoinAllSpaces can cause
+        // the previously-active app to reclaim frontmost status).
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            window.collectionBehavior.remove(.moveToActiveSpace)
+            window.collectionBehavior.remove(.canJoinAllSpaces)
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
         }
+    }
+
+    
+    /// Returns the screen the mouse cursor is currently on. No permissions needed.
+    private func screenForMouseCursor() -> NSScreen? {
+        let mouseLocation = NSEvent.mouseLocation
+        return NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) ?? NSScreen.main
+    }
+    
+    /// Returns the screen that the given app's frontmost window is on.
+    /// Does NOT filter to on-screen-only so windows in background Spaces are found too.
+    /// CGWindowListCopyWindowInfo does not require Accessibility permissions.
+    func screenForApp(_ app: NSRunningApplication) -> NSScreen? {
+        let pid = app.processIdentifier
+        // Omit .optionOnScreenOnly so we also find windows in background Spaces.
+        guard let windowList = CGWindowListCopyWindowInfo([.excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else {
+            return nil
+        }
+        for info in windowList {
+            guard let ownerPID = info[kCGWindowOwnerPID as String] as? Int32,
+                  ownerPID == pid,
+                  let boundsDict = info[kCGWindowBounds as String] as? [String: CGFloat],
+                  let x = boundsDict["X"], let y = boundsDict["Y"],
+                  let w = boundsDict["Width"], let h = boundsDict["Height"],
+                  w > 50, h > 50 else { continue }  // skip tiny status-bar/menu windows
+            // CGWindow uses top-left origin; convert to Cocoa (bottom-left origin)
+            let screenHeight = NSScreen.screens.first?.frame.height ?? 0
+            let center = CGPoint(x: x + w / 2, y: screenHeight - y - h / 2)
+            if let screen = NSScreen.screens.first(where: { $0.frame.contains(center) }) {
+                return screen
+            }
+        }
+        return nil
+    }
+    
+    /// Moves `window` to `screen`, preserving its size and keeping it in a
+    /// similar position relative to the screen edges (right-aligned by default).
+    private func moveWindow(_ window: NSWindow, toScreen screen: NSScreen) {
+        let currentSize = window.frame.size
+        let visibleFrame = screen.visibleFrame
+        
+        // Try to keep the same X/Y offset from the right and top edges, but
+        // clamp so the window stays fully within the screen.
+        let x = min(visibleFrame.maxX - currentSize.width - 40,
+                    max(visibleFrame.minX, visibleFrame.maxX - currentSize.width - 40))
+        let y = min(visibleFrame.maxY - currentSize.height - 60,
+                    max(visibleFrame.minY, visibleFrame.maxY - currentSize.height - 60))
+        
+        window.setFrame(NSRect(x: x, y: y, width: currentSize.width, height: currentSize.height),
+                        display: true, animate: false)
     }
     
     func showSettings() {

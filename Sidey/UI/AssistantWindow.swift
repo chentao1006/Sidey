@@ -169,9 +169,11 @@ struct AssistantWindow: View {
             Button(action: {
                 if !contextDetector.currentBundleID.isEmpty {
                     if let app = NSRunningApplication.runningApplications(withBundleIdentifier: contextDetector.currentBundleID).first {
+                        // Snapshot the screen BEFORE activating to avoid Space-switch timing issues
+                        let targetScreen = AppDelegate.shared.screenForApp(app)
                         app.activate(options: .activateIgnoringOtherApps)
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            AppDelegate.shared.showAssistant()
+                            AppDelegate.shared.showAssistant(targetScreen: targetScreen)
                         }
                     }
                 }
@@ -211,9 +213,10 @@ struct AssistantWindow: View {
                         ForEach(recent) { appCtx in
                             Button {
                                 if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == appCtx.bundleID }) {
+                                    let targetScreen = AppDelegate.shared.screenForApp(app)
                                     app.activate(options: .activateIgnoringOtherApps)
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                        AppDelegate.shared.showAssistant()
+                                        AppDelegate.shared.showAssistant(targetScreen: targetScreen)
                                     }
                                 }
                             } label: {
@@ -231,9 +234,10 @@ struct AssistantWindow: View {
                     } else {
                         ForEach(running, id: \.bundleIdentifier) { app in
                             Button {
+                                let targetScreen = AppDelegate.shared.screenForApp(app)
                                 app.activate(options: .activateIgnoringOtherApps)
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                    AppDelegate.shared.showAssistant()
+                                    AppDelegate.shared.showAssistant(targetScreen: targetScreen)
                                 }
                             } label: {
                                 let suffix = hasUnreadFor(bundleID: app.bundleIdentifier) ? L(" (New Answer)") : (hasLoadingFor(bundleID: app.bundleIdentifier) ? L(" (Thinking...)") : "")
