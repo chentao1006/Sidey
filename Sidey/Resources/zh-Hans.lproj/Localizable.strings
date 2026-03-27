@@ -105,6 +105,8 @@
 "Retry" = "重试";
 "Regenerate" = "重新生成";
 "Copy" = "复制";
+"Copy Line" = "复制这一行";
+"Copy and back to App" = "复制并回到应用";
 "Copied!" = "已复制";
 "Preview" = "预览";
 "Edit" = "编辑";
@@ -114,6 +116,7 @@
 "Cancel" = "取消";
 "None" = "无";
 "Back to %@" = "返回到 %@";
+"Send back to App" = "发送到应用";
 "Click to expand" = "点击展开";
 "No App" = "无应用";
 "Current App:" = "当前应用:";

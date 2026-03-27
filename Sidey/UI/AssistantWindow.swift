@@ -605,10 +605,22 @@ struct AssistantWindow: View {
                                             .padding()
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                         } else {
-                                            Markdown(exchange.aiResponse)
-                                                .padding()
-                                                .frame(maxWidth: .infinity, alignment: .leading)
-                                                .textSelection(.enabled)
+                                            let lines = exchange.aiResponse.components(separatedBy: .newlines)
+                                            VStack(alignment: .leading, spacing: 0) {
+                                                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                                                    ResponseLineView(line: line, onCopy: { text in
+                                                        NSPasteboard.general.clearContents()
+                                                        NSPasteboard.general.setString(text, forType: .string)
+                                                        
+                                                        // Back to App
+                                                        if !contextDetector.currentBundleID.isEmpty,
+                                                           let app = NSRunningApplication.runningApplications(withBundleIdentifier: contextDetector.currentBundleID).first {
+                                                            app.activate(options: .activateIgnoringOtherApps)
+                                                        }
+                                                    })
+                                                }
+                                            }
+                                            .padding(.vertical, 8)
                                         }
                                     }
                                 }
@@ -934,6 +946,81 @@ struct AssistantWindow: View {
             .filter { !$0.isEmpty }
             .joined(separator: "\n")
     }
+}
+
+struct ResponseLineView: View {
+    let line: String
+    let onCopy: (String) -> Void
+    
+    @State private var isHovered = false
+    @State private var showCheckmark = false
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            if line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Color.clear.frame(height: 8)
+            } else {
+                Markdown(line)
+                    .markdownTheme(.lineTheme)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+                    .overlay(alignment: .bottomTrailing) {
+                        if isHovered {
+                            HStack(spacing: 4) {
+                                Button(action: {
+                                    onCopy(line)
+                                    withAnimation {
+                                        showCheckmark = true
+                                    }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                        withAnimation {
+                                            showCheckmark = false
+                                        }
+                                    }
+                                }) {
+                                    Image(systemName: showCheckmark ? "checkmark" : "doc.on.doc")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(showCheckmark ? .green : .primary.opacity(0.7))
+                                }
+                                .buttonStyle(.plain)
+                                .help(L("Copy and back to App"))
+                                .onHover { inside in
+                                    if inside {
+                                        NSCursor.pointingHand.set()
+                                    } else {
+                                        NSCursor.arrow.set()
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(.ultraThinMaterial)
+                            .cornerRadius(6)
+                            .shadow(color: Color.black.opacity(0.1), radius: 2)
+                            .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                            .padding(.bottom, 2)
+                            .padding(.trailing, 2)
+                        }
+                    }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 1)
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+    }
+}
+
+extension Theme {
+    static let lineTheme = Theme()
+        .paragraph {
+            $0.label
+                .markdownMargin(top: 0, bottom: 0)
+        }
+        .codeBlock {
+            $0.label
+                .markdownMargin(top: 0, bottom: 0)
+        }
 }
 
 // macOS 13+ compatibility wrapper for onChange

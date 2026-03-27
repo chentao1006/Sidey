@@ -105,6 +105,8 @@
 "Retry" = "Retry";
 "Regenerate" = "Regenerate";
 "Copy" = "Copy";
+"Copy Line" = "Copy Line";
+"Copy and back to App" = "Copy and back to App";
 "Copied!" = "Copied!";
 "Preview" = "Preview";
 "Edit" = "Edit";
@@ -114,6 +116,7 @@
 "Cancel" = "Cancel";
 "None" = "None";
 "Back to %@" = "Back to %@";
+"Send back to App" = "Send to App";
 "Click to expand" = "Click to expand";
 "No App" = "No App";
 "Current App:" = "Current App:";
