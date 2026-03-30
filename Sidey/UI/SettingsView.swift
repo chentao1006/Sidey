@@ -424,24 +424,8 @@ struct PromptSettingsView: View {
                     Spacer()
                     
                     Button(action: {
-                        let panel = NSOpenPanel()
-                        panel.allowedContentTypes = [UTType.application]
-                        panel.allowsMultipleSelection = true
-                        panel.canChooseDirectories = false
-                        panel.directoryURL = URL(fileURLWithPath: "/Applications")
-                        
-                        if panel.runModal() == .OK {
-                            autoCreateApps = panel.urls.compactMap { url in
-                                // Resolve symlinks for system apps (like Shortcuts.app which is in /System/Applications)
-                                let resolvedURL = url.resolvingSymlinksInPath()
-                                guard let bundleID = Bundle(url: resolvedURL)?.bundleIdentifier else { return nil }
-                                let name = FileManager.default.displayName(atPath: resolvedURL.path)
-                                return (bundleID: bundleID, name: name)
-                            }
-                            if !autoCreateApps.isEmpty {
-                                showingAutoCreateSheet = true
-                            }
-                        }
+                        autoCreateApps = []
+                        showingAutoCreateSheet = true
                     }) {
                         Image(systemName: "wand.and.stars")
                             .frame(width: 24, height: 24)
@@ -899,15 +883,27 @@ struct AutoCreatePromptsSheet: View {
             } else {
                 ScrollView {
                     VStack(spacing: 8) {
-                        ForEach($suggestions) { $suggestion in
-                            HStack(alignment: .top, spacing: 12) {
-                                Toggle("", isOn: $suggestion.isSelected).toggleStyle(.checkbox).labelsHidden().padding(.top, 4)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(suggestion.name).font(.system(.body, weight: .semibold))
-                                    Text(suggestion.system).font(.caption).foregroundColor(.secondary).lineLimit(4)
-                                }
-                                Spacer()
-                            }.padding(12).background(RoundedRectangle(cornerRadius: 8).fill(suggestion.isSelected ? Color.accentColor.opacity(0.08) : Color.clear)).overlay(RoundedRectangle(cornerRadius: 8).stroke(suggestion.isSelected ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.15), lineWidth: 1)).contentShape(Rectangle()).onTapGesture { suggestion.isSelected.toggle() }
+                        if suggestions.isEmpty && !isGenerating {
+                            VStack(spacing: 12) {
+                                Image(systemName: "hand.tap")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(.secondary)
+                                Text(L("No apps selected. Please choose apps first."))
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .padding(.top, 80)
+                        } else {
+                            ForEach($suggestions) { $suggestion in
+                                HStack(alignment: .top, spacing: 12) {
+                                    Toggle("", isOn: $suggestion.isSelected).toggleStyle(.checkbox).labelsHidden().padding(.top, 4)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(suggestion.name).font(.system(.body, weight: .semibold))
+                                        Text(suggestion.system).font(.caption).foregroundColor(.secondary).lineLimit(4)
+                                    }
+                                    Spacer()
+                                }.padding(12).background(RoundedRectangle(cornerRadius: 8).fill(suggestion.isSelected ? Color.accentColor.opacity(0.08) : Color.clear)).overlay(RoundedRectangle(cornerRadius: 8).stroke(suggestion.isSelected ? Color.accentColor.opacity(0.4) : Color.secondary.opacity(0.15), lineWidth: 1)).contentShape(Rectangle()).onTapGesture { suggestion.isSelected.toggle() }
+                            }
                         }
                     }.padding()
                 }
