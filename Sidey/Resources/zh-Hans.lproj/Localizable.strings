@@ -202,7 +202,6 @@
 "Selection" = "选中文本";
 "Screen Text" = "界面文字";
 "OCR in progress..." = "正在识别界面文字...";
-"Click to view full text" = "点击查看全文";
 "Missing 'Screen Recording' permission. Please grant permission in System Settings > Security & Privacy." = "缺少 “屏幕录制” 权限。请在 “系统设置 > 隐私与安全性 > 屏幕录制” 中授予权限。";
 "Missing 'Accessibility' permission. Please grant permission in System Settings > Security & Privacy." = "缺少 “辅助功能” 权限。请在 “系统设置 > 隐私与安全性 > 辅助功能” 中授予权限。";
 

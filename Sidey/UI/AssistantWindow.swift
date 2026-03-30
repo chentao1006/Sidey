@@ -1108,7 +1108,7 @@ struct AttachmentItemView: View {
                 }
             }
         }
-        .help(attachment.isLoading ? L("OCR in progress...") : (attachment.content.isEmpty ? "" : L("Click to view full text")))
+
     }
 }
 
