@@ -109,5 +109,10 @@ echo "📦 Installing to /Applications..."
 rm -rf "/Applications/$DISPLAY_NAME.app"
 cp -R "$APP_BUNDLE" "/Applications/"
 
+# 4. Reset TCC permissions for testing
+echo "🛡️ Resetting system permissions for $BUNDLE_ID..."
+tccutil reset Accessibility "$BUNDLE_ID" 2>/dev/null || true
+tccutil reset ScreenCapture "$BUNDLE_ID" 2>/dev/null || true
+
 echo "✅ Done! You can find the app in the '$DIST_DIR' folder and it has been installed to /Applications."
 open "/Applications/$DISPLAY_NAME.app"

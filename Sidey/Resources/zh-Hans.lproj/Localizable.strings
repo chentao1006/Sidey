@@ -196,3 +196,22 @@
 "Show Assistant" = "打开旁白";
 "Quit" = "退出";
 "Quit Sidey" = "退出 旁白";
+
+/* Attachments */
+"Clipboard" = "剪贴板文字";
+"Selection" = "选中文本";
+"Screen Text" = "界面文字";
+"OCR in progress..." = "正在识别界面文字...";
+"Click to view full text" = "点击查看全文";
+"Missing 'Screen Recording' permission. Please grant permission in System Settings > Security & Privacy." = "缺少 “屏幕录制” 权限。请在 “系统设置 > 隐私与安全性 > 屏幕录制” 中授予权限。";
+"Missing 'Accessibility' permission. Please grant permission in System Settings > Security & Privacy." = "缺少 “辅助功能” 权限。请在 “系统设置 > 隐私与安全性 > 辅助功能” 中授予权限。";
+
+/* Permissions */
+"Permissions" = "权限管理";
+"Accessibility" = "辅助功能";
+"Screen Recording" = "屏幕录制";
+"Authorized" = "已授权";
+"Not Authorized" = "未授权";
+"Request" = "去授权";
+"Required for capturing text from other applications." = "用于获取其他应用的选中文本。";
+"Required for screen text capture (OCR)." = "用于获取当前屏幕或窗口中的文字 (OCR)。";

@@ -16,15 +16,21 @@
 
 ### ✨ Key Features
 
-- **Context Awareness**: Automatically detects the frontmost application and suggests relevant prompts.
-- **Customizable Assistants**: Create and manage different AI personas or tasks for specific apps (e.g., "Code Review" for Xcode, " Summarize" for Safari).
-- **Auto Create Assistants**: AI analyzes your active application and automatically designs professional personas like "Code Auditor" (Serious) or "Creative Editor" (Lively) with one click.
-- **Public AI Service**: Use Sidey instantly with a built-in public AI service — no API key required. Subject to daily rate limits. Also supports custom API Key and endpoint.
+- **Context Awareness**: Automatically detects the frontmost application and suggests relevant prompts. Retrieves active window details including application name and bundle identifier.
+- **Deep Context Capture**: Supports a multi-tier text retrieval system:
+  - **Accessibility Search**: Directly queries the focused window for selected text.
+  - **Specialized Plugins**: Deep integration with Safari and Finder via AppleScript.
+  - **Intelligent Fallback**: Safely simulates Command+C with automatic clipboard restoration to capture text from non-standard applications.
+- **Vision Recognition (OCR)**: Built-in OCR engine automatically extracts text from active application windows or your entire screen, supporting context gathering from images, PDF viewers, and unselectable UI elements.
+- **Context Continuity**: Preserves your screen context and attachments when switching between different assistant prompts or applications.
+- **Customizable Assistants**: Create and manage different AI personas or tasks for specific apps (e.g., "Code Review" for Xcode, "Summarize" for Safari).
+- **Auto Create Assistants**: AI analyzes your active application and automatically designs professional personas with one click.
+- **Public AI Service**: Use Sidey instantly with a built-in public AI service — no API key required.
 - **Global Hotkey**: Summon your assistant instantly from anywhere with a customizable keyboard shortcut.
-- **Smart Clipboard**: Automatically paste clipboard content when activated, with a one-click "Undo" to restore your previous input.
 - **Markdown Support**: Beautifully rendered AI responses with full Markdown support.
 - **iCloud Sync**: Keep your assistants and settings seamlessly synced across your devices via your Apple ID.
-- **App Switcher**: Quickly switch back to your recently used applications or explore running apps directly from the assistant.
+- **Optimized UI**: Refined input editor height and "View Full Text" attachment preview for a more efficient workflow.
+- **App Switcher**: Quickly switch back to your recently used applications directly from the assistant.
 
 ![Sidey Screenshot](Resources/Screenshot-en.jpg)
 

@@ -12,6 +12,41 @@ struct MessageExchange: Equatable, Identifiable, Codable {
 struct SessionState: Equatable, Codable {
     var exchanges: [MessageExchange]
     var lastScrollID: String?
+    var attachments: [Attachment]?
+}
+
+enum AttachmentType: String, Codable {
+    case clipboard
+    case selection
+    case screenText
+    
+    var icon: String {
+        switch self {
+        case .clipboard: return "doc.on.clipboard"
+        case .selection: return "selection.pin.in.out"
+        case .screenText: return "viewfinder"
+        }
+    }
+    
+    var labelKey: String {
+        switch self {
+        case .clipboard: return "Clipboard"
+        case .selection: return "Selection"
+        case .screenText: return "Screen Text"
+        }
+    }
+}
+
+struct Attachment: Identifiable, Equatable, Codable {
+    var id: UUID = UUID()
+    let type: AttachmentType
+    var content: String
+    var isSelected: Bool = true
+    var isLoading: Bool = false
+    
+    static func == (lhs: Attachment, rhs: Attachment) -> Bool {
+        lhs.id == rhs.id && lhs.content == rhs.content && lhs.isSelected == rhs.isSelected && lhs.isLoading == rhs.isLoading
+    }
 }
 
 struct AssistantWindow: View {
@@ -22,7 +57,7 @@ struct AssistantWindow: View {
     @Environment(\.openWindow) private var openWindow
     
     @AppStorage("alwaysOnTop") private var alwaysOnTop = true
-    @AppStorage("settingsSelectedTab") private var settingsSelectedTab = "general"
+    @AppStorage("settingsSelectedTab") private var settingsSelectedTab = "prompts"
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("sendBehavior") private var sendBehavior = "return"
     @AppStorage("appLanguage") private var appLanguage = "system"
@@ -38,9 +73,7 @@ struct AssistantWindow: View {
     @State private var currentSessionKey: String = ""
     @State private var unreadSessions: Set<String> = []
     @State private var textToInsert: String? = nil
-    @State private var lastPasteboardChangeCount: Int = NSPasteboard.general.changeCount
-    @State private var clipboardContent: String? = nil
-    @State private var includeClipboard: Bool = true
+    @State private var attachments: [Attachment] = []
     @State private var lastFinishedExchangeID: UUID? = nil
     
     // Auto Creator
@@ -51,6 +84,7 @@ struct AssistantWindow: View {
         let apps: [(bundleID: String, name: String)]
     }
     @State private var autoCreateContext: AutoCreateContext?
+    @State private var previewedAttachment: Attachment?
     
     var body: some View {
         let currentLocale = appLanguage == "system" ? Locale.current : Locale(identifier: appLanguage)
@@ -88,7 +122,7 @@ struct AssistantWindow: View {
             contextDetector.refresh()
             let targetPrompt = bestPrompt(for: contextDetector.currentBundleID)
             switchTo(bundleID: contextDetector.currentBundleID, prompt: targetPrompt)
-            checkClipboard()
+            refreshContext()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             contextDetector.refresh()
@@ -116,7 +150,7 @@ struct AssistantWindow: View {
                 switchTo(bundleID: contextDetector.currentBundleID, prompt: targetPrompt)
             }
             
-            checkClipboard()
+            refreshContext()
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("CXAISwitchSession"))) { notification in
             if let userInfo = notification.userInfo,
@@ -145,6 +179,10 @@ struct AssistantWindow: View {
                     switchTo(bundleID: targetBundleID, prompt: prompt)
                 }
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideyRefreshContext"))) { notification in
+            let preSelected = notification.userInfo?["selection"] as? String
+            refreshContext(preSelected: preSelected)
         }
         .sheet(item: $autoCreateContext) { context in
             AutoCreatePromptsSheet(initialApps: context.apps) { newPrompts in
@@ -273,7 +311,6 @@ struct AssistantWindow: View {
             .help(alwaysOnTop ? L("Unpin Window") : L("Pin Window"))
             
             Button {
-                settingsSelectedTab = "general"
                 AppDelegate.shared.showSettings()
             } label: {
                 Image(systemName: "gearshape")
@@ -397,7 +434,7 @@ struct AssistantWindow: View {
             
             if let selected = selectedPrompt {
                 HStack(spacing: 4) {
-                    Text(selected.system)
+                    Text(selected.system.replacingOccurrences(of: "\n", with: " "))
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .lineLimit(1)
@@ -428,62 +465,15 @@ struct AssistantWindow: View {
                 .font(.headline)
             
             MacTextEditor(text: $userInput, textToInsert: $textToInsert, sendBehavior: sendBehavior, onSend: sendMessage)
-                .frame(height: clipboardContent == nil ? 60 : 44)
-                .padding(4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                )
-
-            if let content = clipboardContent {
-                HStack(alignment: .top, spacing: 6) {
-                    Toggle("", isOn: $includeClipboard)
-                        .toggleStyle(.checkbox)
-                        .labelsHidden()
-                        .controlSize(.small)
-                        .padding(.top, 1)
-                    
-                    Image(systemName: "doc.on.clipboard")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                        .padding(.top, 3)
-
-                    Text(cleanPreview(content))
-                        .font(.caption)
-                        .lineLimit(3)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    Button(action: {
-                        clipboardContent = nil
-                    }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.secondary.opacity(0.8))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 2)
-                    .help(L("Clear Clipboard Preview"))
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color.secondary.opacity(0.1), lineWidth: 0.5)
-                )
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    includeClipboard.toggle()
-                }
-                .onHover { inside in
-                    if inside {
-                        NSCursor.pointingHand.set()
-                    } else {
-                        NSCursor.arrow.set()
+                .frame(minHeight: 20, idealHeight: 30, maxHeight: 40)
+                 ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach($attachments) { $attachment in
+                            AttachmentItemView(attachment: $attachment, previewedAttachment: $previewedAttachment)
+                        }
                     }
                 }
-            }
+                .frame(maxWidth: .infinity, alignment: .leading)
             
             HStack(spacing: 8) {
                 Button(action: {
@@ -514,7 +504,7 @@ struct AssistantWindow: View {
                     }
                 }
                 .keyboardShortcut(.return, modifiers: sendBehavior == "cmdReturn" ? [.command] : [])
-                .disabled((userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !(includeClipboard && clipboardContent != nil)) || selectedPrompt == nil || llmClient.loadingStates[currentSessionKey] == true)
+                .disabled((userInput.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty && attachments.filter { $0.isSelected && !$0.content.isEmpty }.isEmpty) || selectedPrompt == nil || llmClient.loadingStates[currentSessionKey] == true)
                 .help(L("Send"))
             }
         }
@@ -734,20 +724,26 @@ struct AssistantWindow: View {
     private func sendMessage() {
         guard let prompt = selectedPrompt else { return }
         
-        var messageToSend = userInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        if includeClipboard, let content = clipboardContent {
-            if messageToSend.isEmpty {
-                messageToSend = content
-            } else {
-                messageToSend = "\(messageToSend)\n\n---\n\(content)"
-            }
+        var messageParts: [String] = []
+        let trimmedInput = userInput.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+        if !trimmedInput.isEmpty {
+            messageParts.append(trimmedInput)
         }
         
-        if messageToSend.isEmpty { return }
+        for attachment in attachments where attachment.isSelected && !attachment.content.isEmpty {
+            let label = L(attachment.type.labelKey)
+            messageParts.append("\n---\n[\(label)]\n\(attachment.content)")
+        }
+        
+        if messageParts.isEmpty { return }
+        let messageToSend = messageParts.joined(separator: "\n")
+        
         performSend(messageToSend: messageToSend, prompt: prompt)
         
-        // Deselect clipboard after sending
-        self.includeClipboard = false
+        // Clear non-persistent attachments or just deselect them
+        for i in 0..<attachments.count {
+            attachments[i].isSelected = false
+        }
     }
     
     private func performSend(messageToSend: String, prompt: Prompt, style: ResponseStyle? = nil) {
@@ -825,10 +821,14 @@ struct AssistantWindow: View {
     }
     
     private func switchTo(bundleID: String, prompt: Prompt?) {
-        if !currentSessionKey.isEmpty {
-            promptStates[currentSessionKey] = SessionState(
+        let oldSessionKey = self.currentSessionKey
+        let oldBundleID = oldSessionKey.split(separator: "|").first.map(String.init)
+        
+        if !oldSessionKey.isEmpty {
+            promptStates[oldSessionKey] = SessionState(
                 exchanges: currentExchanges,
-                lastScrollID: nil // Reverting for now for stability
+                lastScrollID: nil, // Reverting for now for stability
+                attachments: attachments
             )
         }
         
@@ -843,24 +843,112 @@ struct AssistantWindow: View {
         
         let state = promptStates[newKey]
         self.currentExchanges = state?.exchanges ?? []
-    }
-    
-    private func checkClipboard() {
-        let currentChangeCount = NSPasteboard.general.changeCount
-        if let newText = NSPasteboard.general.string(forType: .string),
-           !newText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            
-            // Only update if it's new content
-            if currentChangeCount != lastPasteboardChangeCount {
-                clipboardContent = newText
-                includeClipboard = true
-                lastPasteboardChangeCount = currentChangeCount
+        
+        // Carry over attachments if switching assistants (prompts) for the same application.
+        // This ensures context like selection or OCR stays available when changing the AI personality.
+        if !oldSessionKey.isEmpty && bundleID == oldBundleID {
+            // Keep current memory-resident attachments if we're in the same app context
+            if self.attachments.isEmpty {
+                self.attachments = state?.attachments ?? []
             }
         } else {
-            clipboardContent = nil
-            lastPasteboardChangeCount = currentChangeCount
+            self.attachments = state?.attachments ?? []
         }
     }
+    
+    @State private var lastRefreshTime: Date = Date.distantPast
+    
+    private func refreshContext(preSelected: String? = nil) {
+        // Prevent redundant refreshes (debounce)
+        if preSelected == nil && Date().timeIntervalSince(lastRefreshTime) < 1.0 {
+            return
+        }
+        lastRefreshTime = Date()
+        
+        self.attachments = []
+        
+        // 1. Clipboard
+        if let clip = NSPasteboard.general.string(forType: .string), !clip.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
+            self.attachments.append(Attachment(type: .clipboard, content: clip))
+        }
+        
+        // 2. Selection (Run on background to avoid UI freeze)
+        let selectionAttachment = Attachment(type: .selection, content: "", isLoading: true)
+        if preSelected == nil {
+            self.attachments.append(selectionAttachment)
+        }
+        
+        // Trigger permission prompt on main thread if necessary
+        let hasPermissions = SelectionManager.shared.checkAccessibilityPermissions()
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            let finalSelection: String?
+            if let pre = preSelected, !pre.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                finalSelection = pre
+            } else {
+                finalSelection = SelectionManager.shared.getSelectedText()
+            }
+            
+            DispatchQueue.main.async {
+                if let selection = finalSelection, !selection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    if let index = self.attachments.firstIndex(where: { $0.id == selectionAttachment.id }) {
+                        self.attachments[index].content = selection
+                        self.attachments[index].isLoading = false
+                    } else if preSelected != nil {
+                        self.attachments.append(Attachment(type: .selection, content: selection))
+                    }
+                } else {
+                    // Selection failed or was empty
+                    if let index = self.attachments.firstIndex(where: { $0.id == selectionAttachment.id }) {
+                        if !hasPermissions {
+                            let msg = L("Missing 'Accessibility' permission. Please grant permission in System Settings > Security & Privacy.")
+                            self.attachments[index].content = msg
+                            self.attachments[index].isLoading = false
+                        } else {
+                            self.attachments.remove(at: index)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 3. OCR (Screen Text)
+        let ocrAttachment = Attachment(type: .screenText, content: "", isLoading: true)
+        self.attachments.append(ocrAttachment)
+        
+        // Prioritize the screen where the target app is located
+        let currentBundleID = contextDetector.currentBundleID
+        let targetApp = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == currentBundleID })
+        let targetScreen = targetApp.flatMap { AppDelegate.shared.screenForApp($0) } ?? AppDelegate.shared.screenForMouseCursor() ?? NSScreen.main ?? NSScreen.screens.first
+        
+        if let screen = targetScreen {
+            OCRManager.shared.captureScreenAndOCR(for: screen, targetApp: targetApp) { text in
+                DispatchQueue.main.async {
+                    if let index = self.attachments.firstIndex(where: { $0.id == ocrAttachment.id }) {
+                        self.attachments[index].content = text
+                        self.attachments[index].isLoading = false
+                        if text.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
+                            self.attachments.remove(at: index)
+                        }
+                    }
+                }
+            }
+        } else {
+            // Fallback to main screen
+            OCRManager.shared.captureMainScreenAndOCR { text in
+                DispatchQueue.main.async {
+                    if let index = self.attachments.firstIndex(where: { $0.id == ocrAttachment.id }) {
+                        self.attachments[index].content = text
+                        self.attachments[index].isLoading = false
+                        if text.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
+                            self.attachments.remove(at: index)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     
     private func bestPrompt(for bundleID: String) -> Prompt? {
         let available = promptStore.getPrompts(for: bundleID)
@@ -940,11 +1028,87 @@ struct AssistantWindow: View {
     }
 
     private func cleanPreview(_ text: String) -> String {
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
             .joined(separator: "\n")
+    }
+}
+
+struct AttachmentItemView: View {
+    @Binding var attachment: Attachment
+    @Binding var previewedAttachment: Attachment?
+    @State private var isHovered = false
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Toggle("", isOn: $attachment.isSelected)
+                .toggleStyle(.checkbox)
+                .labelsHidden()
+                .controlSize(.small)
+            
+            HStack(spacing: 4) {
+                if attachment.isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .scaleEffect(0.5)
+                        .frame(width: 12, height: 12)
+                } else {
+                    Image(systemName: attachment.type.icon)
+                        .font(.system(size: 10))
+                }
+                
+                Text(L(attachment.type.labelKey))
+                    .font(.caption)
+                    .lineLimit(1)
+            }
+            .foregroundColor(attachment.isSelected ? .primary : .secondary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Color.secondary.opacity(isHovered ? 0.15 : 0.1))
+        .cornerRadius(6)
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+        .highPriorityGesture(TapGesture().onEnded {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                attachment.isSelected.toggle()
+            }
+        })
+        .popover(item: Binding<Attachment?>(
+            get: { previewedAttachment?.id == attachment.id ? previewedAttachment : nil },
+            set: { previewedAttachment = $0 }
+        )) { previewAttachment in
+            ScrollViewReader { proxy in
+                ScrollView {
+                    Text(previewAttachment.content.replacingOccurrences(of: "\n", with: " "))
+                        .padding()
+                        .font(.callout)
+                        .id("attachmentContent")
+                        .frame(minWidth: 200, maxWidth: 400, minHeight: 100, maxHeight: 1500)
+                }
+                .onAppear {
+                    proxy.scrollTo("attachmentContent", anchor: .center)
+                }
+            }
+        }
+        .onChangeCompatible(of: isHovered) { newValue in
+            if newValue && !attachment.content.isEmpty && !attachment.isLoading {
+                // If switching, a tiny delay helps ensure the transition is smooth
+                if previewedAttachment != nil && previewedAttachment?.id != attachment.id {
+                    previewedAttachment = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        if isHovered {
+                            previewedAttachment = attachment
+                        }
+                    }
+                } else {
+                    previewedAttachment = attachment
+                }
+            }
+        }
+        .help(attachment.isLoading ? L("OCR in progress...") : (attachment.content.isEmpty ? "" : L("Click to view full text")))
     }
 }
 
@@ -957,7 +1121,7 @@ struct ResponseLineView: View {
     
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            if line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if line.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
                 Color.clear.frame(height: 8)
             } else {
                 Markdown(line)

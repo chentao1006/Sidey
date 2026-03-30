@@ -163,10 +163,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             moveWindow(window, toScreen: screen)
         }
         
-        // Step 3: Bring Sidey front. Because the window is on all Spaces,
-        // macOS won't switch away from the user's current Space.
+        // Bring Sidey front...
         NSApplication.shared.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
+        
+        NotificationCenter.default.post(name: Notification.Name("SideyRefreshContext"), object: nil, userInfo: ["selection": ""])
         
         // Step 4: After the window is visible, anchor it to just this Space,
         // then re-assert app + key focus (removing canJoinAllSpaces can cause
@@ -180,7 +181,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     
     /// Returns the screen the mouse cursor is currently on. No permissions needed.
-    private func screenForMouseCursor() -> NSScreen? {
+    func screenForMouseCursor() -> NSScreen? {
         let mouseLocation = NSEvent.mouseLocation
         return NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) ?? NSScreen.main
     }

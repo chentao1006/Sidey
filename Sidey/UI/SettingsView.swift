@@ -1,20 +1,16 @@
 import SwiftUI
 import UniformTypeIdentifiers
 import ServiceManagement
+import Combine
+import ScreenCaptureKit
 
 struct SettingsView: View {
-    @AppStorage("settingsSelectedTab") private var selectedTab = "general"
+    @AppStorage("settingsSelectedTab") private var selectedTab = "prompts"
     @AppStorage("appLanguage") private var appLanguage = "system"
 
     var body: some View {
         let currentLocale = appLanguage == "system" ? Locale.current : Locale(identifier: appLanguage)
         TabView(selection: $selectedTab) {
-            GeneralSettingsView()
-                .tabItem {
-                    Label(L("General"), systemImage: "gear")
-                }
-                .tag("general")
-            
             PromptSettingsView()
                 .tabItem {
                     Label(L("Prompts"), systemImage: "text.bubble")
@@ -27,6 +23,12 @@ struct SettingsView: View {
                 }
                 .tag("api")
                 
+            GeneralSettingsView()
+                .tabItem {
+                    Label(L("General"), systemImage: "gear")
+                }
+                .tag("general")
+            
             DataSettingsView()
                 .tabItem {
                     Label(L("Data"), systemImage: "arrow.triangle.2.circlepath")
@@ -51,6 +53,7 @@ struct GeneralSettingsView: View {
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("sendBehavior") private var sendBehavior = "return"
     @AppStorage("menuBarIcon") private var menuBarIcon = "brain"
+    @StateObject private var permissionManager = PermissionManager.shared
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     
     let menuBarIcons = [
@@ -157,8 +160,77 @@ struct GeneralSettingsView: View {
             } header: {
                 Text(L("Behavior")).font(.headline)
             }
+
+            Section {
+                VStack(alignment: .leading, spacing: 12) {
+                    PermissionRow(
+                        icon: "accessibility", 
+                        title: L("Accessibility"), 
+                        description: L("Required for capturing text from other applications."), 
+                        isGranted: permissionManager.isAccessibilityGranted,
+                        onRequest: permissionManager.requestAccessibility
+                    )
+                    
+                    Divider()
+                    
+                    PermissionRow(
+                        icon: "video.badge.checkmark", 
+                        title: L("Screen Recording"), 
+                        description: L("Required for screen text capture (OCR)."), 
+                        isGranted: permissionManager.isScreenRecordingGranted,
+                        onRequest: permissionManager.requestScreenRecording
+                    )
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text(L("Permissions")).font(.headline)
+            }
         }
         .formStyle(.grouped)
+    }
+}
+
+struct PermissionRow: View {
+    let icon: String
+    let title: String
+    let description: String
+    let isGranted: Bool
+    let onRequest: () -> Void
+    
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundColor(.accentColor)
+                .frame(width: 32)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            if isGranted {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text(L("Authorized"))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            } else {
+                Button(action: onRequest) {
+                    Text(L("Request"))
+                        .frame(width: 80)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+        }
     }
 }
 
@@ -919,6 +991,72 @@ STRICT RULES:
                 errorMessage = L("Failed to parse AI response. Please try again."); isGenerating = false; return
             }
             suggestions = raw.map { PromptSuggestion(name: $0.name, system: $0.system) }; isGenerating = false
+        }
+    }
+}
+import AppKit
+import Foundation
+import Combine
+import ApplicationServices
+import ScreenCaptureKit
+
+class PermissionManager: ObservableObject {
+    static let shared = PermissionManager()
+    
+    @Published var isAccessibilityGranted: Bool = false
+    @Published var isScreenRecordingGranted: Bool = false
+    
+    private var timer: Timer?
+    
+    private init() {
+        checkPermissions()
+        startPolling()
+    }
+    
+    func checkPermissions() {
+        isAccessibilityGranted = checkAccessibility()
+        isScreenRecordingGranted = checkScreenRecording()
+    }
+    
+    private func startPolling() {
+        // Poll for permission changes when the user is in settings
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.checkPermissions()
+        }
+    }
+    
+    func checkAccessibility() -> Bool {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false]
+        return AXIsProcessTrustedWithOptions(options as CFDictionary)
+    }
+    
+    func checkScreenRecording() -> Bool {
+        if #available(macOS 11.0, *) {
+            return CGPreflightScreenCaptureAccess()
+        }
+        return true
+    }
+    
+    func requestAccessibility() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+        _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
+        
+        // Also open system settings if prompt doesn't appear or for better UX
+        if !checkAccessibility() {
+            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+            NSWorkspace.shared.open(url)
+        }
+    }
+    
+    func requestScreenRecording() {
+        if #available(macOS 11.0, *) {
+            _ = CGRequestScreenCaptureAccess()
+        }
+        
+        // Open system settings
+        if !checkScreenRecording() {
+            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+            NSWorkspace.shared.open(url)
         }
     }
 }
