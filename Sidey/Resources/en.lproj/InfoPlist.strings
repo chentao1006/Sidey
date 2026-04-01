@@ -1,2 +1,6 @@
 "CFBundleDisplayName" = "Sidey";
 "CFBundleName" = "Sidey";
+"NSScreenCaptureUsageDescription" = "Sidey needs screen capture permission to extract text from your screen for OCR and AI analysis.";
+"NSAccessibilityUsageDescription" = "Sidey uses accessibility features to read selected text from other applications to provide AI assistance.";
+"NSAppleEventsUsageDescription" = "Sidey uses AppleScript to retrieve content from applications like Safari to provide better context for AI analysis.";
+"NSHumanReadableCopyright" = "Copyright © 2026 Chen Tao. All rights reserved.";

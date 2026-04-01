@@ -20,5 +20,7 @@
 	<array>
 		<string>CloudDocuments</string>
 	</array>
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
 </dict>
 </plist>
