@@ -53,6 +53,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private var statusItem: NSStatusItem?
     private var statusMenu: NSMenu?
+    private let updaterViewModel = UpdaterViewModel()
     
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSAppleEventManager.shared().setEventHandler(
@@ -167,7 +168,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         
-        NotificationCenter.default.post(name: Notification.Name("SideyRefreshContext"), object: nil, userInfo: ["selection": ""])
+        NotificationCenter.default.post(name: Notification.Name("SideyRefreshContext"), object: nil, userInfo: nil)
         
         // Step 4: After the window is visible, anchor it to just this Space,
         // then re-assert app + key focus (removing canJoinAllSpaces can cause
@@ -404,6 +405,11 @@ extension AppDelegate: NSMenuDelegate {
         settingsItem.target = self
         menu.addItem(settingsItem)
         
+        #if !APPSTORE
+        let updateItem = NSMenuItem(title: L("Check for Updates..."), action: #selector(checkForUpdatesAction), keyEquivalent: "")
+        updateItem.target = self
+        menu.addItem(updateItem)
+        #endif
         
         menu.addItem(NSMenuItem.separator())
         
@@ -432,6 +438,12 @@ extension AppDelegate: NSMenuDelegate {
     @objc private func showSettingsAction() {
         showSettings()
     }
+    
+    #if !APPSTORE
+    @objc private func checkForUpdatesAction() {
+        updaterViewModel.checkForUpdates()
+    }
+    #endif
     
     @objc private func quitAction() {
         NSApplication.shared.terminate(nil)

@@ -1,5 +1,6 @@
 import Foundation
 import CryptoKit
+import Combine
 
 struct ChatMessage: Codable {
     let role: String
@@ -23,6 +24,7 @@ struct ChatStreamResponse: Codable {
     struct Choice: Codable {
         struct Delta: Codable {
             let content: String?
+            let role: String?
         }
         let delta: Delta
         let finish_reason: String?
@@ -34,6 +36,7 @@ struct ChatStreamResponse: Codable {
 class LLMClient: ObservableObject {
     @Published var loadingStates: [String: Bool] = [:]
     private var activeTasks: [String: Task<Void, Never>] = [:]
+    private let decoder = JSONDecoder()
     
     private let session: URLSession = {
         let config = URLSessionConfiguration.default
@@ -72,6 +75,10 @@ class LLMClient: ObservableObject {
     }
 
     func sendRequest(systemPrompt: String, messages: [ChatMessage], sessionKey: String = "", onUpdate: @escaping (String) -> Void, completion: @escaping (String) -> Void) {
+        // Cancel existing task synchronously to avoid race condition with the new task
+        activeTasks[sessionKey]?.cancel()
+        activeTasks.removeValue(forKey: sessionKey)
+        
         performRequest(systemPrompt: systemPrompt, messages: messages, sessionKey: sessionKey, retryCount: 1, onUpdate: onUpdate, completion: completion)
     }
     
@@ -128,7 +135,7 @@ class LLMClient: ObservableObject {
         
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.addValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
         
         let model = UserDefaults.standard.string(forKey: "openAI_Model") ?? "gpt-4o-mini"
         
@@ -171,36 +178,94 @@ class LLMClient: ObservableObject {
                 }
                 
                 var fullResponse = ""
+                var isSSE = false
                 
-                for try await line in bytes.lines {
-                    if Task.isCancelled { break }
+                if let httpResponse = response as? HTTPURLResponse {
+                    // Use case-insensitive header access
+                    let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
+                    isSSE = contentType.contains("event-stream")
+                }
+                
+                if isSSE {
+                    var lineData = Data()
+                    let doneBytes1 = Data("data:[DONE]".utf8)
+                    let doneBytes2 = Data("data: [DONE]".utf8)
                     
-                    if line.hasPrefix("data: ") {
-                        let dataStr = line.dropFirst(6).trimmingCharacters(in: .whitespacesAndNewlines)
-                        if dataStr == "[DONE]" {
+                    for try await byte in bytes {
+                        if Task.isCancelled { break }
+                        
+                        lineData.append(byte)
+                        
+                        // Eagerly check for [DONE] ignoring missing newlines
+                        if lineData.suffix(doneBytes1.count) == doneBytes1 || lineData.suffix(doneBytes2.count) == doneBytes2 {
+                            DebugLogger.shared.log("Stream finished with [DONE]", type: .info)
                             break
                         }
                         
-                        if let data = dataStr.data(using: .utf8) {
-                            do {
-                                let streamResponse = try JSONDecoder().decode(ChatStreamResponse.self, from: data)
-                                if let content = streamResponse.choices.first?.delta.content {
-                                    fullResponse += content
-                                    DispatchQueue.main.async {
-                                        onUpdate(fullResponse)
+                        if byte == 10 { // \n
+                            if let lineBuffer = String(data: lineData, encoding: .utf8) {
+                                let trimmedLine = lineBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
+                                lineData.removeAll()
+                                
+                                if trimmedLine.isEmpty { continue }
+                                
+                                if trimmedLine.hasPrefix("data:") {
+                                    let cleanDataStr = trimmedLine.hasPrefix("data: ") ? String(trimmedLine.dropFirst(6)) : String(trimmedLine.dropFirst(5))
+                                    let finalStr = cleanDataStr.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    
+                                    if let data = finalStr.data(using: .utf8) {
+                                        do {
+                                            let streamResponse = try decoder.decode(ChatStreamResponse.self, from: data)
+                                            if let content = streamResponse.choices.first?.delta.content {
+                                                fullResponse += content
+                                                DispatchQueue.main.async {
+                                                    onUpdate(fullResponse)
+                                                }
+                                            }
+                                        } catch {
+                                            DebugLogger.shared.log("SSE parsing failed: \(error.localizedDescription) for data: \(finalStr)", type: .error)
+                                        }
                                     }
+                                } else {
+                                    DebugLogger.shared.log("Non-data SSE line: \(trimmedLine)", type: .info)
                                 }
-                            } catch {
-                                // Skip parsing errors for non-json lines
+                            } else {
+                                lineData.removeAll() // Clear if bad UTF-8 data
+                            }
+                        }
+                    }
+                } else {
+                    // Fallback for non-SSE responses - read all data first then process
+                    var collectedData = Data()
+                    for try await byte in bytes {
+                        if Task.isCancelled { break }
+                        collectedData.append(byte)
+                    }
+                    
+                    if !collectedData.isEmpty {
+                        do {
+                            let chatResponse = try decoder.decode(ChatResponse.self, from: collectedData)
+                            if let content = chatResponse.choices.first?.message.content {
+                                fullResponse = content
+                                DispatchQueue.main.async {
+                                    onUpdate(fullResponse)
+                                }
+                            }
+                        } catch {
+                            if let bodyContent = String(data: collectedData, encoding: .utf8) {
+                                DebugLogger.shared.log("Non-SSE parse failed: \(error.localizedDescription)", type: .error)
+                                fullResponse = bodyContent
                             }
                         }
                     }
                 }
                 
                 DispatchQueue.main.async {
-                    self.activeTasks.removeValue(forKey: sessionKey)
-                    self.loadingStates[sessionKey] = false
-                    completion(fullResponse)
+                    if !Task.isCancelled {
+                        self.activeTasks.removeValue(forKey: sessionKey)
+                        self.loadingStates[sessionKey] = false
+                        completion(fullResponse)
+                    }
                 }
                 
             } catch {
@@ -211,7 +276,7 @@ class LLMClient: ObservableObject {
                 if retryCount > 0 {
                     let nsError = error as NSError
                     if nsError.code == NSURLErrorNetworkConnectionLost || nsError.code == NSURLErrorCannotConnectToHost {
-                        DebugLogger.shared.log("Network error, retrying... \(error.localizedDescription)", type: .error)
+                        DebugLogger.shared.log("Network error, retrying...", type: .error)
                         self.performRequest(systemPrompt: systemPrompt, messages: messages, sessionKey: sessionKey, retryCount: retryCount - 1, onUpdate: onUpdate, completion: completion)
                         return
                     }
@@ -219,9 +284,11 @@ class LLMClient: ObservableObject {
                 
                 DebugLogger.shared.log("Streaming error: \(error.localizedDescription)", type: .error)
                 DispatchQueue.main.async {
-                    self.activeTasks.removeValue(forKey: sessionKey)
-                    self.loadingStates[sessionKey] = false
-                    completion("Network error: \(error.localizedDescription)")
+                    if !Task.isCancelled {
+                        self.activeTasks.removeValue(forKey: sessionKey)
+                        self.loadingStates[sessionKey] = false
+                        completion("Network error: \(error.localizedDescription)")
+                    }
                 }
             }
         }

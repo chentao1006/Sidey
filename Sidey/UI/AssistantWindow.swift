@@ -968,10 +968,16 @@ struct AssistantWindow: View {
             
             DispatchQueue.main.async {
                 if let selection = finalSelection, !selection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    // Selection successful
                     if let index = self.attachments.firstIndex(where: { $0.id == selectionAttachment.id }) {
                         self.attachments[index].content = selection
                         self.attachments[index].isLoading = false
-                    } else if preSelected != nil {
+                    } else if let index = self.attachments.firstIndex(where: { $0.type == .selection }) {
+                        // Already exists another selection (perhaps from preSelected or previous task)
+                        self.attachments[index].content = selection
+                        self.attachments[index].isLoading = false
+                    } else {
+                        // Not found, append new
                         self.attachments.append(Attachment(type: .selection, content: selection))
                     }
                 } else {
@@ -984,6 +990,9 @@ struct AssistantWindow: View {
                         } else {
                             self.attachments.remove(at: index)
                         }
+                    } else if let index = self.attachments.firstIndex(where: { $0.type == .selection }), self.attachments[index].content.isEmpty {
+                        // Remove empty selection if it was a placeholder
+                        self.attachments.remove(at: index)
                     }
                 }
                 group.leave()
@@ -991,7 +1000,8 @@ struct AssistantWindow: View {
         }
         
         // 3. OCR (Screen Text)
-        let ocrAttachment = Attachment(type: .screenText, content: "", isLoading: true)
+        var ocrAttachment = Attachment(type: .screenText, content: "", isLoading: true)
+        ocrAttachment.isSelected = false
         self.attachments.append(ocrAttachment)
         
         // Prioritize the screen where the target app is located

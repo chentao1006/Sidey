@@ -36,14 +36,14 @@ echo "Current Build  : $CURRENT_BUILD"
 echo "----------------------------------------"
 
 if [ -z "$1" ]; then
-    read -p "Enter NEW Version (e.g. 1.0.6): " NEW_VERSION
+    read -p "Enter NEW Version (leave empty to keep current $CURRENT_VERSION): " NEW_VERSION
 else
     NEW_VERSION=$1
 fi
 
 if [ -z "$NEW_VERSION" ]; then
-    echo "❌ Error: New version cannot be empty."
-    exit 1
+    NEW_VERSION=$CURRENT_VERSION
+    echo "Keeping current version: $NEW_VERSION"
 fi
 
 # Determine NEW_BUILD (Always increment to ensure Sparkle compatibility)
