@@ -9,6 +9,7 @@ struct ChatMessage: Codable {
 struct ChatRequest: Codable {
     let model: String
     let messages: [ChatMessage]
+    let stream: Bool?
 }
 
 struct ChatResponse: Codable {
@@ -18,9 +19,21 @@ struct ChatResponse: Codable {
     let choices: [Choice]
 }
 
+struct ChatStreamResponse: Codable {
+    struct Choice: Codable {
+        struct Delta: Codable {
+            let content: String?
+        }
+        let delta: Delta
+        let finish_reason: String?
+    }
+    let choices: [Choice]
+}
+
 
 class LLMClient: ObservableObject {
     @Published var loadingStates: [String: Bool] = [:]
+    private var activeTasks: [String: Task<Void, Never>] = [:]
     
     private let session: URLSession = {
         let config = URLSessionConfiguration.default
@@ -50,12 +63,19 @@ class LLMClient: ObservableObject {
         return digest.map { String(format: "%02hhx", $0) }.joined()
     }
     
+    func stopRequest(sessionKey: String) {
+        activeTasks[sessionKey]?.cancel()
+        activeTasks.removeValue(forKey: sessionKey)
+        DispatchQueue.main.async {
+            self.loadingStates[sessionKey] = false
+        }
+    }
 
-    func sendRequest(systemPrompt: String, messages: [ChatMessage], sessionKey: String = "", completion: @escaping (String) -> Void) {
-        performRequest(systemPrompt: systemPrompt, messages: messages, sessionKey: sessionKey, retryCount: 1, completion: completion)
+    func sendRequest(systemPrompt: String, messages: [ChatMessage], sessionKey: String = "", onUpdate: @escaping (String) -> Void, completion: @escaping (String) -> Void) {
+        performRequest(systemPrompt: systemPrompt, messages: messages, sessionKey: sessionKey, retryCount: 1, onUpdate: onUpdate, completion: completion)
     }
     
-    private func performRequest(systemPrompt: String, messages: [ChatMessage], sessionKey: String, retryCount: Int, completion: @escaping (String) -> Void) {
+    private func performRequest(systemPrompt: String, messages: [ChatMessage], sessionKey: String, retryCount: Int, onUpdate: @escaping (String) -> Void, completion: @escaping (String) -> Void) {
         let apiKey = UserDefaults.standard.string(forKey: "openAI_APIKey") ?? ""
         let usePublicService = UserDefaults.standard.bool(forKey: "usePublicService")
         
@@ -117,7 +137,8 @@ class LLMClient: ObservableObject {
         
         let chatRequest = ChatRequest(
             model: model,
-            messages: fullMessages
+            messages: fullMessages,
+            stream: true
         )
         
         do {
@@ -131,75 +152,80 @@ class LLMClient: ObservableObject {
             self.loadingStates[sessionKey] = true
         }
         
-        let task = session.dataTask(with: request) { data, response, error in
-            if let error = error {
-                let nsError = error as NSError
-                // URLError.networkConnectionLost (-1005) or POSIXError.ECONNRESET
-                if retryCount > 0 && (nsError.code == NSURLErrorNetworkConnectionLost || nsError.code == NSURLErrorCannotConnectToHost) {
-                    DebugLogger.shared.log("Network error (code: \(nsError.code)), retrying... \(nsError.localizedDescription)", type: .error)
-                    self.performRequest(systemPrompt: systemPrompt, messages: messages, sessionKey: sessionKey, retryCount: retryCount - 1, completion: completion)
+        let task = Task {
+            do {
+                let (bytes, response) = try await session.bytes(for: request)
+                
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                    var bodyContent = ""
+                    for try await line in bytes.lines {
+                        bodyContent += line
+                    }
+                    let statusMessage = HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode)
+                    DebugLogger.shared.log("API Error (\(httpResponse.statusCode)): \(bodyContent)", type: .error)
+                    DispatchQueue.main.async {
+                        self.loadingStates[sessionKey] = false
+                        completion("API Error (\(httpResponse.statusCode) \(statusMessage)): \(bodyContent)")
+                    }
                     return
                 }
                 
-                DebugLogger.shared.log("Network error: \(nsError.localizedDescription) (Code: \(nsError.code))", type: .error)
+                var fullResponse = ""
+                
+                for try await line in bytes.lines {
+                    if Task.isCancelled { break }
+                    
+                    if line.hasPrefix("data: ") {
+                        let dataStr = line.dropFirst(6).trimmingCharacters(in: .whitespacesAndNewlines)
+                        if dataStr == "[DONE]" {
+                            break
+                        }
+                        
+                        if let data = dataStr.data(using: .utf8) {
+                            do {
+                                let streamResponse = try JSONDecoder().decode(ChatStreamResponse.self, from: data)
+                                if let content = streamResponse.choices.first?.delta.content {
+                                    fullResponse += content
+                                    DispatchQueue.main.async {
+                                        onUpdate(fullResponse)
+                                    }
+                                }
+                            } catch {
+                                // Skip parsing errors for non-json lines
+                            }
+                        }
+                    }
+                }
+                
                 DispatchQueue.main.async {
+                    self.activeTasks.removeValue(forKey: sessionKey)
+                    self.loadingStates[sessionKey] = false
+                    completion(fullResponse)
+                }
+                
+            } catch {
+                if (error as NSError).code == NSURLErrorCancelled {
+                    return
+                }
+                
+                if retryCount > 0 {
+                    let nsError = error as NSError
+                    if nsError.code == NSURLErrorNetworkConnectionLost || nsError.code == NSURLErrorCannotConnectToHost {
+                        DebugLogger.shared.log("Network error, retrying... \(error.localizedDescription)", type: .error)
+                        self.performRequest(systemPrompt: systemPrompt, messages: messages, sessionKey: sessionKey, retryCount: retryCount - 1, onUpdate: onUpdate, completion: completion)
+                        return
+                    }
+                }
+                
+                DebugLogger.shared.log("Streaming error: \(error.localizedDescription)", type: .error)
+                DispatchQueue.main.async {
+                    self.activeTasks.removeValue(forKey: sessionKey)
                     self.loadingStates[sessionKey] = false
                     completion("Network error: \(error.localizedDescription)")
                 }
-                return
-            }
-            
-            DebugLogger.shared.log("Received response (status: \((response as? HTTPURLResponse)?.statusCode ?? 0))", type: .response)
-            
-            let finishLoading = {
-                DispatchQueue.main.async {
-                    self.loadingStates[sessionKey] = false
-                }
-            }
-            
-            guard let data = data else {
-                DispatchQueue.main.async {
-                    completion("No data received from API.")
-                    finishLoading()
-                }
-                return
-            }
-            
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-                let statusMessage = HTTPURLResponse.localizedString(forStatusCode: httpResponse.statusCode)
-                let body = String(data: data, encoding: .utf8) ?? "No body"
-                DebugLogger.shared.log("API Error (\(httpResponse.statusCode)): \(body)", type: .error)
-                DispatchQueue.main.async {
-                    completion("API Error (\(httpResponse.statusCode) \(statusMessage)): \(body)")
-                    finishLoading()
-                }
-                return
-            }
-            
-            do {
-                let responseDecoded = try JSONDecoder().decode(ChatResponse.self, from: data)
-                if let firstResponse = responseDecoded.choices.first?.message.content {
-                    DispatchQueue.main.async {
-                        completion(firstResponse)
-                        finishLoading()
-                    }
-                } else {
-                    DispatchQueue.main.async {
-                        completion("No content in response.")
-                        finishLoading()
-                    }
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    if let rawResponse = String(data: data, encoding: .utf8) {
-                        completion("Parsing failed. Raw response: \(rawResponse)")
-                    } else {
-                        completion("Failed to decode response: \(error.localizedDescription)")
-                    }
-                    finishLoading()
-                }
             }
         }
-        task.resume()
+        
+        activeTasks[sessionKey] = task
     }
 }

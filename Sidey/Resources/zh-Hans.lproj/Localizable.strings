@@ -99,6 +99,7 @@
 "AI Response" = "响应";
 "Output will appear here..." = "输出将显示在这里...";
 "Thinking..." = "思考中...";
+"Stop" = "停止";
 " (Thinking...)" = " (思考中)";
 " (New Answer)" = " (新回答)";
 "Response Completed" = "响应已完成";
@@ -193,6 +194,7 @@
 "wand.and.stars" = "魔杖";
 
 /* Menu / Status */
+"Assistants for %@:" = "%@ 的助手:";
 "Show Assistant" = "打开旁白";
 "Quit" = "退出";
 "Quit Sidey" = "退出 旁白";

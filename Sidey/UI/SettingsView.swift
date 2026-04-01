@@ -353,7 +353,7 @@ struct APISettingsView: View {
         isTesting = true
         testResult = nil
         
-        client.sendRequest(systemPrompt: "You are a helpful assistant.", messages: [ChatMessage(role: "user", content: "Say 'OK' if you can hear me.")]) { response in
+        client.sendRequest(systemPrompt: "You are a helpful assistant.", messages: [ChatMessage(role: "user", content: "Say 'OK' if you can hear me.")], onUpdate: { _ in }) { response in
             isTesting = false
             let isError = response.localizedCaseInsensitiveContains("Error") || 
                           response.localizedCaseInsensitiveContains("Failed") || 
@@ -975,7 +975,7 @@ STRICT RULES:
 """
         let userMessage = "Applications selected: \(appDescriptions). Please design practical, role-based AI assistant configurations specifically for use within these applications' context."
         let client = LLMClient()
-        client.sendRequest(systemPrompt: systemPrompt, messages: [ChatMessage(role: "user", content: userMessage)]) { response in
+        client.sendRequest(systemPrompt: systemPrompt, messages: [ChatMessage(role: "user", content: userMessage)], onUpdate: { _ in }) { response in
             var jsonStr = response.trimmingCharacters(in: .whitespacesAndNewlines)
             if jsonStr.hasPrefix("```") {
                 if let firstNewline = jsonStr.firstIndex(of: "\n") { jsonStr = String(jsonStr[jsonStr.index(after: firstNewline)...]) }

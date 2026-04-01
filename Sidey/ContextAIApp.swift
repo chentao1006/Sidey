@@ -340,13 +340,12 @@ extension AppDelegate: NSMenuDelegate {
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
+        let menu = NSMenu()
+        menu.delegate = self
+        statusItem?.menu = menu
+        
         if let button = statusItem?.button {
             updateStatusItemIcon()
-            button.action = #selector(statusBarButtonClicked(_:))
-            button.target = self
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-            
-            // Allow checking for right-click via control-click or rightMouseUp
         }
         
         NotificationCenter.default.addObserver(self, selector: #selector(userDefaultsDidChange), name: UserDefaults.didChangeNotification, object: nil)
@@ -374,25 +373,27 @@ extension AppDelegate: NSMenuDelegate {
         }
     }
     
-    @objc private func statusBarButtonClicked(_ sender: NSStatusBarButton) {
-        guard let event = NSApp.currentEvent else { return }
-        
-        if event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
-            // Show right click menu
-            let menu = NSMenu()
-            menu.delegate = self
-            menuNeedsUpdate(menu)
-            
-            statusItem?.menu = menu
-            statusItem?.button?.performClick(nil) // Blocks until menu is closed
-        } else {
-            // Left click
-            showAssistant()
-        }
-    }
-    
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
+        
+        let bundleID = ContextDetector.shared.currentBundleID
+        let appName = ContextDetector.shared.currentAppName
+        let prompts = PromptStore.shared.getPrompts(for: bundleID)
+        
+        if !prompts.isEmpty {
+            let headerItem = NSMenuItem(title: String(format: L("Assistants for %@:"), appName), action: nil, keyEquivalent: "")
+            headerItem.isEnabled = false
+            menu.addItem(headerItem)
+            
+            for prompt in prompts {
+                let item = NSMenuItem(title: "  " + prompt.name, action: #selector(directSendAction(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = ["bundleID": bundleID, "promptID": prompt.id]
+                menu.addItem(item)
+            }
+            menu.addItem(NSMenuItem.separator())
+        }
+        
         let hotKeyString = HotKeyFormatter.currentHotkeyString()
         
         let showItem = NSMenuItem(title: "\(L("Show Assistant")) (\(hotKeyString))", action: #selector(showAssistantAction), keyEquivalent: "")
@@ -412,7 +413,16 @@ extension AppDelegate: NSMenuDelegate {
     }
     
     func menuDidClose(_ menu: NSMenu) {
-        statusItem?.menu = nil
+        // No-op
+    }
+    
+    @objc private func directSendAction(_ sender: NSMenuItem) {
+        guard let info = sender.representedObject as? [String: String],
+              let bundleID = info["bundleID"],
+              let promptID = info["promptID"] else { return }
+        
+        showAssistant()
+        NotificationCenter.default.post(name: Notification.Name("SideyDirectSend"), object: nil, userInfo: ["bundleID": bundleID, "promptID": promptID])
     }
     
     @objc private func showAssistantAction() {

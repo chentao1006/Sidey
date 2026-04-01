@@ -99,6 +99,7 @@
 "AI Response" = "Response";
 "Output will appear here..." = "Output will appear here...";
 "Thinking..." = "Thinking...";
+"Stop" = "Stop";
 " (Thinking...)" = " (Thinking...)";
 " (New Answer)" = " (New Answer)";
 "Response Completed" = "Response Completed";
@@ -193,6 +194,7 @@
 "wand.and.stars" = "Magic Wand";
 
 /* Menu / Status */
+"Assistants for %@:" = "Assistants for %@:";
 "Show Assistant" = "Open Sidey";
 "Quit" = "Quit";
 "Quit Sidey" = "Quit Sidey";

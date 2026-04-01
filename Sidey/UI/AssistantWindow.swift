@@ -75,6 +75,7 @@ struct AssistantWindow: View {
     @State private var textToInsert: String? = nil
     @State private var attachments: [Attachment] = []
     @State private var lastFinishedExchangeID: UUID? = nil
+    @State private var lastSentMessage: String = ""
     
     // Auto Creator
     @State private var appsToAutoCreate: [(bundleID: String, name: String)] = []
@@ -126,23 +127,6 @@ struct AssistantWindow: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             contextDetector.refresh()
-            if !unreadSessions.isEmpty, let lastSession = unreadSessions.first {
-                let parts = lastSession.split(separator: "|")
-                if parts.count == 2 {
-                    let targetBundleID = String(parts[0])
-                    let targetPromptID = String(parts[1])
-                    
-                    let availablePrompts = promptStore.getPrompts(for: targetBundleID)
-                    if availablePrompts.contains(where: { $0.id == targetPromptID }) {
-                        NotificationCenter.default.post(
-                            name: Notification.Name("CXAISwitchSession"),
-                            object: nil,
-                            userInfo: ["bundleID": targetBundleID, "promptID": targetPromptID]
-                        )
-                        return // Skip standard fallback
-                    }
-                }
-            }
             
             let availablePrompts = promptStore.getPrompts(for: contextDetector.currentBundleID)
             if selectedPrompt == nil || !availablePrompts.contains(where: { $0.id == selectedPrompt?.id }) {
@@ -183,6 +167,33 @@ struct AssistantWindow: View {
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideyRefreshContext"))) { notification in
             let preSelected = notification.userInfo?["selection"] as? String
             refreshContext(preSelected: preSelected)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideyDirectSend"))) { notification in
+            if let userInfo = notification.userInfo,
+               let targetBundleID = userInfo["bundleID"] as? String,
+               let targetPromptID = userInfo["promptID"] as? String {
+                
+                let availablePrompts = promptStore.getPrompts(for: targetBundleID)
+                if let prompt = availablePrompts.first(where: { $0.id == targetPromptID }) {
+                    // Update detector so it matches visually
+                    contextDetector.currentBundleID = targetBundleID
+                    if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == targetBundleID }) {
+                        contextDetector.currentAppName = app.localizedName ?? targetBundleID
+                        if let url = app.bundleURL {
+                            contextDetector.currentAppIcon = NSWorkspace.shared.icon(forFile: url.path)
+                        } else {
+                            contextDetector.currentAppIcon = nil
+                        }
+                    }
+                    
+                    switchTo(bundleID: targetBundleID, prompt: prompt)
+                    
+                    // Refresh context but don't auto-send
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        refreshContext(force: true)
+                    }
+                }
+            }
         }
         .sheet(item: $autoCreateContext) { context in
             AutoCreatePromptsSheet(initialApps: context.apps) { newPrompts in
@@ -395,38 +406,48 @@ struct AssistantWindow: View {
                     .italic()
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack {
-                        ForEach(availablePrompts) { prompt in
-                            Button(action: {
-                                self.switchTo(bundleID: contextDetector.currentBundleID, prompt: prompt)
-                            }) {
-                                let sessionKey = "\(contextDetector.currentBundleID)|\(prompt.id)"
-                                
-                                HStack(spacing: 6) {
-                                    Text(prompt.name)
-                                    if llmClient.loadingStates[sessionKey] == true {
-                                        ProgressView()
-                                            .controlSize(.small)
-                                            .scaleEffect(0.7)
+                ScrollViewReader { promptProxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack {
+                            ForEach(availablePrompts) { prompt in
+                                Button(action: {
+                                    self.switchTo(bundleID: contextDetector.currentBundleID, prompt: prompt)
+                                }) {
+                                    let sessionKey = "\(contextDetector.currentBundleID)|\(prompt.id)"
+                                    
+                                    HStack(spacing: 6) {
+                                        Text(prompt.name)
+                                        if llmClient.loadingStates[sessionKey] == true {
+                                            ProgressView()
+                                                .controlSize(.small)
+                                                .scaleEffect(0.7)
+                                        }
                                     }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(selectedPrompt?.id == prompt.id ? Color.accentColor : Color.secondary.opacity(0.2))
+                                        .foregroundColor(selectedPrompt?.id == prompt.id ? .white : .primary)
+                                        .cornerRadius(8)
+                                        .overlay(
+                                            Circle()
+                                                .fill(Color.green)
+                                                .frame(width: 8, height: 8)
+                                                .offset(x: -4, y: 4)
+                                                .opacity(unreadSessions.contains(sessionKey) ? 1 : 0),
+                                            alignment: .topTrailing
+                                        )
                                 }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(selectedPrompt?.id == prompt.id ? Color.accentColor : Color.secondary.opacity(0.2))
-                                    .foregroundColor(selectedPrompt?.id == prompt.id ? .white : .primary)
-                                    .cornerRadius(8)
-                                    .overlay(
-                                        Circle()
-                                            .fill(Color.green)
-                                            .frame(width: 8, height: 8)
-                                            .offset(x: -4, y: 4)
-                                            .opacity(unreadSessions.contains(sessionKey) ? 1 : 0),
-                                        alignment: .topTrailing
-                                    )
+                                .buttonStyle(.plain)
+                                .help(prompt.system)
+                                .id(prompt.id)
                             }
-                            .buttonStyle(.plain)
-                            .help(prompt.system)
+                        }
+                    }
+                    .onChangeCompatible(of: selectedPrompt) { newValue in
+                        if let id = newValue?.id {
+                            withAnimation(.spring()) {
+                                promptProxy.scrollTo(id, anchor: .center)
+                            }
                         }
                     }
                 }
@@ -466,14 +487,37 @@ struct AssistantWindow: View {
             
             MacTextEditor(text: $userInput, textToInsert: $textToInsert, sendBehavior: sendBehavior, onSend: sendMessage)
                 .frame(minHeight: 20, idealHeight: 30, maxHeight: 40)
-                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach($attachments) { $attachment in
-                            AttachmentItemView(attachment: $attachment, previewedAttachment: $previewedAttachment)
-                        }
+                .padding(8)
+                .background(Color(NSColor.textBackgroundColor))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                )
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach($attachments) { $attachment in
+                        AttachmentItemView(attachment: $attachment, previewedAttachment: $previewedAttachment)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .overlay(alignment: .top) {
+                if let preview = previewedAttachment {
+                    Text(preview.content.replacingOccurrences(of: "\n", with: " "))
+                        .font(.system(size: 11))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(8)
+                        .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 2)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.1), lineWidth: 0.5))
+                        .offset(y: -40)
+                        .allowsHitTesting(false) // Ensures clicks pass through to the buttons below
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
             
             HStack(spacing: 8) {
                 Button(action: {
@@ -492,20 +536,39 @@ struct AssistantWindow: View {
                 
                 Spacer()
                 
-                Button(action: sendMessage) {
-                    HStack {
-                        if llmClient.loadingStates[currentSessionKey] == true {
-                            ProgressView()
-                                .controlSize(.small)
-                                .padding(.trailing, 2)
+                if llmClient.loadingStates[currentSessionKey] == true {
+                    Button(action: {
+                        llmClient.stopRequest(sessionKey: currentSessionKey)
+                        // Restore userInput so it can be sent again
+                        if userInput.isEmpty {
+                            userInput = lastSentMessage
                         }
-                        Text("\(L("Send")) (\(sendBehavior == "cmdReturn" ? "⌘↵" : "↵"))")
-                            .fontWeight(.bold)
+                        // Also update UI locally to clear "Thinking..." if it's the last one
+                        if let index = currentExchanges.lastIndex(where: { $0.aiResponse == L("Thinking...") }) {
+                            currentExchanges[index].aiResponse = ""
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "stop.fill")
+                            Text(L("Stop"))
+                                .fontWeight(.bold)
+                        }
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color(white: 0.35))
+                    .foregroundColor(.white)
+                    .help(L("Stop"))
+                } else {
+                    Button(action: sendMessage) {
+                        HStack {
+                            Text("\(L("Send")) (\(sendBehavior == "cmdReturn" ? "⌘↵" : "↵"))")
+                                .fontWeight(.bold)
+                        }
+                    }
+                    .keyboardShortcut(.return, modifiers: sendBehavior == "cmdReturn" ? [.command] : [])
+                    .disabled((userInput.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty && attachments.filter { $0.isSelected && !$0.content.isEmpty }.isEmpty) || selectedPrompt == nil)
+                    .help(L("Send"))
                 }
-                .keyboardShortcut(.return, modifiers: sendBehavior == "cmdReturn" ? [.command] : [])
-                .disabled((userInput.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty && attachments.filter { $0.isSelected && !$0.content.isEmpty }.isEmpty) || selectedPrompt == nil || llmClient.loadingStates[currentSessionKey] == true)
-                .help(L("Send"))
             }
         }
     }
@@ -750,6 +813,7 @@ struct AssistantWindow: View {
         let newExchangeID = UUID()
         let newExchange = MessageExchange(id: newExchangeID, userMessage: messageToSend, aiResponse: "Thinking...")
         self.currentExchanges.append(newExchange)
+        self.lastSentMessage = self.userInput // Save before clearing
         self.userInput = ""
         
         let currentBundleID = contextDetector.currentBundleID
@@ -781,7 +845,17 @@ struct AssistantWindow: View {
         var allMessages = historyMessages
         allMessages.append(ChatMessage(role: "user", content: messageToSend))
         
-        llmClient.sendRequest(systemPrompt: systemPrompt, messages: allMessages, sessionKey: sessionKey) { response in
+        llmClient.sendRequest(systemPrompt: systemPrompt, messages: allMessages, sessionKey: sessionKey, onUpdate: { response in
+            // If this is still the active session, update UI state
+            if self.currentSessionKey == sessionKey {
+                if let index = self.currentExchanges.firstIndex(where: { $0.id == newExchangeID }) {
+                    // Only update if we have content, to keep "Thinking..." visible until then
+                    if !response.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        self.currentExchanges[index].aiResponse = response
+                    }
+                }
+            }
+        }) { response in
             // Update the stored state first (persistence)
             if var state = self.promptStates[sessionKey] {
                 if let index = state.exchanges.firstIndex(where: { $0.id == newExchangeID }) {
@@ -858,14 +932,16 @@ struct AssistantWindow: View {
     
     @State private var lastRefreshTime: Date = Date.distantPast
     
-    private func refreshContext(preSelected: String? = nil) {
+    private func refreshContext(preSelected: String? = nil, force: Bool = false, completion: (() -> Void)? = nil) {
         // Prevent redundant refreshes (debounce)
-        if preSelected == nil && Date().timeIntervalSince(lastRefreshTime) < 1.0 {
+        if !force && preSelected == nil && Date().timeIntervalSince(lastRefreshTime) < 1.0 {
+            completion?()
             return
         }
         lastRefreshTime = Date()
         
         self.attachments = []
+        let group = DispatchGroup()
         
         // 1. Clipboard
         if let clip = NSPasteboard.general.string(forType: .string), !clip.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
@@ -881,6 +957,7 @@ struct AssistantWindow: View {
         // Trigger permission prompt on main thread if necessary
         let hasPermissions = SelectionManager.shared.checkAccessibilityPermissions()
         
+        group.enter()
         DispatchQueue.global(qos: .userInitiated).async {
             let finalSelection: String?
             if let pre = preSelected, !pre.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -909,6 +986,7 @@ struct AssistantWindow: View {
                         }
                     }
                 }
+                group.leave()
             }
         }
         
@@ -921,6 +999,7 @@ struct AssistantWindow: View {
         let targetApp = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == currentBundleID })
         let targetScreen = targetApp.flatMap { AppDelegate.shared.screenForApp($0) } ?? AppDelegate.shared.screenForMouseCursor() ?? NSScreen.main ?? NSScreen.screens.first
         
+        group.enter()
         if let screen = targetScreen {
             OCRManager.shared.captureScreenAndOCR(for: screen, targetApp: targetApp) { text in
                 DispatchQueue.main.async {
@@ -931,6 +1010,7 @@ struct AssistantWindow: View {
                             self.attachments.remove(at: index)
                         }
                     }
+                    group.leave()
                 }
             }
         } else {
@@ -944,7 +1024,14 @@ struct AssistantWindow: View {
                             self.attachments.remove(at: index)
                         }
                     }
+                    group.leave()
                 }
+            }
+        }
+        
+        if let completion = completion {
+            group.notify(queue: .main) {
+                completion()
             }
         }
     }
@@ -959,17 +1046,13 @@ struct AssistantWindow: View {
     }
 
     private var hasAnyOtherUnread: Bool {
-        unreadSessions.contains { sessionKey in
-            let bundleID = String(sessionKey.split(separator: "|").first ?? "")
-            return bundleID != "*" && bundleID != contextDetector.currentBundleID
-        }
+        // Show dot if there are any unread sessions NOT currently being viewed
+        unreadSessions.contains { $0 != currentSessionKey }
     }
 
     private var hasAnyOtherLoading: Bool {
         llmClient.loadingStates.contains { key, isLoading in
-            if !isLoading { return false }
-            let bundleID = String(key.split(separator: "|").first ?? "")
-            return bundleID != "*" && bundleID != contextDetector.currentBundleID
+            isLoading && key != currentSessionKey
         }
     }
 
@@ -1076,35 +1159,24 @@ struct AttachmentItemView: View {
                 attachment.isSelected.toggle()
             }
         })
-        .popover(item: Binding<Attachment?>(
-            get: { previewedAttachment?.id == attachment.id ? previewedAttachment : nil },
-            set: { previewedAttachment = $0 }
-        )) { previewAttachment in
-            ScrollViewReader { proxy in
-                ScrollView {
-                    Text(previewAttachment.content.replacingOccurrences(of: "\n", with: " "))
-                        .padding()
-                        .font(.callout)
-                        .id("attachmentContent")
-                        .frame(minWidth: 200, maxWidth: 400, minHeight: 100, maxHeight: 1500)
-                }
-                .onAppear {
-                    proxy.scrollTo("attachmentContent", anchor: .center)
-                }
-            }
-        }
         .onChangeCompatible(of: isHovered) { newValue in
-            if newValue && !attachment.content.isEmpty && !attachment.isLoading {
-                // If switching, a tiny delay helps ensure the transition is smooth
-                if previewedAttachment != nil && previewedAttachment?.id != attachment.id {
-                    previewedAttachment = nil
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            if newValue {
+                if !attachment.content.isEmpty && !attachment.isLoading {
+                    // Small delay to make it feel like a tooltip and avoid jitter
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         if isHovered {
-                            previewedAttachment = attachment
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                previewedAttachment = attachment
+                            }
                         }
                     }
-                } else {
-                    previewedAttachment = attachment
+                }
+            } else {
+                // Clear the shared preview state when mouse leaves
+                if previewedAttachment?.id == attachment.id {
+                    withAnimation(.easeIn(duration: 0.15)) {
+                        previewedAttachment = nil
+                    }
                 }
             }
         }
