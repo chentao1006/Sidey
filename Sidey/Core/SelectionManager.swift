@@ -33,6 +33,7 @@ class SelectionManager {
         }
         
         // 2. Try Enhanced Accessibility Search (standard and deep)
+        #if !APPSTORE
         let appElement = AXUIElementCreateApplication(pid)
         for _ in 0..<3 { // 3 retries with small delays
             var focusedElement: AnyObject?
@@ -52,6 +53,9 @@ class SelectionManager {
         
         // 3. Fallback: Force Capture via simulated Cmd+C (non-disruptive, PID-targeted)
         return forceCaptureSelection(for: app)
+        #else
+        return nil
+        #endif
     }
     
     private func getSafariSelection() -> String? {
@@ -64,6 +68,7 @@ class SelectionManager {
         return runAppleScript(script)
     }
     
+    #if !APPSTORE
     private func forceCaptureSelection(for app: NSRunningApplication) -> String? {
         let originalContent = NSPasteboard.general.string(forType: .string)
         let originalCount = NSPasteboard.general.changeCount
@@ -108,6 +113,7 @@ class SelectionManager {
         }
         return nil
     }
+    #endif
     
     private func runAppleScript(_ script: String) -> String? {
         var error: NSDictionary?
@@ -120,6 +126,7 @@ class SelectionManager {
         return nil
     }
     
+    #if !APPSTORE
     private func findSelectedText(in element: AXUIElement) -> String? {
         let attributes = [
             kAXSelectedTextAttribute,
@@ -169,4 +176,5 @@ class SelectionManager {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         return AXIsProcessTrustedWithOptions(options as CFDictionary)
     }
+    #endif
 }

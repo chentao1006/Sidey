@@ -26,7 +26,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.1.8</string>
 	<key>CFBundleVersion</key>
-	<string>10</string>
+	<string>11</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
@@ -41,8 +41,6 @@
 	<false/>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>Sidey needs screen capture permission to extract text from your screen for OCR and AI analysis.</string>
-	<key>NSAccessibilityUsageDescription</key>
-	<string>Sidey uses accessibility features to read selected text from other applications to provide AI assistance.</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Sidey uses AppleScript to retrieve content from applications like Safari to provide better context for AI analysis.</string>
 	<key>NSHumanReadableCopyright</key>

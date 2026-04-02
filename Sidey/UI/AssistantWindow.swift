@@ -955,7 +955,11 @@ struct AssistantWindow: View {
         }
         
         // Trigger permission prompt on main thread if necessary
+        #if !APPSTORE
         let hasPermissions = SelectionManager.shared.checkAccessibilityPermissions()
+        #else
+        let hasPermissions = true
+        #endif
         
         group.enter()
         DispatchQueue.global(qos: .userInitiated).async {
@@ -983,6 +987,7 @@ struct AssistantWindow: View {
                 } else {
                     // Selection failed or was empty
                     if let index = self.attachments.firstIndex(where: { $0.id == selectionAttachment.id }) {
+                        #if !APPSTORE
                         if !hasPermissions {
                             let msg = L("Missing 'Accessibility' permission. Please grant permission in System Settings > Security & Privacy.")
                             self.attachments[index].content = msg
@@ -990,6 +995,9 @@ struct AssistantWindow: View {
                         } else {
                             self.attachments.remove(at: index)
                         }
+                        #else
+                        self.attachments.remove(at: index)
+                        #endif
                     } else if let index = self.attachments.firstIndex(where: { $0.type == .selection }), self.attachments[index].content.isEmpty {
                         // Remove empty selection if it was a placeholder
                         self.attachments.remove(at: index)

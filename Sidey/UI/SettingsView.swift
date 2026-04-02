@@ -163,6 +163,7 @@ struct GeneralSettingsView: View {
 
             Section {
                 VStack(alignment: .leading, spacing: 12) {
+                    #if !APPSTORE
                     PermissionRow(
                         icon: "accessibility", 
                         title: L("Accessibility"), 
@@ -172,6 +173,7 @@ struct GeneralSettingsView: View {
                     )
                     
                     Divider()
+                    #endif
                     
                     PermissionRow(
                         icon: "video.badge.checkmark", 
@@ -999,7 +1001,9 @@ import ScreenCaptureKit
 class PermissionManager: ObservableObject {
     static let shared = PermissionManager()
     
+    #if !APPSTORE
     @Published var isAccessibilityGranted: Bool = false
+    #endif
     @Published var isScreenRecordingGranted: Bool = false
     
     private var timer: Timer?
@@ -1010,7 +1014,9 @@ class PermissionManager: ObservableObject {
     }
     
     func checkPermissions() {
+        #if !APPSTORE
         isAccessibilityGranted = checkAccessibility()
+        #endif
         isScreenRecordingGranted = checkScreenRecording()
     }
     
@@ -1021,10 +1027,12 @@ class PermissionManager: ObservableObject {
         }
     }
     
+    #if !APPSTORE
     func checkAccessibility() -> Bool {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false]
         return AXIsProcessTrustedWithOptions(options as CFDictionary)
     }
+    #endif
     
     func checkScreenRecording() -> Bool {
         if #available(macOS 11.0, *) {
@@ -1033,6 +1041,7 @@ class PermissionManager: ObservableObject {
         return true
     }
     
+    #if !APPSTORE
     func requestAccessibility() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
         _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
@@ -1043,6 +1052,7 @@ class PermissionManager: ObservableObject {
             NSWorkspace.shared.open(url)
         }
     }
+    #endif
     
     func requestScreenRecording() {
         if #available(macOS 11.0, *) {
