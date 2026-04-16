@@ -16,20 +16,24 @@ class DockingManager: ObservableObject {
     @Published var isAdsorptionEnabled: Bool = true {
         didSet {
             UserDefaults.standard.set(isAdsorptionEnabled, forKey: "isAdsorptionEnabled")
-            if isAdsorptionEnabled, let bundleID = lastObservedBundleID {
-                restoreAssistantState(for: bundleID)
+            DispatchQueue.main.async {
+                if self.isAdsorptionEnabled, let bundleID = self.lastObservedBundleID {
+                    self.restoreAssistantState(for: bundleID)
+                }
+                self.updatePositions()
             }
-            updatePositions()
         }
     }
     
     @Published var isIconVisible: Bool = true {
         didSet {
             UserDefaults.standard.set(isIconVisible, forKey: "isIconVisible")
-            if !isIconVisible {
-                iconWindow?.orderOut(nil)
-            } else {
-                updatePositions()
+            DispatchQueue.main.async {
+                if !self.isIconVisible {
+                    self.iconWindow?.orderOut(nil)
+                } else {
+                    self.updatePositions()
+                }
             }
         }
     }
@@ -301,8 +305,8 @@ class DockingManager: ObservableObject {
         if !show { iconWin.orderOut(nil); return }
             
         let screenFrame = screen?.frame ?? .zero
-        let iconWidth: CGFloat = 120 
-        let iconHeight: CGFloat = 700 
+        let iconWidth: CGFloat = 100
+        let iconHeight: CGFloat = 300
         let topOffset: CGFloat = 40 // Move down from top boundary
         
         var winX: CGFloat = 0
@@ -328,16 +332,14 @@ class DockingManager: ObservableObject {
         }
         
         if isActuallyRight {
-            // Icon is at the LEADING (left) edge of the 120pt-wide icon window.
-            // We only clamp winX (the LEFT edge of the window) so the ICON (first 40pt) stays on screen.
-            // We allow the rest of the 120pt window (which is mostly empty/transparent) to go off-screen.
-            winX = max(screenFrame.minX, min(screenFrame.maxX - 42, winX))
+            // Icon is at the LEADING (left) edge of the icon window.
+            // We clamp winX so the icon (first 40pt) stays on screen.
+            winX = max(screenFrame.minX, min(screenFrame.maxX - 40, winX))
         } else {
-            // Icon is at the TRAILING (right) edge of the 120pt-wide icon window.
-            // Icon right edge is winX + 120. We want it >= screenFrame.minX + 42.
-            // Icon left edge is winX + 80. We want it <= screenFrame.maxX - 42.
-            let minWinX = screenFrame.minX + 42 - iconWidth
-            let maxWinX = screenFrame.maxX - 42 - 80
+            // Icon is at the TRAILING (right) edge of the icon window.
+            // Icon right edge is winX + iconWidth. We want it >= screenFrame.minX + 40.
+            let minWinX = screenFrame.minX + 40 - iconWidth
+            let maxWinX = screenFrame.maxX - 40 - (iconWidth - 40)
             winX = max(minWinX, min(maxWinX, winX))
         }
         
@@ -349,15 +351,13 @@ class DockingManager: ObservableObject {
         let windowY = iconTopY - iconHeight // Directly below top boundary
         let newIconFrame = NSRect(x: winX, y: windowY, width: iconWidth, height: iconHeight)
         
-        if iconWin.frame != newIconFrame {
-            DispatchQueue.main.async {
+        DispatchQueue.main.async {
+            if iconWin.frame != newIconFrame {
                 iconWin.setFrame(newIconFrame, display: true)
-                iconWin.level = .normal
+                iconWin.level = .floating
                 iconWin.orderFrontRegardless()
-            }
-        } else {
-            DispatchQueue.main.async {
-                let targetLevel = NSWindow.Level.normal
+            } else {
+                let targetLevel = NSWindow.Level.floating
                 if iconWin.level != targetLevel { iconWin.level = targetLevel }
                 iconWin.orderFrontRegardless()
             }
@@ -391,8 +391,10 @@ class DockingManager: ObservableObject {
         let targetY = activeFrame.minY
         
         let newAssistantFrame = NSRect(x: targetX, y: targetY, width: assistantSize.width, height: targetHeight)
-        if assistant.frame != newAssistantFrame { assistant.setFrame(newAssistantFrame, display: true) }
-        if !assistant.isVisible { assistant.orderFront(nil) }
+        DispatchQueue.main.async {
+            if assistant.frame != newAssistantFrame { assistant.setFrame(newAssistantFrame, display: true) }
+            if !assistant.isVisible { assistant.orderFront(nil) }
+        }
     }
     
     private func convertCGRectToCocoa(_ cgRect: CGRect) -> NSRect {

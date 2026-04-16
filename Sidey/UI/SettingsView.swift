@@ -53,6 +53,7 @@ struct GeneralSettingsView: View {
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("sendBehavior") private var sendBehavior = "return"
     @AppStorage("menuBarIcon") private var menuBarIcon = "brain"
+    @ObservedObject private var dockingManager = DockingManager.shared
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     
     let menuBarIcons = [
@@ -121,24 +122,15 @@ struct GeneralSettingsView: View {
             }
 
             Section {
-                Toggle(L("Window Docking"), isOn: Binding(
-                    get: { DockingManager.shared.isAdsorptionEnabled },
-                    set: { DockingManager.shared.isAdsorptionEnabled = $0 }
-                ))
+                Toggle(L("Window Docking"), isOn: $dockingManager.isAdsorptionEnabled)
                 .help(L("Attach the assistant to the side of the active application window."))
                 
-                Toggle(L("Show Window Icon"), isOn: Binding(
-                    get: { DockingManager.shared.isIconVisible },
-                    set: { DockingManager.shared.isIconVisible = $0 }
-                ))
+                Toggle(L("Show Window Icon"), isOn: $dockingManager.isIconVisible)
                 .help(L("Show a small floating icon next to the active application window."))
                 
 
-                if DockingManager.shared.isAdsorptionEnabled || DockingManager.shared.isIconVisible {
-                    Picker(L("Docking Position"), selection: Binding(
-                        get: { DockingManager.shared.dockingPosition },
-                        set: { DockingManager.shared.dockingPosition = $0 }
-                    )) {
+                if dockingManager.isAdsorptionEnabled || dockingManager.isIconVisible {
+                    Picker(L("Docking Position"), selection: $dockingManager.dockingPosition) {
                         Text(L("Right")).tag(DockingPosition.right)
                         Text(L("Left")).tag(DockingPosition.left)
                         Text(L("Auto")).tag(DockingPosition.auto)
