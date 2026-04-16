@@ -16,6 +16,7 @@
 
 ### ✨ Key Features
 
+- **Window Companion**: A lightweight, dynamic icon that automatically docks to the edge of your active window. It follows your window as you move or resize it, allowing you to summon the AI assistant with a single click without leaving your workflow.
 - **Context Awareness**: Automatically detects the frontmost application and suggests relevant prompts. Retrieves active window details including application name and bundle identifier.
 - **Deep Context Capture**: Supports a multi-tier text retrieval system:
   - **Accessibility Search**: Directly queries the focused window for selected text.
@@ -32,7 +33,14 @@
 - **Optimized UI**: Refined input editor height and "View Full Text" attachment preview for a more efficient workflow.
 - **App Switcher**: Quickly switch back to your recently used applications directly from the assistant.
 
-![Sidey Screenshot](Resources/Screenshot-en.jpg)
+### 🖼️ Showcase
+| Feature | Screenshot |
+| :--- | :--- |
+| **Window Companion** | ![Window Companion](Resources/side-icon-en.jpg) |
+| **Context Awareness** | ![Main Window](Resources/Screenshot-en.jpg) |
+| **Assistant Window** | ![Assistant Window](Resources/side-window-en.jpg) |
+| **Auto Assistant** | ![Auto Assistant](Resources/auto-assistant-en.png) |
+
 
 ### 🚀 Getting Started
 

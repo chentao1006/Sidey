@@ -199,14 +199,86 @@
             opacity: 0;
             transform: translateY(40px);
             animation: fadeInBody 0.8s 0.4s forwards;
+            position: relative;
         }
 
-        .screenshot {
+        .carousel {
+            position: relative;
             width: 100%;
+            overflow: hidden;
             border-radius: 20px;
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
             border: 1px solid var(--border-color);
         }
+
+        .carousel-track {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+            width: 100%;
+        }
+
+        .carousel-slide {
+            min-width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .carousel-slide img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .carousel-dots {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .dot.active {
+            background: white;
+            transform: scale(1.2);
+        }
+
+        .carousel-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+            transition: background 0.3s;
+        }
+
+        .carousel-nav:hover {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .carousel-nav.prev { left: 20px; }
+        .carousel-nav.next { right: 20px; }
 
         .features {
             display: grid;
@@ -323,6 +395,7 @@
                     <span lang="zh">安装包下载</span>
                 </a>
                 <a href="https://github.com/chentao1006/Sidey" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 16.4179 4.865 20.1619 8.834 21.4819C9.334 21.5739 9.516 21.2659 9.516 20.9999C9.516 20.7659 9.507 20.1419 9.503 19.3149C6.722 19.9219 6.137 17.9789 5.917 17.3619C5.795 17.0509 5.267 16.0919 4.803 15.8329C4.417 15.6239 3.864 15.1119 4.794 15.0999C5.664 15.0879 6.284 15.8999 6.49 16.2239C7.485 17.8999 9.074 17.4209 9.707 17.1359C9.808 16.4139 10.096 15.9279 10.413 15.6499C8.193 15.3979 5.871 14.5389 5.871 10.7149C5.871 9.62394 6.261 8.72394 6.9 8.01694C6.797 7.76494 6.453 6.74194 7.001 5.36194C7.001 5.36194 7.84 5.09394 9.747 6.38194C10.544 6.15994 11.4 6.04994 12.251 6.04594C13.102 6.04994 13.958 6.15994 14.756 6.38194C16.663 5.08194 17.502 5.36194 17.502 5.36194C18.05 6.74194 17.706 7.76494 17.603 8.01694C18.244 8.72394 18.634 9.61194 18.634 10.7149C18.634 14.5499 16.307 15.3979 14.079 15.6499C14.437 15.9579 14.755 16.5519 14.755 17.4699C14.755 18.7759 14.743 19.8299 14.743 20.9999C14.743 21.2659 14.925 21.5779 15.429 21.4819C19.395 20.1579 22.251 16.4179 22.251 12C22.251 6.47715 17.773 2 12.251 2H12Z"></path></svg>
                     <span lang="en">View Source</span>
                     <span lang="zh">查看源码</span>
                 </a>
@@ -330,11 +403,24 @@
         </section>
 
         <section class="screenshot-container">
-            <img src="Resources/Screenshot-en.jpg" alt="Sidey Screenshot" class="screenshot" lang="en">
-            <img src="Resources/Screenshot.jpg" alt="Sidey Screenshot" class="screenshot" lang="zh">
+            <div class="carousel">
+                <div class="carousel-track" id="carouselTrack">
+                    <!-- Images will be injected by JS based on language -->
+                </div>
+                <div class="carousel-dots" id="carouselDots"></div>
+                <button class="carousel-nav prev" onclick="moveSlide(-1, true)">❮</button>
+                <button class="carousel-nav next" onclick="moveSlide(1, true)">❯</button>
+            </div>
         </section>
 
         <section class="features">
+            <div class="feature-card">
+                <span class="feature-icon">⚓️</span>
+                <h3 lang="en">Window Companion</h3>
+                <h3 lang="zh">随窗助手</h3>
+                <p lang="en">A dynamic icon that docks to your active window's edge. It follows you as you work, providing instant AI access without breaking your focus.</p>
+                <p lang="zh">轻量级的灵动图标自动吸附于当前活动窗口边缘。它随窗而动，让你在不离开当前工作流的情况下，随时一键触达 AI 助手。</p>
+            </div>
             <div class="feature-card">
                 <span class="feature-icon">🔍</span>
                 <h3 lang="en">Context Awareness</h3>
@@ -385,6 +471,27 @@
                 <p lang="zh">为不同的应用创建专属的 AI 角色。Xcode 里的代码审计，Safari 里的内容总结，随心定制。</p>
             </div>
         </section>
+
+        <section class="hero" style="padding-top: 8rem; padding-bottom: 8rem; border-top: 1px solid var(--border-color);">
+            <h2 lang="en" style="font-size: 2.5rem; margin-bottom: 2rem;">Ready to boost your workflow?</h2>
+            <h2 lang="zh" style="font-size: 2.5rem; margin-bottom: 2rem;">准备好提升你的工作效率了吗？</h2>
+            <div class="cta-buttons">
+                <a href="https://apps.apple.com/app/sidey/id6760834274" class="appstore-link">
+                    <img src="https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg" alt="Download on the App Store" lang="en" class="inline">
+                    <img src="https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg" alt="App Store 下载" lang="zh" class="inline">
+                </a>
+                <a href="https://github.com/chentao1006/Sidey/releases/latest" class="btn btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 16L8 12H11V8H13V12H16L12 16Z"></path></svg>
+                    <span lang="en">Installer Download</span>
+                    <span lang="zh">安装包下载</span>
+                </a>
+                <a href="https://github.com/chentao1006/Sidey" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 16.4179 4.865 20.1619 8.834 21.4819C9.334 21.5739 9.516 21.2659 9.516 20.9999C9.516 20.7659 9.507 20.1419 9.503 19.3149C6.722 19.9219 6.137 17.9789 5.917 17.3619C5.795 17.0509 5.267 16.0919 4.803 15.8329C4.417 15.6239 3.864 15.1119 4.794 15.0999C5.664 15.0879 6.284 15.8999 6.49 16.2239C7.485 17.8999 9.074 17.4209 9.707 17.1359C9.808 16.4139 10.096 15.9279 10.413 15.6499C8.193 15.3979 5.871 14.5389 5.871 10.7149C5.871 9.62394 6.261 8.72394 6.9 8.01694C6.797 7.76494 6.453 6.74194 7.001 5.36194C7.001 5.36194 7.84 5.09394 9.747 6.38194C10.544 6.15994 11.4 6.04994 12.251 6.04594C13.102 6.04994 13.958 6.15994 14.756 6.38194C16.663 5.08194 17.502 5.36194 17.502 5.36194C18.05 6.74194 17.706 7.76494 17.603 8.01694C18.244 8.72394 18.634 9.61194 18.634 10.7149C18.634 14.5499 16.307 15.3979 14.079 15.6499C14.437 15.9579 14.755 16.5519 14.755 17.4699C14.755 18.7759 14.743 19.8299 14.743 20.9999C14.743 21.2659 14.925 21.5779 15.429 21.4819C19.395 20.1579 22.251 16.4179 22.251 12C22.251 6.47715 17.773 2 12.251 2H12Z"></path></svg>
+                    <span lang="en">View Source</span>
+                    <span lang="zh">查看源码</span>
+                </a>
+            </div>
+        </section>
     </main>
 
     <footer>
@@ -406,12 +513,85 @@
             }
         };
 
+        const screenshots = {
+            en: [
+                "Resources/side-icon-en.jpg",
+                "Resources/Screenshot-en.jpg",
+                "Resources/side-window-en.jpg",
+                "Resources/auto-assistant-en.png"
+            ],
+            zh: [
+                "Resources/side-icon-cn.jpg",
+                "Resources/Screenshot-cn.jpg",
+                "Resources/side-window-cn.jpg",
+                "Resources/auto-assistent-cn.png"
+            ]
+        };
+
+        let currentSlide = 0;
+        let currentLang = 'en';
+
+        let timer;
+        function resetTimer() {
+            clearInterval(timer);
+            timer = setInterval(() => moveSlide(1), 5000);
+        }
+
+        function initCarousel() {
+            const track = document.getElementById('carouselTrack');
+            const dots = document.getElementById('carouselDots');
+            track.innerHTML = '';
+            dots.innerHTML = '';
+
+            screenshots[currentLang].forEach((src, idx) => {
+                const slide = document.createElement('div');
+                slide.className = 'carousel-slide';
+                slide.innerHTML = `<img src="${src}" alt="Screenshot ${idx + 1}">`;
+                track.appendChild(slide);
+
+                const dot = document.createElement('div');
+                dot.className = `dot ${idx === 0 ? 'active' : ''}`;
+                dot.onclick = () => goToSlide(idx);
+                dots.appendChild(dot);
+            });
+            updateCarousel();
+            resetTimer();
+        }
+
+        function updateCarousel() {
+            const track = document.getElementById('carouselTrack');
+            if (track) {
+                track.style.transform = `translateX(-${currentSlide * 100}%)`;
+            }
+            
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === currentSlide);
+            });
+        }
+
+        function moveSlide(step, isManual = false) {
+            const total = screenshots[currentLang].length;
+            currentSlide = (currentSlide + step + total) % total;
+            updateCarousel();
+            if (isManual) resetTimer();
+        }
+
+        function goToSlide(idx) {
+            currentSlide = idx;
+            updateCarousel();
+            resetTimer();
+        }
+
         function updateMeta(lang) {
+            currentLang = lang;
             document.title = translations[lang].title;
             const metaDesc = document.querySelector('meta[name="description"]');
             if (metaDesc) {
                 metaDesc.setAttribute('content', translations[lang].description);
             }
+            currentSlide = 0; // Reset to first slide on lang change
+            initCarousel();
         }
 
         function toggleLang() {
@@ -430,6 +610,8 @@
         if (userLang.startsWith('zh')) {
             document.body.classList.replace('lang-en', 'lang-zh');
             updateMeta('zh');
+        } else {
+            initCarousel();
         }
     </script>
 </body>
