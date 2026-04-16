@@ -131,7 +131,9 @@ class DockingManager: ObservableObject {
             "com.apple.controlcenter",
             "com.apple.loginwindow",
             "com.apple.QuickLookUIService",
-            "QuickLookUIService"
+            "QuickLookUIService",
+            "com.apple.quicklook.ui.helper",
+            "QuickLookUIHelper"
         ]
         
         let isBlacklisted = systemBlacklist.contains { $0.lowercased() == bundleID.lowercased() } ||
@@ -139,8 +141,20 @@ class DockingManager: ObservableObject {
                            bundleID.lowercased().contains("universalaccess") ||
                            processName.lowercased().contains("universalaccess")
         
+        // If it's a blacklisted app (system dialog, Quick Look, etc.), hide the icon immediately
+        if isBlacklisted && !isSideyFocused {
+            if activeWindowFrame != nil {
+                DispatchQueue.main.async {
+                    self.activeWindowFrame = nil
+                    self.iconWindow?.orderOut(nil)
+                    self.assistantWindow?.orderOut(nil)
+                }
+            }
+            return
+        }
+        
         // Update persistent target ONLY if valid non-Sidey app and not a system/blacklisted one
-        if !isSideyFocused && !isBlacklisted && !bundleID.isEmpty {
+        if !isSideyFocused && !bundleID.isEmpty {
             if let pid = frontApp?.processIdentifier {
                 if pid != persistentTargetPID {
                     persistentTargetPID = pid
@@ -220,7 +234,7 @@ class DockingManager: ObservableObject {
                 
                 if alpha == 0 { continue }
                 if winName == "Desktop" || winName == "Wallpaper" || winName == "Focus Window" { continue }
-                if ownerName == "Finder" && winName.isEmpty { continue }
+                if ownerName == "Finder" && (winName.isEmpty || winName == "Quick Look" || winName == "预览") { continue }
 
                 let cgRect = CGRect(x: x, y: y, width: w, height: h)
                 cocoaRect = convertCGRectToCocoa(cgRect)
@@ -354,10 +368,10 @@ class DockingManager: ObservableObject {
         DispatchQueue.main.async {
             if iconWin.frame != newIconFrame {
                 iconWin.setFrame(newIconFrame, display: true)
-                iconWin.level = .floating
+                iconWin.level = .normal
                 iconWin.orderFrontRegardless()
             } else {
-                let targetLevel = NSWindow.Level.floating
+                let targetLevel = NSWindow.Level.normal
                 if iconWin.level != targetLevel { iconWin.level = targetLevel }
                 iconWin.orderFrontRegardless()
             }
