@@ -125,7 +125,9 @@ class DockingManager: ObservableObject {
             "com.apple.ScreenReader",
             "com.apple.systemevents",
             "com.apple.controlcenter",
-            "com.apple.loginwindow"
+            "com.apple.loginwindow",
+            "com.apple.QuickLookUIService",
+            "QuickLookUIService"
         ]
         
         let isBlacklisted = systemBlacklist.contains { $0.lowercased() == bundleID.lowercased() } ||
@@ -326,12 +328,17 @@ class DockingManager: ObservableObject {
         }
         
         if isActuallyRight {
-            if winX + iconWidth > screenFrame.maxX { winX = screenFrame.maxX - iconWidth }
+            // Icon is at the LEADING (left) edge of the 120pt-wide icon window.
+            // We only clamp winX (the LEFT edge of the window) so the ICON (first 40pt) stays on screen.
+            // We allow the rest of the 120pt window (which is mostly empty/transparent) to go off-screen.
             winX = max(screenFrame.minX, min(screenFrame.maxX - 42, winX))
         } else {
-            if winX < screenFrame.minX { winX = screenFrame.minX }
-            let iconRightEdge = winX + iconWidth
-            if iconRightEdge < screenFrame.minX + 42 { winX = screenFrame.minX + 42 - iconWidth }
+            // Icon is at the TRAILING (right) edge of the 120pt-wide icon window.
+            // Icon right edge is winX + 120. We want it >= screenFrame.minX + 42.
+            // Icon left edge is winX + 80. We want it <= screenFrame.maxX - 42.
+            let minWinX = screenFrame.minX + 42 - iconWidth
+            let maxWinX = screenFrame.maxX - 42 - 80
+            winX = max(minWinX, min(maxWinX, winX))
         }
         
         if DockingState.shared.isRightSide != isActuallyRight {
@@ -345,12 +352,12 @@ class DockingManager: ObservableObject {
         if iconWin.frame != newIconFrame {
             DispatchQueue.main.async {
                 iconWin.setFrame(newIconFrame, display: true)
-                iconWin.level = NSWindow.Level(Int(CGWindowLevelKey.statusWindow.rawValue))
+                iconWin.level = .normal
                 iconWin.orderFrontRegardless()
             }
         } else {
             DispatchQueue.main.async {
-                let targetLevel = NSWindow.Level(Int(CGWindowLevelKey.statusWindow.rawValue))
+                let targetLevel = NSWindow.Level.normal
                 if iconWin.level != targetLevel { iconWin.level = targetLevel }
                 iconWin.orderFrontRegardless()
             }

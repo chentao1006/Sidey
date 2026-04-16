@@ -1246,7 +1246,9 @@ struct MacTextEditor: NSViewRepresentable {
         }
         
         if textView.string != text {
-            textView.string = text
+            if !textView.hasMarkedText() {
+                textView.string = text
+            }
         }
     }
 
@@ -1260,6 +1262,9 @@ struct MacTextEditor: NSViewRepresentable {
         func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
             if parent.sendBehavior == "return" {
                 if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+                    if textView.hasMarkedText() {
+                        return false
+                    }
                     if NSEvent.modifierFlags.contains(.shift) {
                         textView.insertText("\n", replacementRange: textView.selectedRange())
                         return true

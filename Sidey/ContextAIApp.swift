@@ -163,7 +163,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.isOpaque = false
         window.hasShadow = false
         window.ignoresMouseEvents = false
-        window.level = NSWindow.Level(Int(CGWindowLevelKey.statusWindow.rawValue))
+        window.level = .normal
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         
         let iconView = AdsorptionIconView(onClick: { [weak self] in
