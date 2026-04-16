@@ -17,22 +17,16 @@ struct SessionState: Equatable, Codable {
 
 enum AttachmentType: String, Codable {
     case clipboard
-    case selection
-    case screenText
     
     var icon: String {
         switch self {
         case .clipboard: return "doc.on.clipboard"
-        case .selection: return "selection.pin.in.out"
-        case .screenText: return "viewfinder"
         }
     }
     
     var labelKey: String {
         switch self {
         case .clipboard: return "Clipboard"
-        case .selection: return "Selection"
-        case .screenText: return "Screen Text"
         }
     }
 }
@@ -53,6 +47,7 @@ struct AssistantWindow: View {
     @ObservedObject private var contextDetector = ContextDetector.shared
     @ObservedObject private var promptStore = PromptStore.shared
     @ObservedObject private var historyStore = HistoryStore.shared
+    @ObservedObject private var dockingManager = DockingManager.shared
     @StateObject private var llmClient = LLMClient()
     @Environment(\.openWindow) private var openWindow
     
@@ -90,7 +85,7 @@ struct AssistantWindow: View {
     var body: some View {
         let currentLocale = appLanguage == "system" ? Locale.current : Locale(identifier: appLanguage)
         ZStack(alignment: .bottom) {
-            VStack(spacing: 16) {
+            VStack(spacing: 10) {
                 appContextHeader
                 promptList
                 inputArea
@@ -100,7 +95,7 @@ struct AssistantWindow: View {
         }
         .environment(\.locale, currentLocale)
         .id(appLanguage)
-        .frame(minWidth: 380, idealWidth: 380, minHeight: 520, idealHeight: 520)
+        .frame(minWidth: 300, idealWidth: 300, minHeight: 520, idealHeight: 520)
         .background(WindowAccessor(window: $window))
         .onChangeCompatible(of: alwaysOnTop) { newValue in
             window?.level = newValue ? .floating : .normal
@@ -164,9 +159,8 @@ struct AssistantWindow: View {
                 }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideyRefreshContext"))) { notification in
-            let preSelected = notification.userInfo?["selection"] as? String
-            refreshContext(preSelected: preSelected)
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideyRefreshContext"))) { _ in
+            refreshContext()
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideyDirectSend"))) { notification in
             if let userInfo = notification.userInfo,
@@ -232,23 +226,34 @@ struct AssistantWindow: View {
                         Image(nsImage: icon)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 36, height: 36)
+                            .frame(width: 24, height: 24)
                     } else {
                         Image(systemName: "app.fill")
                             .resizable()
-                            .frame(width: 36, height: 36)
+                            .frame(width: 24, height: 24)
                             .foregroundColor(.secondary)
                     }
                     
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 0) {
                         Text(contextDetector.currentAppName.isEmpty ? L("No App") : contextDetector.currentAppName)
-                            .font(.title3)
+                            .font(.headline)
                             .fontWeight(.medium)
                     }
                 }
             }
             .buttonStyle(.plain)
             .help(contextDetector.currentAppName.isEmpty ? "" : L("Back to App"))
+            
+            Button {
+                dockingManager.isAdsorptionEnabled.toggle()
+            } label: {
+                Image(systemName: "dock.arrow.down.rectangle")
+                    .rotationEffect(.degrees(90))
+                    .foregroundColor(dockingManager.isAdsorptionEnabled ? .accentColor : .secondary)
+                    .font(.system(size: 14, weight: .bold))
+            }
+            .buttonStyle(.plain)
+            .help(dockingManager.isAdsorptionEnabled ? L("Disable Docking") : L("Enable Docking"))
             
             Spacer()
             
@@ -415,19 +420,20 @@ struct AssistantWindow: View {
                                 }) {
                                     let sessionKey = "\(contextDetector.currentBundleID)|\(prompt.id)"
                                     
-                                    HStack(spacing: 6) {
+                                    HStack(spacing: 4) {
                                         Text(prompt.name)
+                                            .font(.subheadline)
                                         if llmClient.loadingStates[sessionKey] == true {
                                             ProgressView()
                                                 .controlSize(.small)
-                                                .scaleEffect(0.7)
+                                                .scaleEffect(0.6)
                                         }
                                     }
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(selectedPrompt?.id == prompt.id ? Color.accentColor : Color.secondary.opacity(0.2))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(selectedPrompt?.id == prompt.id ? Color.accentColor : Color.secondary.opacity(0.15))
                                         .foregroundColor(selectedPrompt?.id == prompt.id ? .white : .primary)
-                                        .cornerRadius(8)
+                                        .cornerRadius(6)
                                         .overlay(
                                             Circle()
                                                 .fill(Color.green)
@@ -481,7 +487,7 @@ struct AssistantWindow: View {
     
     @ViewBuilder
     private var inputArea: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(L("Ask AI..."))
                 .font(.headline)
             
@@ -495,55 +501,39 @@ struct AssistantWindow: View {
                         .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
                 )
             
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach($attachments) { $attachment in
-                        AttachmentItemView(attachment: $attachment, previewedAttachment: $previewedAttachment)
-                    }
-                }
-            }
-            .overlay(alignment: .top) {
-                if let preview = previewedAttachment {
-                    Text(preview.content.replacingOccurrences(of: "\n", with: " "))
-                        .font(.system(size: 11))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(8)
-                        .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 2)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.1), lineWidth: 0.5))
-                        .offset(y: -40)
-                        .allowsHitTesting(false) // Ensures clicks pass through to the buttons below
-                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            
             HStack(spacing: 8) {
-                Button(action: {
-                    self.userInput = ""
-                    self.currentExchanges = []
-                    if !currentSessionKey.isEmpty {
-                        promptStates[currentSessionKey] = SessionState(exchanges: [])
+                if !userInput.isEmpty || !currentExchanges.isEmpty {
+                    Button(action: {
+                        self.userInput = ""
+                        self.currentExchanges = []
+                        if !currentSessionKey.isEmpty {
+                            promptStates[currentSessionKey] = SessionState(exchanges: [])
+                        }
+                    }) {
+                        Image(systemName: "eraser")
+                            .foregroundColor(.secondary)
                     }
-                }) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .foregroundColor(.secondary)
+                    .buttonStyle(.plain)
+                    .help(L("Clear Input"))
                 }
-                .buttonStyle(.plain)
-                .help(L("Clear Input"))
-                .opacity(userInput.isEmpty && currentExchanges.isEmpty ? 0 : 1)
                 
                 Spacer()
+                
+                // Attachments now share the same row for maximum space efficiency
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        ForEach($attachments) { $attachment in
+                            AttachmentItemView(attachment: $attachment, previewedAttachment: $previewedAttachment)
+                        }
+                    }
+                }
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(maxWidth: 160, alignment: .trailing) // Prevent it from taking over the whole row and align to right
                 
                 if llmClient.loadingStates[currentSessionKey] == true {
                     Button(action: {
                         llmClient.stopRequest(sessionKey: currentSessionKey)
-                        // Restore userInput so it can be sent again
-                        if userInput.isEmpty {
-                            userInput = lastSentMessage
-                        }
-                        // Also update UI locally to clear "Thinking..." if it's the last one
+                        if userInput.isEmpty { userInput = lastSentMessage }
                         if let index = currentExchanges.lastIndex(where: { $0.aiResponse == L("Thinking...") }) {
                             currentExchanges[index].aiResponse = ""
                         }
@@ -568,6 +558,22 @@ struct AssistantWindow: View {
                     .keyboardShortcut(.return, modifiers: sendBehavior == "cmdReturn" ? [.command] : [])
                     .disabled((userInput.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty && attachments.filter { $0.isSelected && !$0.content.isEmpty }.isEmpty) || selectedPrompt == nil)
                     .help(L("Send"))
+                }
+            }
+            .padding(.top, 2)
+            .overlay(alignment: .top) {
+                if let preview = previewedAttachment {
+                    Text(preview.content.replacingOccurrences(of: "\n", with: " "))
+                        .font(.system(size: 11))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(8)
+                        .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 2)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.1), lineWidth: 0.5))
+                        .offset(y: -40)
+                        .allowsHitTesting(false)
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
                 }
             }
         }
@@ -794,8 +800,7 @@ struct AssistantWindow: View {
         }
         
         for attachment in attachments where attachment.isSelected && !attachment.content.isEmpty {
-            let label = L(attachment.type.labelKey)
-            messageParts.append("\n---\n[\(label)]\n\(attachment.content)")
+            messageParts.append("\n---\n\(attachment.content)")
         }
         
         if messageParts.isEmpty { return }
@@ -919,7 +924,7 @@ struct AssistantWindow: View {
         self.currentExchanges = state?.exchanges ?? []
         
         // Carry over attachments if switching assistants (prompts) for the same application.
-        // This ensures context like selection or OCR stays available when changing the AI personality.
+        // This ensures context like clipboard stays available when changing the AI personality.
         if !oldSessionKey.isEmpty && bundleID == oldBundleID {
             // Keep current memory-resident attachments if we're in the same app context
             if self.attachments.isEmpty {
@@ -932,9 +937,9 @@ struct AssistantWindow: View {
     
     @State private var lastRefreshTime: Date = Date.distantPast
     
-    private func refreshContext(preSelected: String? = nil, force: Bool = false, completion: (() -> Void)? = nil) {
+    private func refreshContext(force: Bool = false, completion: (() -> Void)? = nil) {
         // Prevent redundant refreshes (debounce)
-        if !force && preSelected == nil && Date().timeIntervalSince(lastRefreshTime) < 1.0 {
+        if !force && Date().timeIntervalSince(lastRefreshTime) < 1.0 {
             completion?()
             return
         }
@@ -948,112 +953,12 @@ struct AssistantWindow: View {
             self.attachments.append(Attachment(type: .clipboard, content: clip))
         }
         
-        // 2. Selection (Run on background to avoid UI freeze)
-        let selectionAttachment = Attachment(type: .selection, content: "", isLoading: true)
-        if preSelected == nil {
-            self.attachments.append(selectionAttachment)
-        }
-        
-        // Trigger permission prompt on main thread if necessary
-        #if !APPSTORE
-        let hasPermissions = SelectionManager.shared.checkAccessibilityPermissions()
-        #else
-        let hasPermissions = true
-        #endif
-        
-        group.enter()
-        DispatchQueue.global(qos: .userInitiated).async {
-            let finalSelection: String?
-            if let pre = preSelected, !pre.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                finalSelection = pre
-            } else {
-                finalSelection = SelectionManager.shared.getSelectedText()
-            }
-            
-            DispatchQueue.main.async {
-                if let selection = finalSelection, !selection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    // Selection successful
-                    if let index = self.attachments.firstIndex(where: { $0.id == selectionAttachment.id }) {
-                        self.attachments[index].content = selection
-                        self.attachments[index].isLoading = false
-                    } else if let index = self.attachments.firstIndex(where: { $0.type == .selection }) {
-                        // Already exists another selection (perhaps from preSelected or previous task)
-                        self.attachments[index].content = selection
-                        self.attachments[index].isLoading = false
-                    } else {
-                        // Not found, append new
-                        self.attachments.append(Attachment(type: .selection, content: selection))
-                    }
-                } else {
-                    // Selection failed or was empty
-                    if let index = self.attachments.firstIndex(where: { $0.id == selectionAttachment.id }) {
-                        #if !APPSTORE
-                        if !hasPermissions {
-                            let msg = L("Missing 'Accessibility' permission. Please grant permission in System Settings > Security & Privacy.")
-                            self.attachments[index].content = msg
-                            self.attachments[index].isLoading = false
-                        } else {
-                            self.attachments.remove(at: index)
-                        }
-                        #else
-                        self.attachments.remove(at: index)
-                        #endif
-                    } else if let index = self.attachments.firstIndex(where: { $0.type == .selection }), self.attachments[index].content.isEmpty {
-                        // Remove empty selection if it was a placeholder
-                        self.attachments.remove(at: index)
-                    }
-                }
-                group.leave()
-            }
-        }
-        
-        // 3. OCR (Screen Text)
-        var ocrAttachment = Attachment(type: .screenText, content: "", isLoading: true)
-        ocrAttachment.isSelected = false
-        self.attachments.append(ocrAttachment)
-        
-        // Prioritize the screen where the target app is located
-        let currentBundleID = contextDetector.currentBundleID
-        let targetApp = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == currentBundleID })
-        let targetScreen = targetApp.flatMap { AppDelegate.shared.screenForApp($0) } ?? AppDelegate.shared.screenForMouseCursor() ?? NSScreen.main ?? NSScreen.screens.first
-        
-        group.enter()
-        if let screen = targetScreen {
-            OCRManager.shared.captureScreenAndOCR(for: screen, targetApp: targetApp) { text in
-                DispatchQueue.main.async {
-                    if let index = self.attachments.firstIndex(where: { $0.id == ocrAttachment.id }) {
-                        self.attachments[index].content = text
-                        self.attachments[index].isLoading = false
-                        if text.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
-                            self.attachments.remove(at: index)
-                        }
-                    }
-                    group.leave()
-                }
-            }
-        } else {
-            // Fallback to main screen
-            OCRManager.shared.captureMainScreenAndOCR { text in
-                DispatchQueue.main.async {
-                    if let index = self.attachments.firstIndex(where: { $0.id == ocrAttachment.id }) {
-                        self.attachments[index].content = text
-                        self.attachments[index].isLoading = false
-                        if text.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
-                            self.attachments.remove(at: index)
-                        }
-                    }
-                    group.leave()
-                }
-            }
-        }
-        
         if let completion = completion {
             group.notify(queue: .main) {
                 completion()
             }
         }
     }
-
     
     private func bestPrompt(for bundleID: String) -> Prompt? {
         let available = promptStore.getPrompts(for: bundleID)

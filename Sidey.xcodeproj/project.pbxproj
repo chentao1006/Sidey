@@ -48,6 +48,12 @@
 		C6C655642F6C44B4003A4BBD /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554D2F6C44B4003A4BBD /* Localizable.strings */; };
 		C6C655652F6C44B4003A4BBD /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554A2F6C44B4003A4BBD /* InfoPlist.strings */; };
 		C6C656012F6C44B4003A4BBD /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C656002F6C44B4003A4BBD /* Updater.swift */; };
+		C6C655F12F6C44B4003A4BBD /* DockingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655FB2F6C44B4003A4BBD /* DockingManager.swift */; };
+		C6C655F22F6C44B4003A4BBD /* AdsorptionIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655FC2F6C44B4003A4BBD /* AdsorptionIconView.swift */; };
+		C6C655F62F6C44B4003A4BBD /* DockingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655F52F6C44B4003A4BBD /* DockingState.swift */; };
+		C6C655F32F6C44B4003A4BBD /* DockingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655FB2F6C44B4003A4BBD /* DockingManager.swift */; };
+		C6C655F42F6C44B4003A4BBD /* AdsorptionIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655FC2F6C44B4003A4BBD /* AdsorptionIconView.swift */; };
+		C6C655F72F6C44B4003A4BBD /* DockingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655F52F6C44B4003A4BBD /* DockingState.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -77,6 +83,9 @@
 		C6C655A22F6C44B4003A4BBD /* OCRManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRManager.swift; sourceTree = "<group>"; };
 		E5A0020129C12345001A2B3C /* Sidey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sidey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E5A0020229C12345001A2B3C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C6C655FB2F6C44B4003A4BBD /* DockingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockingManager.swift; sourceTree = "<group>"; };
+		C6C655FC2F6C44B4003A4BBD /* AdsorptionIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdsorptionIconView.swift; sourceTree = "<group>"; };
+		C6C655F52F6C44B4003A4BBD /* DockingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockingState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -103,6 +112,8 @@
 		C6C655462F6C44B4003A4BBD /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				C6C655FB2F6C44B4003A4BBD /* DockingManager.swift */,
+				C6C655F52F6C44B4003A4BBD /* DockingState.swift */,
 				C6C6553D2F6C44B4003A4BBD /* ContextDetector.swift */,
 				C6C6553E2F6C44B4003A4BBD /* DebugLogger.swift */,
 				C6C6553F2F6C44B4003A4BBD /* HistoryStore.swift */,
@@ -132,6 +143,7 @@
 		C6C655522F6C44B4003A4BBD /* UI */ = {
 			isa = PBXGroup;
 			children = (
+				C6C655FC2F6C44B4003A4BBD /* AdsorptionIconView.swift */,
 				C6C655502F6C44B4003A4BBD /* AssistantWindow.swift */,
 				C6C655512F6C44B4003A4BBD /* SettingsView.swift */,
 			);
@@ -292,6 +304,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C6C655F12F6C44B4003A4BBD /* DockingManager.swift in Sources */,
+				C6C655F22F6C44B4003A4BBD /* AdsorptionIconView.swift in Sources */,
+				C6C655F62F6C44B4003A4BBD /* DockingState.swift in Sources */,
 				C655F1802F74EA820044CC01 /* AssistantWindow.swift in Sources */,
 				C655F1812F74EA820044CC01 /* NotificationManager.swift in Sources */,
 				C655F1822F74EA820044CC01 /* ContextAIApp.swift in Sources */,
@@ -314,6 +329,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C6C655F32F6C44B4003A4BBD /* DockingManager.swift in Sources */,
+				C6C655F42F6C44B4003A4BBD /* AdsorptionIconView.swift in Sources */,
+				C6C655F72F6C44B4003A4BBD /* DockingState.swift in Sources */,
 				C6C655562F6C44B4003A4BBD /* AssistantWindow.swift in Sources */,
 				C6C655572F6C44B4003A4BBD /* NotificationManager.swift in Sources */,
 				C6C655582F6C44B4003A4BBD /* ContextAIApp.swift in Sources */,

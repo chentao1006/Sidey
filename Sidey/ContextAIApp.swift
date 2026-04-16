@@ -80,6 +80,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ])
         
         setupAssistantWindow()
+        setupIconWindow()
         setupStatusItem()
         
         let showDockIcon = UserDefaults.standard.bool(forKey: "showDockIcon")
@@ -110,9 +111,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self.showAssistant()
         }
         
-        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { _ in
+        NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { [weak self] notification in
+            guard let closingWindow = notification.object as? NSWindow,
+                  closingWindow == self?.assistantWindow else { return }
+            
             DispatchQueue.main.async {
-                self.updateDockIconVisibility()
+                self?.updateDockIconVisibility()
+                // Update docking state to reflect manual closure
+                DockingManager.shared.updateAssistantState(isVisible: false)
+                DebugLogger.shared.log("Assistant window closed manually, disabling adsorption for current app.")
             }
         }
     }
@@ -143,18 +150,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.contentView = NSHostingView(rootView: assistantView)
         window.contentView = NSHostingView(rootView: assistantView)
         self.assistantWindow = window
+        DockingManager.shared.assistantWindow = window
     }
     
-    func showAssistant(targetScreen: NSScreen? = nil) {
+    private func setupIconWindow() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 120, height: 700),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.hasShadow = false
+        window.ignoresMouseEvents = false
+        window.level = NSWindow.Level(Int(CGWindowLevelKey.statusWindow.rawValue))
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        
+        let iconView = AdsorptionIconView(onClick: { [weak self] in
+            self?.showAssistant()
+        }, onClickWithAssistant: { [weak self] promptID in
+            self?.showAssistant()
+            let bundleID = DockingManager.shared.lastObservedBundleID ?? ""
+            NotificationCenter.default.post(name: Notification.Name("SideyDirectSend"), object: nil, userInfo: [
+                "promptID": promptID,
+                "bundleID": bundleID
+            ])
+        })
+        
+        window.contentView = NSHostingView(rootView: iconView)
+        DockingManager.shared.iconWindow = window
+    }
+    
+    func showAssistant(targetScreen: NSScreen? = nil, shouldActivate: Bool = true) {
         guard let window = assistantWindow else {
             setupAssistantWindow()
-            showAssistant(targetScreen: targetScreen)
+            showAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate)
             return
         }
         
         // Step 1: Make the window visible on ALL Spaces first.
-        // This prevents macOS from switching Spaces when we activate Sidey —
-        // since the window is already on the user's current Space, no switch needed.
         window.collectionBehavior.insert(.canJoinAllSpaces)
         window.collectionBehavior.remove(.moveToActiveSpace)
         
@@ -164,19 +198,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             moveWindow(window, toScreen: screen)
         }
         
-        // Bring Sidey front...
-        NSApplication.shared.activate(ignoringOtherApps: true)
-        window.makeKeyAndOrderFront(nil)
+        // Update docking state BEFORE showing to avoid flash
+        DockingManager.shared.updateAssistantState(isVisible: true)
+        
+        // Step 3: Show the window
+        if shouldActivate {
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            window.orderFrontRegardless()
+        }
         
         NotificationCenter.default.post(name: Notification.Name("SideyRefreshContext"), object: nil, userInfo: nil)
         
-        // Step 4: After the window is visible, anchor it to just this Space,
-        // then re-assert app + key focus (removing canJoinAllSpaces can cause
-        // the previously-active app to reclaim frontmost status).
+        // Step 4: After the window is visible, anchor it to just this Space
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             window.collectionBehavior.remove(.canJoinAllSpaces)
-            NSApplication.shared.activate(ignoringOtherApps: true)
-            window.makeKeyAndOrderFront(nil)
+            if shouldActivate {
+                NSApplication.shared.activate(ignoringOtherApps: true)
+                window.makeKeyAndOrderFront(nil)
+            }
         }
     }
 

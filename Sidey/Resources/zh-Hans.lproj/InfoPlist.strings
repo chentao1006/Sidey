@@ -1,6 +1,5 @@
 "CFBundleDisplayName" = "旁白";
 "CFBundleName" = "旁白";
-"NSScreenCaptureUsageDescription" = "旁白 需要屏幕录制权限来从屏幕提取文本并进行 OCR 和 AI 分析。";
-"NSAccessibilityUsageDescription" = "旁白 使用辅助功能从其他应用程序中读取选中的文本，以提供 AI 协助。";
-"NSAppleEventsUsageDescription" = "旁白 使用 AppleScript 从 Safari 等应用程序中获取内容，为 AI 分析提供更好的上下文。";
+
+
 "NSHumanReadableCopyright" = "版权所有 © 2026 Chen Tao。保留所有权利。";

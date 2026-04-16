@@ -201,18 +201,16 @@
 
 /* Attachments */
 "Clipboard" = "Clipboard";
-"Selection" = "Selection";
-"Screen Text" = "Screen Text";
-"OCR in progress..." = "OCR in progress...";
-"Missing 'Screen Recording' permission. Please grant permission in System Settings > Security & Privacy." = "Missing 'Screen Recording' permission. Please grant permission in System Settings > Security & Privacy.";
-"Missing 'Accessibility' permission. Please grant permission in System Settings > Security & Privacy." = "Missing 'Accessibility' permission. Please grant permission in System Settings > Security & Privacy.";
 
-/* Permissions */
-"Permissions" = "Permissions";
-"Accessibility" = "Accessibility";
-"Screen Recording" = "Screen Recording";
-"Authorized" = "Authorized";
-"Not Authorized" = "Not Authorized";
-"Request" = "Authorize";
-"Required for capturing text from other applications." = "Required for capturing selection from other applications.";
-"Required for screen text capture (OCR)." = "Required for screen text capture (OCR).";
+/* Window Companion & Docking */
+"Window Companion" = "Window Companion";
+"Window Docking" = "Window Docking";
+"Attach the assistant to the side of the active application window." = "Attach the assistant to the side of the active application window.";
+"Show Window Icon" = "Show Window Icon";
+"Show a small floating icon next to the active application window." = "Show a small floating icon next to the active application window.";
+"Docking Position" = "Docking Position";
+"Right" = "Right";
+"Left" = "Left";
+"Auto" = "Auto";
+"Enable Docking" = "Enable Docking";
+"Disable Docking" = "Disable Docking";

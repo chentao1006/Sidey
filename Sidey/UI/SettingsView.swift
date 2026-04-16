@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 import ServiceManagement
 import Combine
-import ScreenCaptureKit
+import AppKit
 
 struct SettingsView: View {
     @AppStorage("settingsSelectedTab") private var selectedTab = "prompts"
@@ -53,7 +53,6 @@ struct GeneralSettingsView: View {
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("sendBehavior") private var sendBehavior = "return"
     @AppStorage("menuBarIcon") private var menuBarIcon = "brain"
-    @StateObject private var permissionManager = PermissionManager.shared
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     
     let menuBarIcons = [
@@ -120,6 +119,35 @@ struct GeneralSettingsView: View {
             } header: {
                 Text(L("Appearance")).font(.headline)
             }
+
+            Section {
+                Toggle(L("Window Docking"), isOn: Binding(
+                    get: { DockingManager.shared.isAdsorptionEnabled },
+                    set: { DockingManager.shared.isAdsorptionEnabled = $0 }
+                ))
+                .help(L("Attach the assistant to the side of the active application window."))
+                
+                Toggle(L("Show Window Icon"), isOn: Binding(
+                    get: { DockingManager.shared.isIconVisible },
+                    set: { DockingManager.shared.isIconVisible = $0 }
+                ))
+                .help(L("Show a small floating icon next to the active application window."))
+                
+
+                if DockingManager.shared.isAdsorptionEnabled || DockingManager.shared.isIconVisible {
+                    Picker(L("Docking Position"), selection: Binding(
+                        get: { DockingManager.shared.dockingPosition },
+                        set: { DockingManager.shared.dockingPosition = $0 }
+                    )) {
+                        Text(L("Right")).tag(DockingPosition.right)
+                        Text(L("Left")).tag(DockingPosition.left)
+                        Text(L("Auto")).tag(DockingPosition.auto)
+                    }
+                    .pickerStyle(.segmented)
+                }
+            } header: {
+                Text(L("Window Companion")).font(.headline)
+            }
             
             Section {
                 Picker(L("Send Behavior"), selection: $sendBehavior) {
@@ -145,6 +173,7 @@ struct GeneralSettingsView: View {
                             launchAtLogin = service.status == .enabled
                         }
                     }
+
                                 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -161,78 +190,8 @@ struct GeneralSettingsView: View {
                 Text(L("Behavior")).font(.headline)
             }
 
-            Section {
-                VStack(alignment: .leading, spacing: 12) {
-                    #if !APPSTORE
-                    PermissionRow(
-                        icon: "accessibility", 
-                        title: L("Accessibility"), 
-                        description: L("Required for capturing text from other applications."), 
-                        isGranted: permissionManager.isAccessibilityGranted,
-                        onRequest: permissionManager.requestAccessibility
-                    )
-                    
-                    Divider()
-                    #endif
-                    
-                    PermissionRow(
-                        icon: "video.badge.checkmark", 
-                        title: L("Screen Recording"), 
-                        description: L("Required for screen text capture (OCR)."), 
-                        isGranted: permissionManager.isScreenRecordingGranted,
-                        onRequest: permissionManager.requestScreenRecording
-                    )
-                }
-                .padding(.vertical, 4)
-            } header: {
-                Text(L("Permissions")).font(.headline)
-            }
         }
         .formStyle(.grouped)
-    }
-}
-
-struct PermissionRow: View {
-    let icon: String
-    let title: String
-    let description: String
-    let isGranted: Bool
-    let onRequest: () -> Void
-    
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundColor(.accentColor)
-                .frame(width: 32)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.headline)
-                Text(description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            if isGranted {
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                    Text(L("Authorized"))
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-            } else {
-                Button(action: onRequest) {
-                    Text(L("Request"))
-                        .frame(width: 80)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-            }
-        }
     }
 }
 
@@ -989,80 +948,6 @@ STRICT RULES:
                 errorMessage = L("Failed to parse AI response. Please try again."); isGenerating = false; return
             }
             suggestions = raw.map { PromptSuggestion(name: $0.name, system: $0.system) }; isGenerating = false
-        }
-    }
-}
-import AppKit
-import Foundation
-import Combine
-import ApplicationServices
-import ScreenCaptureKit
-
-class PermissionManager: ObservableObject {
-    static let shared = PermissionManager()
-    
-    #if !APPSTORE
-    @Published var isAccessibilityGranted: Bool = false
-    #endif
-    @Published var isScreenRecordingGranted: Bool = false
-    
-    private var timer: Timer?
-    
-    private init() {
-        checkPermissions()
-        startPolling()
-    }
-    
-    func checkPermissions() {
-        #if !APPSTORE
-        isAccessibilityGranted = checkAccessibility()
-        #endif
-        isScreenRecordingGranted = checkScreenRecording()
-    }
-    
-    private func startPolling() {
-        // Poll for permission changes when the user is in settings
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.checkPermissions()
-        }
-    }
-    
-    #if !APPSTORE
-    func checkAccessibility() -> Bool {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false]
-        return AXIsProcessTrustedWithOptions(options as CFDictionary)
-    }
-    #endif
-    
-    func checkScreenRecording() -> Bool {
-        if #available(macOS 11.0, *) {
-            return CGPreflightScreenCaptureAccess()
-        }
-        return true
-    }
-    
-    #if !APPSTORE
-    func requestAccessibility() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
-        _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
-        
-        // Also open system settings if prompt doesn't appear or for better UX
-        if !checkAccessibility() {
-            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
-            NSWorkspace.shared.open(url)
-        }
-    }
-    #endif
-    
-    func requestScreenRecording() {
-        if #available(macOS 11.0, *) {
-            _ = CGRequestScreenCaptureAccess()
-        }
-        
-        // Open system settings
-        if !checkScreenRecording() {
-            let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
-            NSWorkspace.shared.open(url)
         }
     }
 }

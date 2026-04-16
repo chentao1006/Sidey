@@ -43,12 +43,6 @@
 	<string>T9d+4vUpmrkAXNcwSOu7/MzSO6tIKr8JbVhYe4j0jaE=</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
-	<key>NSScreenCaptureUsageDescription</key>
-	<string>Sidey needs screen capture permission to extract text from your screen for OCR and AI analysis.</string>
-	<key>NSAccessibilityUsageDescription</key>
-	<string>Sidey uses accessibility features to read selected text from other applications to provide AI assistance.</string>
-	<key>NSAppleEventsUsageDescription</key>
-	<string>Sidey uses AppleScript to retrieve content from applications like Safari to provide better context for AI analysis.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Chen Tao. All rights reserved.</string>
 </dict>
