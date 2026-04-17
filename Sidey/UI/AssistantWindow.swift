@@ -1010,28 +1010,6 @@ struct AssistantWindow: View {
         }
     }
 
-    private var activePIDs: Set<Int32> {
-        var pids = Set<Int32>()
-        let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
-        if let infoList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] {
-            for window in infoList {
-                guard let pid = window[kCGWindowOwnerPID as String] as? Int32 else { continue }
-                if let alpha = window[kCGWindowAlpha as String] as? Double, alpha == 0 { continue }
-                
-                if let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
-                   let bounds = CGRect(dictionaryRepresentation: boundsDict) {
-                    let name = window[kCGWindowName as String] as? String ?? ""
-                    let isReasonableSize = bounds.width > 40 && bounds.height > 40
-                    if isReasonableSize {
-                        if !name.isEmpty || (bounds.width > 120 && bounds.height > 120) {
-                            pids.insert(pid)
-                        }
-                    }
-                }
-            }
-        }
-        return pids
-    }
 
     private func cleanPreview(_ text: String) -> String {
         return text.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)

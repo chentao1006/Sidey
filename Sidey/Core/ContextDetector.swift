@@ -24,8 +24,8 @@ class ContextDetector: ObservableObject {
     private init() {
         refresh()
         
-        // Start proactive polling for high reliability
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        // Much slower polling for reliability, notifications are primary.
+        timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             self?.refresh()
         }
         
@@ -60,6 +60,9 @@ class ContextDetector: ObservableObject {
     
     private func updateContext(with app: NSRunningApplication) {
         if let bundleID = app.bundleIdentifier {
+            // Optimization: Skip if it's the same app as before
+            if bundleID == self.currentBundleID { return }
+            
             self.currentBundleID = bundleID
             self.currentAppName = app.localizedName ?? bundleID
             if let url = app.bundleURL {

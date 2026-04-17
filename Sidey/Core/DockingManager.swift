@@ -97,7 +97,8 @@ class DockingManager: ObservableObject {
     }
     
     func startTracking() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        // Reduced frequency from 0.1s to 0.5s to save CPU
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.refreshActiveWindowFrame()
         }
     }
@@ -212,14 +213,15 @@ class DockingManager: ObservableObject {
                 return
             }
             
-            let sortedWindowList = windowList.sorted { 
+            // Optimization: Filter for the target PID FIRST, then sort much smaller list
+            let targetWindows = windowList.filter { ($0[kCGWindowOwnerPID as String] as? Int32) == persistentTargetPID }
+            
+            let sortedWindowList = targetWindows.sorted { 
                 ($0[kCGWindowLayer as String] as? Int ?? Int.max) < ($1[kCGWindowLayer as String] as? Int ?? Int.max)
             }
             
             for winInfo in sortedWindowList {
-                guard let ownerPID = winInfo[kCGWindowOwnerPID as String] as? Int32,
-                      ownerPID == persistentTargetPID,
-                      let bounds = winInfo[kCGWindowBounds as String] as? [String: Any],
+                guard let bounds = winInfo[kCGWindowBounds as String] as? [String: Any],
                       let x = bounds["X"] as? CGFloat,
                       let y = bounds["Y"] as? CGFloat,
                       let w = bounds["Width"] as? CGFloat,
@@ -243,15 +245,18 @@ class DockingManager: ObservableObject {
             }
         }
         
+        // Only update if frame actually changed or enough time passed for a safety refresh
         DispatchQueue.main.async {
             if let cocoaRect = cocoaRect, foundWindow {
-                self.activeWindowFrame = cocoaRect
-                self.updatePositions()
+                if self.activeWindowFrame != cocoaRect {
+                    self.activeWindowFrame = cocoaRect
+                    self.updatePositions()
+                }
                 self.lastFoundWindowTime = Date()
             } else {
                 if self.activeWindowFrame != nil {
                     let timeSinceLastSeen = Date().timeIntervalSince(self.lastFoundWindowTime)
-                    if timeSinceLastSeen > 0.8 {
+                    if timeSinceLastSeen > 1.2 { // Increased from 0.8 to 1.2 for more stability
                         self.activeWindowFrame = nil
                         self.iconWindow?.orderOut(nil)
                         self.assistantWindow?.orderOut(nil)
