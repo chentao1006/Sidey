@@ -3,28 +3,28 @@
     <channel>
         <title>Sidey</title>
         <item>
+            <title>1.2.2</title>
+            <pubDate>Sun, 19 Apr 2026 11:23:42 +0800</pubDate>
+            <sparkle:version>22</sparkle:version>
+            <sparkle:shortVersionString>1.2.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/chentao1006/sidey/releases/download/v1.2.2/Sidey.dmg" length="4494303" type="application/octet-stream" sparkle:edSignature="y1NxMhIoHcGBp+qQ4DB82albhDpox6dbhCGhB9B1oJ5lU2QroZBEzxqQp3xgjNudD56Jqy4tHazop+dmWvMSDQ=="/>
+        </item>
+        <item>
+            <title>1.2.2</title>
+            <pubDate>Sun, 19 Apr 2026 11:18:34 +0800</pubDate>
+            <sparkle:version>21</sparkle:version>
+            <sparkle:shortVersionString>1.2.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/chentao1006/sidey/releases/download/v1.2.2/Sidey.dmg" length="4491580" type="application/octet-stream" sparkle:edSignature="GAN3HZisZNmdq0w2uTAEHqtoHHEGxZ84LlBNhTTr5Wzv8AJLjfhJo4eq4UUUNpLtO696gepOog9XDUStQ3NoCw=="/>
+        </item>
+        <item>
             <title>1.2.1</title>
             <pubDate>Thu, 16 Apr 2026 17:04:10 +0800</pubDate>
             <sparkle:version>20</sparkle:version>
             <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/chentao1006/sidey/releases/download/v1.2.1/Sidey.dmg" length="4415739" type="application/octet-stream" sparkle:edSignature="x54vuJuRTuPRE5gPRbzfuJIniO59Vw6y+Ztju03NIe1KO0qPL5+4yow7T+ZlCPMvNOcfpnfkh44p45br7s55Dw=="/>
-        </item>
-        <item>
-            <title>1.2.1</title>
-            <pubDate>Thu, 16 Apr 2026 16:21:44 +0800</pubDate>
-            <sparkle:version>19</sparkle:version>
-            <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/chentao1006/sidey/releases/download/v1.2.1/Sidey.dmg" length="4415467" type="application/octet-stream" sparkle:edSignature="Bc+JBXM6lCsQkOQDKQ5auwXy1SybdazQLDudRdSeEoROcEEqYv0gqq05To4pyRcKEFwLJ9Nb3E/uFOOf7ZvgDg=="/>
-        </item>
-        <item>
-            <title>1.2.1</title>
-            <pubDate>Thu, 16 Apr 2026 13:50:30 +0800</pubDate>
-            <sparkle:version>18</sparkle:version>
-            <sparkle:shortVersionString>1.2.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/chentao1006/sidey/releases/download/v1.2.1/Sidey.dmg" length="4414768" type="application/octet-stream" sparkle:edSignature="dPDY/Z7ATeGtLOe86XVmfaPJYFiPAP13tjwDDJOCwTFEEuu188dK7fz4tXdSINwFRNJk6xZz+keMv1TBI/BhAg=="/>
         </item>
     </channel>
 </rss>

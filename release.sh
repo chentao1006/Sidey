@@ -2,10 +2,12 @@
 
 # Configuration
 PLIST_PATH="Info.plist"
+APPSTORE_PLIST_PATH="Sidey-Appstore-Info.plist"
 PBXPROJ_PATH="Sidey.xcodeproj/project.pbxproj"
 RESULT_DIR="./dist"
 
 # Helper function to get current version
+
 get_current_version() {
     # Try to get from pbxproj first as it's the source of truth if variables are used
     VERSION=$(grep "MARKETING_VERSION =" "$PBXPROJ_PATH" | head -n 1 | sed -E 's/.*MARKETING_VERSION = (.*);/\1/')
@@ -54,10 +56,13 @@ echo "🚀 Preparing local release $NEW_VERSION (Build $NEW_BUILD)..."
 # 1. Update Version Files
 sed -i '' -E "/<key>CFBundleShortVersionString<\/key>/{n;s/<string>.*<\/string>/<string>$NEW_VERSION<\/string>/;}" "$PLIST_PATH"
 sed -i '' -E "/<key>CFBundleVersion<\/key>/{n;s/<string>.*<\/string>/<string>$NEW_BUILD<\/string>/;}" "$PLIST_PATH"
+sed -i '' -E "/<key>CFBundleShortVersionString<\/key>/{n;s/<string>.*<\/string>/<string>$NEW_VERSION<\/string>/;}" "$APPSTORE_PLIST_PATH"
+sed -i '' -E "/<key>CFBundleVersion<\/key>/{n;s/<string>.*<\/string>/<string>$NEW_BUILD<\/string>/;}" "$APPSTORE_PLIST_PATH"
 sed -i '' "s/MARKETING_VERSION = .*;/MARKETING_VERSION = $NEW_VERSION;/" "$PBXPROJ_PATH"
 sed -i '' "s/CURRENT_PROJECT_VERSION = .*;/CURRENT_PROJECT_VERSION = $NEW_BUILD;/" "$PBXPROJ_PATH"
 
 echo "✅ Local configuration updated."
+
 
 # 2. Run Local Build (Uses your working local keychain)
 chmod +x package.sh
