@@ -53,7 +53,9 @@ struct GeneralSettingsView: View {
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("sendBehavior") private var sendBehavior = "return"
     @AppStorage("menuBarIcon") private var menuBarIcon = "brain"
+    @AppStorage("isSelectionCaptureEnabled") private var isSelectionCaptureEnabled = true
     @ObservedObject private var dockingManager = DockingManager.shared
+    @ObservedObject private var permissionManager = PermissionManager.shared
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     
     let menuBarIcons = [
@@ -120,6 +122,42 @@ struct GeneralSettingsView: View {
             } header: {
                 Text(L("Appearance")).font(.headline)
             }
+
+            Section {
+                Toggle(L("Quick Selection Capture"), isOn: $isSelectionCaptureEnabled)
+                    .help(L("Show a floating button when text is selected in other apps."))
+                
+                VStack(alignment: .leading, spacing: 8) {
+
+                    HStack {
+                        Text(L("Accessibility Permission"))
+                        Spacer()
+                        if permissionManager.isAccessibilityGranted {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text(L("Authorized"))
+                        } else {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Button(L("Authorize...")) {
+                                permissionManager.checkAccessibility(prompt: true)
+                                // Standard system behavior: wait for user to come back
+                            }
+                        }
+                    }
+                    Text(L("Required for capturing text selection and global shortcuts. If authorized but not working, try toggling the switch in System Settings."))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.vertical, 4)
+                .onAppear {
+                    permissionManager.checkAccessibilityStatus()
+                }
+            } header: {
+                Text(L("Permissions")).font(.headline)
+            }
+
+
 
             Section {
                 Toggle(L("Window Docking"), isOn: $dockingManager.isAdsorptionEnabled)

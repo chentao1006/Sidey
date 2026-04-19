@@ -17,16 +17,19 @@ struct SessionState: Equatable, Codable {
 
 enum AttachmentType: String, Codable {
     case clipboard
+    case selection
     
     var icon: String {
         switch self {
         case .clipboard: return "doc.on.clipboard"
+        case .selection: return "selection.pin.in.out"
         }
     }
     
     var labelKey: String {
         switch self {
         case .clipboard: return "Clipboard"
+        case .selection: return "Selection"
         }
     }
 }
@@ -48,6 +51,7 @@ struct AssistantWindow: View {
     @ObservedObject private var promptStore = PromptStore.shared
     @ObservedObject private var historyStore = HistoryStore.shared
     @ObservedObject private var dockingManager = DockingManager.shared
+    @ObservedObject private var permissionManager = PermissionManager.shared
     @StateObject private var llmClient = LLMClient()
     @Environment(\.openWindow) private var openWindow
     
@@ -56,6 +60,7 @@ struct AssistantWindow: View {
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("sendBehavior") private var sendBehavior = "return"
     @AppStorage("appLanguage") private var appLanguage = "system"
+    @AppStorage("hasDismissedAccessibilityTip") private var hasDismissedAccessibilityTip = false
     
     @State private var window: NSWindow?
     
@@ -86,6 +91,9 @@ struct AssistantWindow: View {
         let currentLocale = appLanguage == "system" ? Locale.current : Locale(identifier: appLanguage)
         ZStack(alignment: .bottom) {
             VStack(spacing: 10) {
+                if !permissionManager.isAccessibilityGranted && !hasDismissedAccessibilityTip {
+                    discoveryTip
+                }
                 appContextHeader
                 promptList
                 inputArea
@@ -97,6 +105,7 @@ struct AssistantWindow: View {
         .id(appLanguage)
         .frame(minWidth: 300, idealWidth: 300, minHeight: 520, idealHeight: 520)
         .background(WindowAccessor(window: $window))
+
         .onChangeCompatible(of: alwaysOnTop) { newValue in
             window?.level = newValue ? .floating : .normal
         }
@@ -130,6 +139,22 @@ struct AssistantWindow: View {
             }
             
             refreshContext()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideySendSelectionToAssistant"))) { notification in
+            if let selection = notification.object as? String {
+                // Activate assistant first
+                AppDelegate.shared.showAssistant()
+                
+                // Set as input and attachment
+                self.userInput = selection
+                let newAttachment = Attachment(type: .selection, content: selection)
+                if !self.attachments.contains(where: { $0.content == selection }) {
+                    self.attachments.append(newAttachment)
+                }
+                
+                // Auto-send if it's a short text or just because the user clicked the button
+                // For now, let's just populate the input so the user can verify.
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("CXAISwitchSession"))) { notification in
             if let userInfo = notification.userInfo,
@@ -202,6 +227,65 @@ struct AssistantWindow: View {
                 }
             }
         }
+    }
+    
+    @ViewBuilder
+    private var discoveryTip: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "cursorarrow.and.square.on.square.dashed")
+                    .foregroundColor(.green)
+                    .font(.system(size: 16))
+                    .padding(.top, 2)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L("Enable Selection Support"))
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                    Text(L("Get AI context by selecting text in any app."))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                
+                Spacer()
+                
+                Button(action: {
+                    withAnimation {
+                        hasDismissedAccessibilityTip = true
+                    }
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            
+            HStack {
+                Spacer()
+                Button(L("Enable Now")) {
+                    permissionManager.checkAccessibility(prompt: true)
+                    
+                    // Also open settings for specific guidance if needed
+                    settingsSelectedTab = "general"
+                    AppDelegate.shared.showSettings()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .tint(.green)
+            }
+
+        }
+        .padding(10)
+        .background(Color.green.opacity(0.1))
+        .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.green.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal, 2)
+
     }
     
     // MARK: - Subviews
@@ -950,7 +1034,8 @@ struct AssistantWindow: View {
         
         // 1. Clipboard
         if let clip = NSPasteboard.general.string(forType: .string), !clip.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
-            self.attachments.append(Attachment(type: .clipboard, content: clip))
+            let isFromSelf = contextDetector.lastClipboardSourceBundleID == Bundle.main.bundleIdentifier
+            self.attachments.append(Attachment(type: .clipboard, content: clip, isSelected: isFromSelf))
         }
         
         if let completion = completion {

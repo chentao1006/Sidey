@@ -200,7 +200,7 @@
 "Quit Sidey" = "退出 旁白";
 
 /* Attachments */
-"Clipboard" = "剪贴板文字";
+"Clipboard" = "剪贴板";
 
 /* Window Companion & Docking */
 "Window Companion" = "随窗助手";
@@ -214,3 +214,27 @@
 "Auto" = "自动";
 "Enable Docking" = "开启停靠";
 "Disable Docking" = "关闭停靠";
+
+/* Permissions */
+"Permissions" = "功能权限";
+"Quick Selection Capture" = "选中文本助手";
+"Show a floating button when text is selected in other apps." = "在其他应用中选中文字时，显示浮动按钮以快速获取上下文。";
+"Accessibility Permission" = "选中文本快捷获取 (辅助功能)";
+"Authorized" = "已授权";
+"Authorize..." = "去授权...";
+"Required for capturing text selection and global shortcuts. If authorized but not working, try toggling the switch in System Settings." = "启用后方可支持选中文本快捷获取功能。如果已显示授权但功能无效，请尝试在系统设置中先关闭再重新打开开关。";
+"Selection" = "选中的文本";
+
+/* Permission Guide */
+"Sidey needs Accessibility permission to assist in retrieving selected text for AI context. Your data stays on your machine and is never collected." = "“旁白”需要辅助功能权限来辅助您获取当前选中的文字，以便 AI 能够理解上下文。我们承诺您的数据仅保留在本地，绝不收集。";
+"Grant Accessibility Permission" = "授予辅助功能权限";
+"How to grant:" = "如何授予：";
+"1. Click the button below to open System Settings." = "1. 点击下方按钮打开系统设置。";
+"2. Find 'Sidey' in the Accessibility list." = "2. 在辅助功能列表中找到“旁白”。";
+"3. Toggle the switch to ON." = "3. 将开关切换到开启状态。";
+"Open System Settings" = "打开系统设置";
+
+/* Discovery */
+"Enable Selection Support" = "已支持选中文本快捷交互";
+"Get AI context by selecting text in any app." = "开启权限后，在任意界面选中文字即可直接询问，无需手动粘贴。";
+"Enable Now" = "立即开启";

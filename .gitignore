@@ -80,3 +80,4 @@ bin/
 *.log
 Sidey/Config.xcconfig
 .DS_Store
+*.txt

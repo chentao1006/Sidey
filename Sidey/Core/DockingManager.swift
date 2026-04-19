@@ -199,9 +199,12 @@ class DockingManager: ObservableObject {
                     if AXValueGetValue(posVal as! AXValue, .cgPoint, &position) &&
                        AXValueGetValue(sizeVal as! AXValue, .cgSize, &size) {
                         
-                        let cgRect = CGRect(origin: position, size: size)
-                        cocoaRect = convertCGRectToCocoa(cgRect)
-                        foundWindow = true
+                        // Filter small windows and dialogs
+                        if isWindowEligible(window: window as! AXUIElement, size: size) {
+                            let cgRect = CGRect(origin: position, size: size)
+                            cocoaRect = convertCGRectToCocoa(cgRect)
+                            foundWindow = true
+                        }
                     }
                 }
             }
@@ -228,7 +231,7 @@ class DockingManager: ObservableObject {
                       let h = bounds["Height"] as? CGFloat,
                       let layer = winInfo[kCGWindowLayer as String] as? Int,
                       layer >= 0 && layer <= 100,
-                      w > 100, h > 100 else { continue }
+                      w > 600, h > 400 else { continue }
                 
                 let winName = winInfo[kCGWindowName as String] as? String ?? ""
                 let ownerName = winInfo[kCGWindowOwnerName as String] as? String ?? ""
@@ -416,6 +419,35 @@ class DockingManager: ObservableObject {
         }
     }
     
+    private func isWindowEligible(window: AXUIElement, size: CGSize) -> Bool {
+        // Size threshold: Ignore windows smaller than 300x200
+        if size.width < 300 || size.height < 200 {
+            return false
+        }
+        
+        var role: AnyObject?
+        if AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &role) == .success,
+           let roleString = role as? String {
+            // We only dock to standard windows. 
+            // Dialogs (AXDialog), Sheets (AXSheet), and other transient windows are ignored.
+            if roleString != kAXWindowRole as String {
+                return false
+            }
+        }
+        
+        var subrole: AnyObject?
+        if AXUIElementCopyAttributeValue(window, kAXSubroleAttribute as CFString, &subrole) == .success,
+           let subroleString = subrole as? String {
+            // Further filter out system dialogs or other special transient windows
+            if subroleString == kAXDialogSubrole as String || 
+               subroleString == "AXSystemDialog" {
+                return false
+            }
+        }
+        
+        return true
+    }
+    
     private func convertCGRectToCocoa(_ cgRect: CGRect) -> NSRect {
         let primaryScreen = NSScreen.screens.first
         let primaryHeight = primaryScreen?.frame.height ?? 0
@@ -483,14 +515,52 @@ private func axCallback(_ observer: AXObserver, _ element: AXUIElement, _ notifi
     DispatchQueue.main.async { manager.refreshActiveWindowFrame() }
 }
 
-class PermissionManager {
+class PermissionManager: ObservableObject {
     static let shared = PermissionManager()
-    func checkAccessibility() -> Bool {
-        #if APPSTORE
-        return false
-        #else
+    
+    @Published var isAccessibilityGranted: Bool = false
+    
+    private init() {
+        checkAccessibilityStatus()
+    }
+    
+    @discardableResult
+    func checkAccessibilityStatus() -> Bool {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false]
-        return AXIsProcessTrustedWithOptions(options as CFDictionary)
+        let status = AXIsProcessTrustedWithOptions(options as CFDictionary)
+        
+        DispatchQueue.main.async {
+            if self.isAccessibilityGranted != status {
+                self.isAccessibilityGranted = status
+            }
+        }
+        return status
+    }
+    
+    func checkAccessibility(prompt: Bool = false) -> Bool {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: prompt]
+        let status = AXIsProcessTrustedWithOptions(options as CFDictionary)
+        
+        DispatchQueue.main.async {
+            if self.isAccessibilityGranted != status {
+                self.isAccessibilityGranted = status
+            }
+        }
+        return status
+    }
+    
+    func openAccessibilitySettings() {
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+        NSWorkspace.shared.open(url)
+    }
+    
+    func canUseAccessibility() -> Bool {
+        #if APPSTORE
+        return checkAccessibilityStatus()
+        #else
+        return checkAccessibilityStatus()
         #endif
     }
 }
+
+

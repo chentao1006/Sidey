@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import ServiceManagement
 import Carbon
+import Carbon
 
 
 @main
@@ -90,6 +91,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
            let icon = NSImage(contentsOf: iconURL) {
             NSApplication.shared.applicationIconImage = icon
         }
+        
+        // Initialize Selection Monitoring and Floating Button
+        _ = FloatingButtonManager.shared
+        SelectionMonitor.shared.start()
         
         // Use a small delay to detect manual launch vs login launch
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
