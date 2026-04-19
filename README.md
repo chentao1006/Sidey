@@ -17,6 +17,7 @@
 ### ✨ Key Features
 
 - **Window Companion**: A lightweight, dynamic icon that automatically docks to the edge of your active window. It follows your window as you move or resize it, allowing you to summon the AI assistant with a single click without leaving your workflow.
+- **Selection Assistant**: A premium, context-aware floating button that appears elegantly near your selected text. It allows you to instantly process chosen content with your active AI assistant without any extra clicks or keyboard shortcuts.
 - **Context Awareness**: Automatically detects the frontmost application and suggests relevant prompts. Retrieves active window details including application name and bundle identifier.
 - **Deep Context Capture**: Supports a multi-tier text retrieval system:
   - **Accessibility Search**: Directly queries the focused window for selected text.
