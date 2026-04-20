@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Combine
 
 class ContextDetector: ObservableObject {
     static let shared = ContextDetector()
@@ -114,58 +115,93 @@ class SelectionMonitor: ObservableObject {
     @AppStorage("isSelectionCaptureEnabled") private var isSelectionCaptureEnabled = true
     
     private var mouseUpMonitor: Any?
-
     private var mouseDownMonitor: Any?
+    private var keyboardMonitor: Any?
+    private var flagsMonitor: Any?
     private var startPosition: CGPoint = .zero
+    /// Position of the last left-mouse-down — used as fallback for keyboard-triggered button placement.
+    private var lastClickPosition: CGPoint = .zero
+    private var shiftWasDown = false
     private var timer: Timer?
+    private var accessibilityCancellable: AnyCancellable?
+    
+    /// Tracks the last captured text during periodic checks to avoid redundant processing.
+    private var lastPeriodicCheckText: String?
     
     @Published var currentSelection: String?
     @Published var buttonPosition: CGPoint = .zero
     @Published var isShowingButton: Bool = false
     
-    private init() {}
+    private init() {
+        // Reinstall keyboard monitors when the user grants accessibility permission
+        // (they need AX permission; if start() was called before permission was given,
+        //  the monitors would have returned nil and never fired).
+        accessibilityCancellable = PermissionManager.shared.$isAccessibilityGranted
+            .removeDuplicates()
+            .sink { [weak self] granted in
+                guard granted, let self = self else { return }
+                if self.keyboardMonitor == nil || self.flagsMonitor == nil {
+                    self.installKeyboardMonitors()
+                }
+            }
+    }
     
     func start() {
         // Request Permissions if needed (Silenly check)
         let hasPermissions = PermissionManager.shared.checkAccessibilityStatus()
         DebugLogger.shared.log("SelectionMonitor: Starting monitors (Permissions: \(hasPermissions))")
         
-        // Track start position
+        // Track mouse-down position (used as fallback for keyboard-triggered button placement)
         mouseDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
-            self?.startPosition = NSEvent.mouseLocation
+            let loc = NSEvent.mouseLocation
+            self?.startPosition = loc
+            self?.lastClickPosition = loc
         }
         
-        // Listen for mouse up events globally
+        // Mouse-up: drag or multi-click selection
         mouseUpMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] event in
             self?.handleMouseUp(event: event)
+        }
+        
+        installKeyboardMonitors()
+    }
+    
+    /// Install keyboard/flags monitors — requires Accessibility permission.
+    /// Returns silently if permission is not yet granted (will retry via Combine subscriber).
+    private func installKeyboardMonitors() {
+        if keyboardMonitor == nil {
+            // keyDown fires after the frontmost app has processed the event,
+            // so selection is already complete by the time our handler runs.
+            keyboardMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
+                self?.handleKeyDown(event: event)
+            }
+        }
+        if flagsMonitor == nil {
+            flagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.flagsChanged]) { [weak self] event in
+                self?.handleFlagsChanged(event: event)
+            }
         }
     }
     
     func stop() {
-        if let monitor = mouseUpMonitor {
-            NSEvent.removeMonitor(monitor)
-            mouseUpMonitor = nil
-        }
-        if let monitor = mouseDownMonitor {
-            NSEvent.removeMonitor(monitor)
-            mouseDownMonitor = nil
-        }
+        [mouseUpMonitor, mouseDownMonitor, keyboardMonitor, flagsMonitor]
+            .compactMap { $0 }
+            .forEach { NSEvent.removeMonitor($0) }
+        mouseUpMonitor = nil
+        mouseDownMonitor = nil
+        keyboardMonitor = nil
+        flagsMonitor = nil
     }
     
     private func handleMouseUp(event: NSEvent) {
         guard isSelectionCaptureEnabled else { return }
         
         let endPosition = NSEvent.mouseLocation
-
         let distance = sqrt(pow(endPosition.x - startPosition.x, 2) + pow(endPosition.y - startPosition.y, 2))
         
-        // Only check if it looks like a drag/selection (moved more than 5 pixels)
-        // OR if it's a multiple click (double click to select word, triple to select line)
+        // Only check on drag or multi-click
         guard distance > 5 || event.clickCount > 1 else {
-            // If just a single click and no move, hide the button if it was showing
-            if isShowingButton {
-                self.hideButton()
-            }
+            if isShowingButton { self.hideButton() }
             return
         }
         
@@ -176,21 +212,136 @@ class SelectionMonitor: ObservableObject {
         }
     }
     
-    private func checkSelection(at location: CGPoint) {
+    // MARK: - Keyboard selection handlers
+    
+    private func handleKeyDown(event: NSEvent) {
+        guard isSelectionCaptureEnabled else { return }
+        
+        let code = Int(event.keyCode)
+        let flags = event.modifierFlags
+        
+        // Cmd+A — Select All (same key event as Edit > Select All menu shortcut)
+        // Use strict match to avoid false positives (no Shift/Option/Control).
+        let isCmdA = flags.contains(.command)
+                  && !flags.contains(.shift)
+                  && !flags.contains(.option)
+                  && !flags.contains(.control)
+                  && code == 0
+        
+        // Shift + arrow / navigation keys — incremental keyboard selection
+        let arrowCodes: Set<Int> = [123, 124, 125, 126]           // ← → ↓ ↑
+        let navCodes:   Set<Int> = [115, 116, 117, 119, 121, 122] // Home PageUp Del End PageDn F5
+        let isShiftNav  = flags.contains(.shift) && (arrowCodes.contains(code) || navCodes.contains(code))
+        
+        guard isCmdA || isShiftNav else { return }
+        scheduleKeyboardCheck()
+    }
+    
+    private func handleFlagsChanged(event: NSEvent) {
+        guard isSelectionCaptureEnabled else { return }
+        
+        let shiftIsDown = event.modifierFlags.contains(.shift)
+        if shiftWasDown && !shiftIsDown {
+            // Shift just released — user finished a Shift-selection
+            scheduleKeyboardCheck()
+        }
+        shiftWasDown = shiftIsDown
+    }
+    
+    private func scheduleKeyboardCheck() {
+        timer?.invalidate()
+        // 0.12 s is enough time for keyDown → app processes event → our timer fires
+        timer = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: false) { [weak self] _ in
+            guard let self = self else { return }
+            self.captureCurrentSelection(isKeyboardTriggered: true)
+        }
+    }
+    
+    /// Periodic check called from DockingManager loop (every 0.5s) to catch
+    /// menu-based selections or programmatic selection changes.
+    func periodicCheck() {
+        guard isSelectionCaptureEnabled else { return }
+        captureCurrentSelection(isKeyboardTriggered: false)
+    }
+    
+    /// Captures selection from the frontmost app.
+    /// - Parameter isKeyboardTriggered: If true, uses specialized positioning (AX bounds or last click).
+    private func captureCurrentSelection(isKeyboardTriggered: Bool) {
+        guard let app = NSWorkspace.shared.frontmostApplication,
+              let bundleID = app.bundleIdentifier,
+              bundleID != Bundle.main.bundleIdentifier else { return }
+        
+        // Skip apps in blocklist
+        if AppBlocklist.isBlockedForSelection(bundleID) { return }
+        
+        guard let text = SelectionManager.shared.getSelectedText(from: app),
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            // No text selected
+            if !isKeyboardTriggered && lastPeriodicCheckText != nil {
+                // If it was selected and now it's not, hide the button? 
+                // Maybe not, give the user time to click the button.
+                lastPeriodicCheckText = nil
+            }
+            return
+        }
+        
+        // Avoid re-processing if the selection hasn't changed (for periodic ticks)
+        if !isKeyboardTriggered && text == lastPeriodicCheckText { return }
+        lastPeriodicCheckText = text
+        
+        // Determine position
+        let position: CGPoint
+        if isKeyboardTriggered {
+            if let selRect = SelectionManager.shared.getSelectedTextBounds(for: app),
+               selRect.width > 1 || selRect.height > 1 {
+                let primaryH = NSScreen.screens.first?.frame.height ?? 0
+                position = CGPoint(x: selRect.maxX, y: primaryH - selRect.maxY)
+            } else if self.lastClickPosition != .zero {
+                position = self.lastClickPosition
+            } else {
+                position = NSEvent.mouseLocation
+            }
+        } else {
+            // Periodic check or Menu check: use AX bounds if possible, else mouse
+            if let selRect = SelectionManager.shared.getSelectedTextBounds(for: app),
+               selRect.width > 1 || selRect.height > 1 {
+                let primaryH = NSScreen.screens.first?.frame.height ?? 0
+                position = CGPoint(x: selRect.maxX, y: primaryH - selRect.maxY)
+            } else {
+                position = NSEvent.mouseLocation
+            }
+        }
+        
+        self.checkSelection(at: position, text: text)
+    }
+    
+    private func checkSelection(at location: CGPoint, text: String? = nil) {
         guard let app = NSWorkspace.shared.frontmostApplication else { return }
         let bundleID = app.bundleIdentifier ?? ""
         
         // Don't show if Sidey is focused
         if bundleID == Bundle.main.bundleIdentifier { return }
+        
+        // Skip apps where text selection is irrelevant or impossible
+        if AppBlocklist.isBlockedForSelection(bundleID) { return }
               
         let startTime = Date()
-        guard let text = SelectionManager.shared.getSelectedText(from: app), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            DebugLogger.shared.log("SelectionMonitor: No text found in \(bundleID) (Time: \(String(format: "%.3f", Date().timeIntervalSince(startTime)))s)")
-            self.hideButton()
-            return
+        
+        // If text is already provided (from captureCurrentSelection), use it.
+        // Otherwise, fetch it (for legacy mouse triggers).
+        let capturedText: String
+        if let provided = text {
+            capturedText = provided
+        } else {
+            guard let fetched = SelectionManager.shared.getSelectedText(from: app), !fetched.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                DebugLogger.shared.log("SelectionMonitor: No text found in \(bundleID) (Time: \(String(format: "%.3f", Date().timeIntervalSince(startTime)))s)")
+                self.hideButton()
+                return
+            }
+            capturedText = fetched
         }
         
-        // Use the mouse release position as the target
+        // Use the target location
         let targetPosition = location
         
         DebugLogger.shared.log("SelectionMonitor: Selection detected in \(bundleID) (At: \(targetPosition), Time: \(String(format: "%.3f", Date().timeIntervalSince(startTime)))s)")
@@ -199,18 +350,18 @@ class SelectionMonitor: ObservableObject {
         if isShowingButton {
             let distance = sqrt(pow(targetPosition.x - buttonPosition.x, 2) + pow(targetPosition.y - buttonPosition.y, 2))
             if distance < 40 {
-                self.currentSelection = text
+                self.currentSelection = capturedText
                 return
             }
         }
         
         DispatchQueue.main.async {
-            self.currentSelection = text
+            self.currentSelection = capturedText
             self.buttonPosition = targetPosition
             self.showButton()
         }
         
-        // Auto-hide after 10 seconds (give more time)
+        // Auto-hide after 10 seconds
         timer?.invalidate() 
         timer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: false) { [weak self] _ in
             self?.hideButton()

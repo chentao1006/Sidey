@@ -22,7 +22,6 @@
 - **Deep Context Capture**: Supports a multi-tier text retrieval system:
   - **Accessibility Search**: Directly queries the focused window for selected text.
   - **Specialized Plugins**: Deep integration with Safari and Finder via AppleScript.
-  - **Intelligent Fallback**: Safely simulates Command+C with automatic clipboard restoration to capture text from non-standard applications.
 - **Vision Recognition (OCR)**: Built-in OCR engine automatically extracts text from active application windows or your entire screen, supporting context gathering from images, PDF viewers, and unselectable UI elements.
 - **Context Continuity**: Preserves your screen context and attachments when switching between different assistant prompts or applications.
 - **Customizable Assistants**: Create and manage different AI personas or tasks for specific apps (e.g., "Code Review" for Xcode, "Summarize" for Safari).

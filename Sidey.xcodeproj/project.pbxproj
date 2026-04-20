@@ -43,6 +43,8 @@
 		C6C655A42F6C44B4003A4BBD /* OCRManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655A22F6C44B4003A4BBD /* OCRManager.swift */; };
 		C6C655A52F6C44B4003A4BBD /* SelectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655A12F6C44B4003A4BBD /* SelectionManager.swift */; };
 		C6C655A62F6C44B4003A4BBD /* OCRManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655A22F6C44B4003A4BBD /* OCRManager.swift */; };
+		C6C655B12F6C44B4003A4BBD /* AppBlocklist.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655B02F6C44B4003A4BBD /* AppBlocklist.swift */; };
+		C6C655B22F6C44B4003A4BBD /* AppBlocklist.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655B02F6C44B4003A4BBD /* AppBlocklist.swift */; };
 		C6C655622F6C44B4003A4BBD /* prompts.json in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554E2F6C44B4003A4BBD /* prompts.json */; };
 		C6C655632F6C44B4003A4BBD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C6C655472F6C44B4003A4BBD /* Assets.xcassets */; };
 		C6C655642F6C44B4003A4BBD /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554D2F6C44B4003A4BBD /* Localizable.strings */; };
@@ -81,6 +83,7 @@
 		C6C656002F6C44B4003A4BBD /* Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updater.swift; sourceTree = "<group>"; };
 		C6C655A12F6C44B4003A4BBD /* SelectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionManager.swift; sourceTree = "<group>"; };
 		C6C655A22F6C44B4003A4BBD /* OCRManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRManager.swift; sourceTree = "<group>"; };
+		C6C655B02F6C44B4003A4BBD /* AppBlocklist.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBlocklist.swift; sourceTree = "<group>"; };
 		E5A0020129C12345001A2B3C /* Sidey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sidey.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E5A0020229C12345001A2B3C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C6C655FB2F6C44B4003A4BBD /* DockingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockingManager.swift; sourceTree = "<group>"; };
@@ -125,6 +128,7 @@
 				C6C655452F6C44B4003A4BBD /* SyncManager.swift */,
 				C6C655A12F6C44B4003A4BBD /* SelectionManager.swift */,
 				C6C655A22F6C44B4003A4BBD /* OCRManager.swift */,
+				C6C655B02F6C44B4003A4BBD /* AppBlocklist.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -321,6 +325,7 @@
 				C655F18B2F74EA820044CC01 /* ContextDetector.swift in Sources */,
 				C6C655A52F6C44B4003A4BBD /* SelectionManager.swift in Sources */,
 				C6C655A62F6C44B4003A4BBD /* OCRManager.swift in Sources */,
+				C6C655B12F6C44B4003A4BBD /* AppBlocklist.swift in Sources */,
 				C655F18C2F74EA820044CC01 /* Updater.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -347,6 +352,7 @@
 				C6C656012F6C44B4003A4BBD /* Updater.swift in Sources */,
 				C6C655A32F6C44B4003A4BBD /* SelectionManager.swift in Sources */,
 				C6C655A42F6C44B4003A4BBD /* OCRManager.swift in Sources */,
+				C6C655B22F6C44B4003A4BBD /* AppBlocklist.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

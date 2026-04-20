@@ -224,6 +224,8 @@
 "Authorize..." = "Authorize...";
 "Required for capturing text selection and global shortcuts. If authorized but not working, try toggling the switch in System Settings." = "Enables the Quick Selection capture feature. If authorized but not working, try toggling the switch in System Settings.";
 "Selection" = "Selection";
+"Clipboard Fallback (Cmd+C)" = "Clipboard Fallback (Cmd+C)";
+"When accessibility methods fail, simulate Cmd+C to capture the selection. Useful for apps like VSCode. The clipboard is automatically restored afterwards." = "When accessibility methods fail, simulate Cmd+C to capture the selection. Useful for apps like VSCode. The clipboard is automatically restored afterwards.";
 
 
 

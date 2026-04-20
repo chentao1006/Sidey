@@ -120,30 +120,8 @@ class DockingManager: ObservableObject {
         let processName = frontApp?.localizedName ?? ""
         let isSideyFocused = bundleID == Bundle.main.bundleIdentifier
         
-        // Ignore system permission dialogs and system settings
-        let systemBlacklist = [
-            "com.apple.universalaccessd",
-            "com.apple.accessibility.universalAccessAuthWarn",
-            "universalAccessAuthWarn",
-            "com.apple.SecurityAgent",
-            "com.apple.notificationcenterui",
-            "com.apple.ScreenReader",
-            "com.apple.systemevents",
-            "com.apple.controlcenter",
-            "com.apple.loginwindow",
-            "com.apple.QuickLookUIService",
-            "QuickLookUIService",
-            "com.apple.quicklook.ui.helper",
-            "QuickLookUIHelper"
-        ]
-        
-        let isBlacklisted = systemBlacklist.contains { $0.lowercased() == bundleID.lowercased() } ||
-                           systemBlacklist.contains { $0.lowercased() == processName.lowercased() } ||
-                           bundleID.lowercased().contains("universalaccess") ||
-                           processName.lowercased().contains("universalaccess")
-        
-        // If it's a blacklisted app (system dialog, Quick Look, etc.), hide the icon immediately
-        if isBlacklisted && !isSideyFocused {
+        // Skip apps where docking/icon makes no sense
+        if AppBlocklist.isBlockedForDocking(bundleID) || AppBlocklist.isBlockedForDocking(processName) {
             if activeWindowFrame != nil {
                 DispatchQueue.main.async {
                     self.activeWindowFrame = nil
@@ -496,6 +474,9 @@ class DockingManager: ObservableObject {
         AXObserverAddNotification(observer, appElement, kAXMovedNotification as CFString, selfPtr)
         AXObserverAddNotification(observer, appElement, kAXResizedNotification as CFString, selfPtr)
         AXObserverAddNotification(observer, appElement, kAXFocusedWindowChangedNotification as CFString, selfPtr)
+        // Listen for selection changes (captures Cmd+A, menu selections, and drags)
+        AXObserverAddNotification(observer, appElement, kAXSelectedTextChangedNotification as CFString, selfPtr)
+        
         CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .commonModes)
         self.axObserver = observer
         self.currentObservedPID = pid
@@ -512,7 +493,14 @@ class DockingManager: ObservableObject {
 
 private func axCallback(_ observer: AXObserver, _ element: AXUIElement, _ notification: CFString, _ refcon: UnsafeMutableRawPointer?) {
     let manager = Unmanaged<DockingManager>.fromOpaque(refcon!).takeUnretainedValue()
-    DispatchQueue.main.async { manager.refreshActiveWindowFrame() }
+    
+    if notification as String == kAXSelectedTextChangedNotification as String {
+        // Selection changed!
+        SelectionMonitor.shared.periodicCheck()
+    } else {
+        // Window moved or resized
+        DispatchQueue.main.async { manager.refreshActiveWindowFrame() }
+    }
 }
 
 class PermissionManager: ObservableObject {
@@ -522,6 +510,12 @@ class PermissionManager: ObservableObject {
     
     private init() {
         checkAccessibilityStatus()
+        
+        // Start a slow background timer to detect when user grants permission in System Settings
+        // This ensures SelectionMonitor can reinstall its keyboard handlers automatically.
+        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.checkAccessibilityStatus()
+        }
     }
     
     @discardableResult

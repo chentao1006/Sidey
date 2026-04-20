@@ -266,10 +266,6 @@ struct AssistantWindow: View {
                 Spacer()
                 Button(L("Enable Now")) {
                     permissionManager.checkAccessibility(prompt: true)
-                    
-                    // Also open settings for specific guidance if needed
-                    settingsSelectedTab = "general"
-                    AppDelegate.shared.showSettings()
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)

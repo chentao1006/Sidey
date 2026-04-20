@@ -224,6 +224,8 @@
 "Authorize..." = "去授权...";
 "Required for capturing text selection and global shortcuts. If authorized but not working, try toggling the switch in System Settings." = "启用后方可支持选中文本快捷获取功能。如果已显示授权但功能无效，请尝试在系统设置中先关闭再重新打开开关。";
 "Selection" = "选中的文本";
+"Clipboard Fallback (Cmd+C)" = "剪贴板回退 (Cmd+C)";
+"When accessibility methods fail, simulate Cmd+C to capture the selection. Useful for apps like VSCode. The clipboard is automatically restored afterwards." = "当辅助功能无法获取选中文本时（如 VSCode 等 Electron 应用），模拟 Cmd+C 进行捕获。操作完成后剪贴板内容将自动恢复。";
 
 /* Permission Guide */
 "Sidey needs Accessibility permission to assist in retrieving selected text for AI context. Your data stays on your machine and is never collected." = "“旁白”需要辅助功能权限来辅助您获取当前选中的文字，以便 AI 能够理解上下文。我们承诺您的数据仅保留在本地，绝不收集。";
