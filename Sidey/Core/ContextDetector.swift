@@ -123,10 +123,20 @@ class SelectionMonitor: ObservableObject {
     private var lastClickPosition: CGPoint = .zero
     private var shiftWasDown = false
     private var timer: Timer?
+    private var distanceTimer: Timer?
     private var accessibilityCancellable: AnyCancellable?
     
     /// Tracks the last captured text during periodic checks to avoid redundant processing.
     private var lastPeriodicCheckText: String?
+    
+    /// Time when the mouse first moved away from the button.
+    private var awayStartTime: Date?
+    
+    /// Debounce item for selection change notifications.
+    private var debounceWorkItem: DispatchWorkItem?
+    
+    /// Time of the last selection capture (to enforce cooldowns).
+    private var lastCaptureTime: Date = .distantPast
     
     @Published var currentSelection: String?
     @Published var buttonPosition: CGPoint = .zero
@@ -257,11 +267,17 @@ class SelectionMonitor: ObservableObject {
         }
     }
     
-    /// Periodic check called from DockingManager loop (every 0.5s) to catch
-    /// menu-based selections or programmatic selection changes.
+    /// Selection change notification (event-driven).
+    /// Uses a 0.5s debounce to avoid "flicker" and heavy processing in rapid-fire apps like VSCode.
     func periodicCheck() {
         guard isSelectionCaptureEnabled else { return }
-        captureCurrentSelection(isKeyboardTriggered: false)
+        
+        debounceWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            self?.captureCurrentSelection(isKeyboardTriggered: false)
+        }
+        debounceWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: item)
     }
     
     /// Captures selection from the frontmost app.
@@ -370,12 +386,48 @@ class SelectionMonitor: ObservableObject {
     
     private func showButton() {
         self.isShowingButton = true
+        self.awayStartTime = nil
+        startDistanceMonitoring()
         NotificationCenter.default.post(name: Notification.Name("SideyShowFloatingButton"), object: nil)
+    }
+    
+    /// Starts a timer to monitor the mouse distance from the floating button.
+    private func startDistanceMonitoring() {
+        distanceTimer?.invalidate()
+        distanceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.checkMouseDistance()
+        }
+    }
+    
+    private func checkMouseDistance() {
+        guard isShowingButton else {
+            distanceTimer?.invalidate()
+            return
+        }
+        
+        let mouseLoc = NSEvent.mouseLocation
+        let distance = sqrt(pow(mouseLoc.x - buttonPosition.x, 2) + pow(mouseLoc.y - buttonPosition.y, 2))
+        
+        // Threshold: 150 pixels. Beyond this, we start the "away" countdown.
+        if distance > 100 {
+            if awayStartTime == nil {
+                awayStartTime = Date()
+            } else if let start = awayStartTime, Date().timeIntervalSince(start) > 1.0 {
+                // If away for more than 3 seconds, hide it.
+                hideButton()
+            }
+        } else {
+            // Mouse is close, stay visible.
+            awayStartTime = nil
+        }
     }
     
     func hideButton() {
         DispatchQueue.main.async {
             self.isShowingButton = false
+            self.awayStartTime = nil
+            self.distanceTimer?.invalidate()
+            self.distanceTimer = nil
             NotificationCenter.default.post(name: Notification.Name("SideyHideFloatingButton"), object: nil)
         }
     }

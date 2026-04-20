@@ -109,11 +109,19 @@ class SelectionManager {
 
     // MARK: - Cmd+C fallback
 
+    private var lastCommandCTime: Date = .distantPast
+
     #if !APPSTORE
     /// Simulates Cmd+C into the target app's PID, captures the clipboard,
     /// then restores the original clipboard contents.
     /// Used as a last resort for apps that don't expose AX selection text.
     private func forceCaptureSelection(for app: NSRunningApplication) -> String? {
+        // Enforce a cooldown of 2 seconds to avoid flickering menu bars in apps like VSCode
+        if Date().timeIntervalSince(lastCommandCTime) < 2.0 {
+            return nil
+        }
+        lastCommandCTime = Date()
+        
         let originalContent = NSPasteboard.general.string(forType: .string)
         let originalCount   = NSPasteboard.general.changeCount
 
