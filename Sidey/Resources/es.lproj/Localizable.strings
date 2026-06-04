@@ -113,6 +113,7 @@
 " (Thinking...)" = " (Thinking...)";
 " (New Answer)" = " (New Answer)";
 "Response Completed" = "Response Completed";
+"Assistant Response Completed Format" = "Respuesta de %@ completada";
 "Retry" = "Reintentar";
 "Regenerate" = "Regenerar";
 "Copy" = "Copiar";

@@ -47,7 +47,6 @@ class HotKeyManager: ObservableObject {
     
     func hotKeyPressed() {
         DispatchQueue.main.async {
-            NSApplication.shared.activate(ignoringOtherApps: true)
             NotificationCenter.default.post(name: Notification.Name("CXAIToggleMainWindow"), object: nil)
         }
     }

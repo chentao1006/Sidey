@@ -35,6 +35,8 @@
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSUserNotificationAlertStyle</key>
+	<string>banner</string>
 	<key>LSHasLocalizedDisplayName</key>
 	<true/>
 	<key>SUFeedURL</key>

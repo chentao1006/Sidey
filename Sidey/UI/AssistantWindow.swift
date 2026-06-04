@@ -131,11 +131,19 @@ struct AssistantWindow: View {
             let targetPrompt = bestPrompt(for: newValue)
             switchTo(bundleID: newValue, prompt: targetPrompt)
         }
+        .onChangeCompatible(of: promptStore.allPrompts) { _ in
+            syncSelectedPromptWithStore()
+        }
         .onAppear {
             contextDetector.refresh()
             let targetPrompt = bestPrompt(for: contextDetector.currentBundleID)
             switchTo(bundleID: contextDetector.currentBundleID, prompt: targetPrompt)
             refreshContext()
+            
+            DispatchQueue.main.async {
+                consumePendingAssistantSwitchIfNeeded(source: "onAppear")
+                consumePendingSelectedTextIfNeeded()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             contextDetector.refresh()
@@ -147,49 +155,30 @@ struct AssistantWindow: View {
             }
             
             refreshContext()
+            DispatchQueue.main.async {
+                consumePendingSelectedTextIfNeeded()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideySendSelectionToAssistant"))) { notification in
             if let selection = notification.object as? String {
-                // Activate assistant first
+                AppDelegate.shared.queueSelectedTextForAssistant(selection)
                 AppDelegate.shared.showAssistant()
-                
-                // Set as input and attachment
-                self.userInput = selection
-                let newAttachment = Attachment(type: .selection, content: selection)
-                if !self.attachments.contains(where: { $0.content == selection }) {
-                    self.attachments.append(newAttachment)
+                DispatchQueue.main.async {
+                    consumePendingSelectedTextIfNeeded()
                 }
-                
-                // Auto-send if it's a short text or just because the user clicked the button
-                // For now, let's just populate the input so the user can verify.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    NotificationCenter.default.post(name: Notification.Name("SideyPendingSelectionAvailable"), object: nil)
+                }
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideyPendingSelectionAvailable"))) { _ in
+            consumePendingSelectedTextIfNeeded()
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("CXAISwitchSession"))) { notification in
             if let userInfo = notification.userInfo,
                let targetBundleID = userInfo["bundleID"] as? String,
                let targetPromptID = userInfo["promptID"] as? String {
-                // If we are given a prompt to switch to, find it
-                let availablePrompts = promptStore.getPrompts(for: targetBundleID)
-                if let prompt = availablePrompts.first(where: { $0.id == targetPromptID }) {
-                    // Update detector so it matches visually
-                    contextDetector.currentBundleID = targetBundleID
-                    if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == targetBundleID }) {
-                        contextDetector.currentAppName = app.localizedName ?? targetBundleID
-                        if let url = app.bundleURL {
-                            contextDetector.currentAppIcon = NSWorkspace.shared.icon(forFile: url.path)
-                        } else {
-                            contextDetector.currentAppIcon = nil
-                        }
-                    } else if targetBundleID == "com.apple.finder" {
-                        contextDetector.currentAppName = "Finder"
-                        contextDetector.currentAppIcon = NSWorkspace.shared.icon(forFile: "/System/Library/CoreServices/Finder.app")
-                    } else if targetBundleID == "*" {
-                        contextDetector.currentAppName = L("All Apps (*)")
-                        contextDetector.currentAppIcon = nil
-                    }
-                    
-                    switchTo(bundleID: targetBundleID, prompt: prompt)
-                }
+                handleAssistantSwitch(bundleID: targetBundleID, promptID: targetPromptID, source: "notification")
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideyRefreshContext"))) { _ in
@@ -571,9 +560,6 @@ struct AssistantWindow: View {
     @ViewBuilder
     private var inputArea: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(L("Ask AI..."))
-                .font(.headline)
-            
             ZStack(alignment: .topLeading) {
                 MacTextEditor(text: $userInput, textToInsert: $textToInsert, sendBehavior: sendBehavior, onSend: sendMessage)
                 
@@ -611,6 +597,8 @@ struct AssistantWindow: View {
                     .buttonStyle(.plain)
                     .help(L("Clear Input"))
                 }
+                
+                historyMenu
                 
                 Spacer()
                 
@@ -683,42 +671,39 @@ struct AssistantWindow: View {
     }
     
     @ViewBuilder
+    private var historyMenu: some View {
+        Menu {
+            let history = historyStore.interactions.filter { $0.appBundleID == contextDetector.currentBundleID && $0.promptName == selectedPrompt?.name }.prefix(5)
+            if history.isEmpty {
+                Text(L("No History"))
+            } else {
+                ForEach(Array(history)) { interaction in
+                    Button(action: {
+                        if let prompt = promptStore.allPrompts.first(where: { $0.name == interaction.promptName }) {
+                            self.switchTo(bundleID: contextDetector.currentBundleID, prompt: prompt)
+                        }
+                        self.userInput = ""
+                        let exchange = MessageExchange(id: UUID(), userMessage: interaction.userMessage, aiResponse: interaction.aiResponse)
+                        self.currentExchanges = [exchange]
+                        self.promptStates[self.currentSessionKey] = SessionState(exchanges: [exchange])
+                    }) {
+                        Text(interaction.userMessage.prefix(30) + (interaction.userMessage.count > 30 ? "..." : ""))
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "clock.arrow.circlepath")
+                .foregroundColor(.secondary)
+        }
+        .menuStyle(BorderlessButtonMenuStyle())
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(L("Recent History"))
+    }
+    
+    @ViewBuilder
     private var responseArea: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(L("AI Response"))
-                    .font(.headline)
-                
-                Spacer()
-                
-                Menu {
-                    let history = historyStore.interactions.filter { $0.appBundleID == contextDetector.currentBundleID && $0.promptName == selectedPrompt?.name }.prefix(5)
-                    if history.isEmpty {
-                        Text(L("No History"))
-                    } else {
-                        ForEach(Array(history)) { interaction in
-                            Button(action: {
-                                if let prompt = promptStore.allPrompts.first(where: { $0.name == interaction.promptName }) {
-                                    self.switchTo(bundleID: contextDetector.currentBundleID, prompt: prompt)
-                                }
-                                self.userInput = "" // Clear input since we are loading history
-                                let exchange = MessageExchange(id: UUID(), userMessage: interaction.userMessage, aiResponse: interaction.aiResponse)
-                                self.currentExchanges = [exchange]
-                                self.promptStates[self.currentSessionKey] = SessionState(exchanges: [exchange])
-                            }) {
-                                Text(interaction.userMessage.prefix(30) + (interaction.userMessage.count > 30 ? "..." : ""))
-                            }
-                        }
-                    }
-                } label: {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .foregroundColor(.secondary)
-                }
-                .menuStyle(BorderlessButtonMenuStyle())
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .help(L("Recent History"))
-            }
             
             ZStack {
                 ScrollViewReader { proxy in
@@ -972,8 +957,10 @@ struct AssistantWindow: View {
                 }
             }
             
+            let isBackgroundCompletion = self.shouldNotifyForCompletedTask(bundleID: currentBundleID, promptID: promptID)
+            
             // If this is still the active session, update UI state
-            if self.currentSessionKey == sessionKey {
+            if !isBackgroundCompletion {
                 if let index = self.currentExchanges.firstIndex(where: { $0.id == newExchangeID }) {
                     self.currentExchanges[index].aiResponse = response
                     self.lastFinishedExchangeID = newExchangeID
@@ -981,8 +968,9 @@ struct AssistantWindow: View {
             } else {
                 // Background session completed
                 self.unreadSessions.insert(sessionKey)
+                DebugLogger.shared.log("Background task completed, sending notification for \(currentBundleID)|\(promptID).", type: .info)
                 NotificationManager.shared.sendNotification(
-                    title: "\(promptName) " + L("Response Completed"),
+                    title: String(format: L("Assistant Response Completed Format"), promptName),
                     body: response,
                     bundleID: currentBundleID,
                     promptID: promptID
@@ -999,6 +987,67 @@ struct AssistantWindow: View {
                 aiResponse: response
             )
             HistoryStore.shared.addInteraction(interaction)
+        }
+    }
+    
+    private func shouldNotifyForCompletedTask(bundleID: String, promptID: String) -> Bool {
+        !AppDelegate.shared.isAssistantVisible || contextDetector.currentBundleID != bundleID || selectedPrompt?.id != promptID
+    }
+    
+    private func consumePendingAssistantSwitchIfNeeded(source: String) {
+        guard let target = AppDelegate.shared.consumePendingAssistantSwitch() else { return }
+        handleAssistantSwitch(bundleID: target.bundleID, promptID: target.promptID, source: source)
+    }
+    
+    private func handleAssistantSwitch(bundleID: String, promptID: String, source: String) {
+        let availablePrompts = promptStore.getPrompts(for: bundleID)
+        guard let prompt = availablePrompts.first(where: { $0.id == promptID }) else {
+            DebugLogger.shared.log("Assistant switch ignored: prompt \(promptID) not found for \(bundleID) from \(source).", type: .error)
+            return
+        }
+        
+        DebugLogger.shared.log("Switching assistant from \(source) to \(bundleID)|\(promptID).", type: .info)
+        
+        lastPromptIDPerApp[bundleID] = promptID
+        contextDetector.currentBundleID = bundleID
+        updateDisplayedAppContext(bundleID: bundleID)
+        switchTo(bundleID: bundleID, prompt: prompt)
+    }
+    
+    private func updateDisplayedAppContext(bundleID: String) {
+        if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID }) {
+            contextDetector.currentAppName = app.localizedName ?? bundleID
+            if let url = app.bundleURL {
+                contextDetector.currentAppIcon = NSWorkspace.shared.icon(forFile: url.path)
+            } else {
+                contextDetector.currentAppIcon = nil
+            }
+        } else if bundleID == "com.apple.finder" {
+            contextDetector.currentAppName = "Finder"
+            contextDetector.currentAppIcon = NSWorkspace.shared.icon(forFile: "/System/Library/CoreServices/Finder.app")
+        } else if bundleID == "*" {
+            contextDetector.currentAppName = L("All Apps (*)")
+            contextDetector.currentAppIcon = nil
+        } else {
+            contextDetector.currentAppName = bundleID
+            contextDetector.currentAppIcon = nil
+        }
+    }
+    
+    private func consumePendingSelectedTextIfNeeded() {
+        guard window?.isVisible == true,
+              let selection = AppDelegate.shared.consumeSelectedTextForAssistant(),
+              !selection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return
+        }
+        applySelectionToInput(selection)
+    }
+    
+    private func applySelectionToInput(_ selection: String) {
+        userInput = selection
+        let newAttachment = Attachment(type: .selection, content: selection)
+        if !attachments.contains(where: { $0.content == selection }) {
+            attachments.append(newAttachment)
         }
     }
     
@@ -1035,6 +1084,27 @@ struct AssistantWindow: View {
             }
         } else {
             self.attachments = state?.attachments ?? []
+        }
+    }
+    
+    private func syncSelectedPromptWithStore() {
+        let bundleID = contextDetector.currentBundleID
+        let availablePrompts = promptStore.getPrompts(for: bundleID)
+        
+        guard let selected = selectedPrompt else {
+            if !availablePrompts.isEmpty {
+                switchTo(bundleID: bundleID, prompt: bestPrompt(for: bundleID))
+            }
+            return
+        }
+        
+        if let refreshed = availablePrompts.first(where: { $0.id == selected.id }) {
+            if refreshed != selected {
+                selectedPrompt = refreshed
+                lastPromptIDPerApp[bundleID] = refreshed.id
+            }
+        } else {
+            switchTo(bundleID: bundleID, prompt: bestPrompt(for: bundleID))
         }
     }
     

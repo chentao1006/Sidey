@@ -113,6 +113,7 @@
 " (Thinking...)" = " (Thinking...)";
 " (New Answer)" = " (New Answer)";
 "Response Completed" = "応答が完了しました";
+"Assistant Response Completed Format" = "%@の応答が完了しました";
 "Retry" = "再試行";
 "Regenerate" = "再生成";
 "Copy" = "コピー";

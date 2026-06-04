@@ -113,6 +113,7 @@
 " (Thinking...)" = " (Thinking...)";
 " (New Answer)" = " (New Answer)";
 "Response Completed" = "Response Completed";
+"Assistant Response Completed Format" = "%@ 응답 완료";
 "Retry" = "다시 시도";
 "Regenerate" = "다시 생성";
 "Copy" = "복사";

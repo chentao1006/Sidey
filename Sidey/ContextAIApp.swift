@@ -57,6 +57,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarAssistantPopover: NSPopover?
     private let updaterViewModel = UpdaterViewModel()
     private let menuBarAssistantSize = NSSize(width: 320, height: 540)
+    private var pendingAssistantSwitch: (bundleID: String, promptID: String)?
+    private var pendingSelectedTextForAssistant: String?
     
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSAppleEventManager.shared().setEventHandler(
@@ -116,7 +118,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         NotificationCenter.default.addObserver(forName: Notification.Name("CXAIToggleMainWindow"), object: nil, queue: .main) { _ in
-            self.showAssistant()
+            self.showAssistantWithCurrentSelection()
         }
         
         NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { [weak self] notification in
@@ -197,8 +199,121 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
+    func showAssistantWithCurrentSelection(targetScreen: NSScreen? = nil, shouldActivate: Bool = true, reopenMenuBarPopover: Bool = false) {
+        queueSelectedTextForAssistant(captureSelectedTextForAssistant())
+        showAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate, reopenMenuBarPopover: reopenMenuBarPopover)
+        notifyPendingSelectedTextIfNeeded()
+    }
+    
+    private func captureSelectedTextForAssistant() -> String? {
+        if SelectionMonitor.shared.isShowingButton,
+           let text = SelectionMonitor.shared.currentSelection,
+           !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return text
+        }
+        
+        let app = selectionSourceApplication()
+        let bundleID = app?.bundleIdentifier ?? ContextDetector.shared.currentBundleID
+        guard !bundleID.isEmpty,
+              bundleID != Bundle.main.bundleIdentifier,
+              !AppBlocklist.isBlockedForSelection(bundleID) else {
+            return nil
+        }
+        
+        guard let text = SelectionManager.shared.getSelectedText(from: app, allowClipboardFallback: true),
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return text
+    }
+    
+    private func selectionSourceApplication() -> NSRunningApplication? {
+        if let frontmost = NSWorkspace.shared.frontmostApplication,
+           frontmost.bundleIdentifier != Bundle.main.bundleIdentifier {
+            return frontmost
+        }
+        
+        let bundleID = ContextDetector.shared.currentBundleID
+        return NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == bundleID }
+    }
+    
+    func queueSelectedTextForAssistant(_ selectedText: String?) {
+        guard let selectedText,
+              !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        pendingSelectedTextForAssistant = selectedText
+    }
+    
+    func consumeSelectedTextForAssistant() -> String? {
+        let selectedText = pendingSelectedTextForAssistant
+        pendingSelectedTextForAssistant = nil
+        return selectedText
+    }
+    
+    private func notifyPendingSelectedTextIfNeeded() {
+        guard pendingSelectedTextForAssistant != nil else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            NotificationCenter.default.post(name: Notification.Name("SideyPendingSelectionAvailable"), object: nil)
+        }
+    }
+    
+    func openAssistant(bundleID: String, promptID: String) {
+        let targetApp = NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == bundleID }
+        let targetScreen = targetApp.flatMap { screenForApp($0) }
+        pendingAssistantSwitch = (bundleID, promptID)
+        DebugLogger.shared.log("Opening assistant from notification for \(bundleID)|\(promptID).", type: .info)
+        
+        let showAndSwitch = {
+            self.showAssistant(targetScreen: targetScreen, reopenMenuBarPopover: true)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                DebugLogger.shared.log("Posting assistant switch for \(bundleID)|\(promptID).", type: .info)
+                NotificationCenter.default.post(
+                    name: Notification.Name("CXAISwitchSession"),
+                    object: nil,
+                    userInfo: ["bundleID": bundleID, "promptID": promptID]
+                )
+            }
+        }
+        
+        closeMenuBarAssistantPopoverIfNeeded()
+        
+        if let appURL = targetApp?.bundleURL ?? NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.activates = true
+            NSWorkspace.shared.openApplication(at: appURL, configuration: configuration) { app, error in
+                if let error {
+                    DebugLogger.shared.log("Failed to activate notification target \(bundleID): \(error.localizedDescription)", type: .error)
+                }
+                if let app {
+                    app.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+                } else if let targetApp {
+                    targetApp.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: showAndSwitch)
+            }
+        } else {
+            if let targetApp {
+                targetApp.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2, execute: showAndSwitch)
+        }
+    }
+    
+    func consumePendingAssistantSwitch() -> (bundleID: String, promptID: String)? {
+        let value = pendingAssistantSwitch
+        pendingAssistantSwitch = nil
+        return value
+    }
+    
     var usesRegularAssistantWindow: Bool {
         (UserDefaults.standard.string(forKey: "assistantWindowType") ?? "menuBarPopover") == "regularWindow"
+    }
+    
+    var isAssistantVisible: Bool {
+        if usesRegularAssistantWindow {
+            return assistantWindow?.isVisible == true
+        }
+        return menuBarAssistantPopover?.isShown == true
     }
     
     func applyAssistantWindowTypePreference() {
@@ -399,7 +514,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        showAssistant()
+        showAssistantWithCurrentSelection()
         return true
     }
     
@@ -535,9 +650,12 @@ extension AppDelegate: NSMenuDelegate {
             }
         } else {
             if usesRegularAssistantWindow {
-                showAssistant()
+                showAssistantWithCurrentSelection()
             } else {
+                let selectedText = menuBarAssistantPopover?.isShown == true ? nil : captureSelectedTextForAssistant()
+                queueSelectedTextForAssistant(selectedText)
                 showMenuBarAssistantPopover(allowToggle: true)
+                notifyPendingSelectedTextIfNeeded()
             }
         }
     }
@@ -600,12 +718,12 @@ extension AppDelegate: NSMenuDelegate {
               let bundleID = info["bundleID"],
               let promptID = info["promptID"] else { return }
         
-        showAssistant()
+        showAssistantWithCurrentSelection()
         NotificationCenter.default.post(name: Notification.Name("SideyDirectSend"), object: nil, userInfo: ["bundleID": bundleID, "promptID": promptID])
     }
     
     @objc private func showAssistantAction() {
-        showAssistant()
+        showAssistantWithCurrentSelection()
     }
     
     @objc private func showSettingsAction() {

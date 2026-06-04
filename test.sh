@@ -28,36 +28,23 @@ echo "   App Name: $APP_NAME"
 echo "   Bundle ID: $BUNDLE_ID"
 echo "   Version: $VERSION ($BUILD_NUMBER)"
 
-# 0. Localize Bundle Name based on system language
-DISPLAY_NAME="$APP_NAME"
-SYSTEM_LANG=$(defaults read -g AppleLanguages | grep -oE '[a-zA-Z-]+' | head -n 1)
-echo "🔍 System Language: $SYSTEM_LANG"
-
-if [[ "$SYSTEM_LANG" == zh* ]]; then
-    # Try to find Chinese InfoPlist.strings
-    STRINGS_FILE=$(find "$APP_NAME" -name "InfoPlist.strings" | grep "zh-Hans" | head -n 1 2>/dev/null)
-    if [ -z "$STRINGS_FILE" ]; then
-        # Fallback to search in all dirs if APP_NAME folder not found
-        STRINGS_FILE=$(find . -name "InfoPlist.strings" | grep "zh-Hans" | head -n 1 2>/dev/null)
-    fi
-    
-    if [ -n "$STRINGS_FILE" ]; then
-        LOCALIZED_NAME=$(plutil -p "$STRINGS_FILE" | grep -E "CFBundleDisplayName|CFBundleName" | head -n 1 | sed -E 's/.*=> "(.*)".*/\1/')
-        if [ -n "$LOCALIZED_NAME" ]; then
-            DISPLAY_NAME="$LOCALIZED_NAME"
-            echo "🌐 Localized Name found: $DISPLAY_NAME"
-        fi
-    fi
-fi
-
 BUILD_DIR=".build/apple/Products/Release"
 DIST_DIR="dist"
-APP_BUNDLE="$DIST_DIR/$DISPLAY_NAME.app"
+APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 
 # 1. Build in Release mode
 echo "🏗️ Building $APP_NAME in release mode..."
-# Use xcodebuild to create a full app bundle
-xcodebuild -workspace "$APP_NAME.xcworkspace" -scheme "$APP_NAME" -configuration Release -derivedDataPath ".build" -xcconfig "Sidey/Config.xcconfig" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO build
+SIGNING_IDENTITIES=$(security find-identity -v -p codesigning)
+USE_AD_HOC_SIGNING=false
+
+if echo "$SIGNING_IDENTITIES" | grep -q "valid identities found" && ! echo "$SIGNING_IDENTITIES" | grep -q " 0 valid identities found"; then
+    # Use xcodebuild to create a normally signed app bundle when a trusted identity is available.
+    xcodebuild -project "$PROJ_FILE" -scheme "$APP_NAME" -configuration Release -derivedDataPath ".build" -xcconfig "Sidey/Config.xcconfig" build
+else
+    echo "⚠️ No trusted code signing identity found. Building unsigned, then using ad-hoc signing for local testing."
+    USE_AD_HOC_SIGNING=true
+    xcodebuild -project "$PROJ_FILE" -scheme "$APP_NAME" -configuration Release -derivedDataPath ".build" -xcconfig "Sidey/Config.xcconfig" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+fi
 
 if [ $? -ne 0 ]; then
     echo "❌ Error: Build failed. Please check the errors above."
@@ -65,48 +52,24 @@ if [ $? -ne 0 ]; then
 fi
 
 BUILD_APP_BUNDLE=".build/Build/Products/Release/$APP_NAME.app"
-DIST_DIR="dist"
-APP_BUNDLE="$DIST_DIR/$DISPLAY_NAME.app"
-
 # 2. Prepare Dist folder, copying the entire bundle
 echo "📂 Preparing App Bundle in dist/..."
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
 cp -R "$BUILD_APP_BUNDLE" "$APP_BUNDLE"
 
-# 3. Rename executable and update Info.plist if needed
-# (Already done by xcodebuild for the original APP_NAME, 
-#  but we need to make sure the renamed bundle is consistent)
-echo "📝 Finalizing Info.plist..."
-plutil -replace CFBundleName -string "$DISPLAY_NAME" "$APP_BUNDLE/Contents/Info.plist"
-plutil -replace CFBundleDisplayName -string "$DISPLAY_NAME" "$APP_BUNDLE/Contents/Info.plist"
-
-# Sync secret and URL from Config.xcconfig manually to ensure they are compiled in
-if [ -f "Sidey/Config.xcconfig" ]; then
-    echo "🔑 Injecting configuration from Config.xcconfig..."
-    # Get all project settings including those from xcconfig
-    ALL_SETTINGS=$(xcodebuild -showBuildSettings -project "$PROJ_FILE" -scheme "$APP_NAME" -configuration Release -xcconfig "Sidey/Config.xcconfig" 2>/dev/null)
-    
-    SECRET=$(echo "$ALL_SETTINGS" | grep -w "SERVICE_SECRET" | head -n 1 | cut -d'=' -f2 | xargs)
-    URL_VAL=$(echo "$ALL_SETTINGS" | grep -w "PUBLIC_SERVICE_URL" | head -n 1 | cut -d'=' -f2 | xargs)
-    
-    if [ -n "$SECRET" ]; then
-        plutil -replace ServiceSecret -string "$SECRET" "$APP_BUNDLE/Contents/Info.plist"
-        echo "   - ServiceSecret: OK"
-    fi
-    if [ -n "$URL_VAL" ]; then
-        plutil -replace PublicServiceURL -string "$URL_VAL" "$APP_BUNDLE/Contents/Info.plist"
-        echo "   - PublicServiceURL: $URL_VAL"
-    fi
+if [ "$USE_AD_HOC_SIGNING" = true ]; then
+    echo "🔏 Applying ad-hoc signature for local launch..."
+    codesign --force --deep --sign - --timestamp=none "$APP_BUNDLE"
 fi
 
 echo "🛑 Quitting existing $APP_NAME process..."
 pkill -x "$APP_NAME" || true
-pkill -x "$DISPLAY_NAME" || true
 sleep 1
 
 echo "📦 Installing to /Applications..."
-rm -rf "/Applications/$DISPLAY_NAME.app"
+rm -rf "/Applications/$APP_NAME.app"
+rm -rf "/Applications/旁白.app"
 cp -R "$APP_BUNDLE" "/Applications/"
 
 # 4. Reset TCC permissions for testing
@@ -115,4 +78,4 @@ tccutil reset Accessibility "$BUNDLE_ID" 2>/dev/null || true
 tccutil reset ScreenCapture "$BUNDLE_ID" 2>/dev/null || true
 
 echo "✅ Done! You can find the app in the '$DIST_DIR' folder and it has been installed to /Applications."
-open "/Applications/$DISPLAY_NAME.app"
+open "/Applications/$APP_NAME.app"

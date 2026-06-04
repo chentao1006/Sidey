@@ -113,6 +113,7 @@
 " (Thinking...)" = " (思考中)";
 " (New Answer)" = " (新回答)";
 "Response Completed" = "响应已完成";
+"Assistant Response Completed Format" = "%@ 响应已完成";
 "Retry" = "重试";
 "Regenerate" = "重新生成";
 "Copy" = "复制";
