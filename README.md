@@ -4,11 +4,11 @@
   <img src="Resources/AppIcon.png" width="128" height="128" alt="Sidey Logo">
 </p>
 
-**English** | [简体中文](README_zh.md)
+**English** | [Simplified Chinese](README_zh.md)
 
 ---
 
-**Sidey** is a lightweight, context-aware AI assistant designed specifically for macOS. It stays by your side, understanding which application you are currently using and providing tailored AI assistance through customizable prompts.
+**Sidey** is a lightweight, app-aware AI assistant designed specifically for macOS. It opens quickly from the menu bar as a compact popover, handles small tasks in the app you are using, and gets out of your way when you are done.
 
 [![Download on the App Store](https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg)](https://apps.apple.com/app/sidey/id6760834274)
 
@@ -16,15 +16,15 @@
 
 ### ✨ Key Features
 
+- **Menu Bar Popover**: Open Sidey from the menu bar for quick questions, rewrites, summaries, or selected-text tasks without switching into a full chat app.
 - **Window Companion**: A lightweight, dynamic icon that automatically docks to the edge of your active window. It follows your window as you move or resize it, allowing you to summon the AI assistant with a single click without leaving your workflow.
 - **Selection Assistant**: A premium, context-aware floating button that appears elegantly near your selected text. It allows you to instantly process chosen content with your active AI assistant without any extra clicks or keyboard shortcuts.
 - **Context Awareness**: Automatically detects the frontmost application and suggests relevant prompts. Retrieves active window details including application name and bundle identifier.
 - **Deep Context Capture**: Supports a multi-tier text retrieval system:
   - **Accessibility Search**: Directly queries the focused window for selected text.
   - **Specialized Plugins**: Deep integration with Safari and Finder via AppleScript.
-- **Vision Recognition (OCR)**: Built-in OCR engine automatically extracts text from active application windows or your entire screen, supporting context gathering from images, PDF viewers, and unselectable UI elements.
 - **Context Continuity**: Preserves your screen context and attachments when switching between different assistant prompts or applications.
-- **Customizable Assistants**: Create and manage different AI personas or tasks for specific apps (e.g., "Code Review" for Xcode, "Summarize" for Safari).
+- **App-aware Assistants**: Create and manage different AI personas or tasks for specific apps (e.g., "Code Review" for Xcode, "Summarize" for Safari).
 - **Auto Create Assistants**: AI analyzes your active application and automatically designs professional personas with one click.
 - **Public AI Service**: Use Sidey instantly with a built-in public AI service — no API key required.
 - **Global Hotkey**: Summon your assistant instantly from anywhere with a customizable keyboard shortcut.
@@ -36,6 +36,7 @@
 ### 🖼️ Showcase
 | Feature | Screenshot |
 | :--- | :--- |
+| **Menu Bar Popover** | ![Menu Bar Popover](Resources/menu-bar-flow.png) |
 | **Window Companion** | ![Window Companion](Resources/side-icon-en.jpg) |
 | **Context Awareness** | ![Main Window](Resources/Screenshot-en.jpg) |
 | **Assistant Window** | ![Assistant Window](Resources/side-window-en.jpg) |

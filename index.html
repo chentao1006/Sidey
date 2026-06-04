@@ -3,255 +3,359 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sidey - Your Intelligent macOS Sidekick</title>
-    <meta name="description" content="A lightweight, context-aware AI assistant designed specifically for macOS.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Sidey - Lightweight, app-aware AI assistant for macOS</title>
+    <meta name="description" content="Sidey is a lightweight macOS AI assistant with a menu bar popover for quick tasks inside the app you are using, with app-aware assistants and custom AI providers.">
+    <meta name="keywords" content="Sidey, macOS AI assistant, menu bar popover, lightweight AI assistant, app aware AI, context aware AI, menu bar AI, selection assistant">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="chentao1006">
+    <link rel="canonical" href="https://sidey.ct106.com/">
+    <link rel="icon" href="Resources/AppIcon.png">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sidey.ct106.com/">
+    <meta property="og:title" content="Sidey - Lightweight, app-aware AI assistant for macOS">
+    <meta property="og:description" content="A fast macOS AI assistant with a menu bar popover for small tasks, app-specific assistants, selected text, and custom AI providers.">
+    <meta property="og:image" content="https://sidey.ct106.com/Resources/menu-bar-flow.png">
+    <meta property="og:site_name" content="Sidey">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Sidey - Lightweight, app-aware AI assistant for macOS">
+    <meta name="twitter:description" content="A quick macOS AI assistant that adapts to the app you are using.">
+    <meta name="twitter:image" content="https://sidey.ct106.com/Resources/menu-bar-flow.png">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Sidey",
+        "alternateName": "旁白",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "macOS",
+        "description": "Sidey is a lightweight, app-aware AI assistant for macOS. It opens as a menu bar popover for quick tasks in the app you are using, with selected text, clipboard context, and custom AI providers.",
+        "image": "https://sidey.ct106.com/Resources/menu-bar-flow.png",
+        "url": "https://sidey.ct106.com/",
+        "downloadUrl": "https://github.com/chentao1006/Sidey/releases/latest",
+        "sameAs": [
+            "https://github.com/chentao1006/Sidey",
+            "https://apps.apple.com/app/sidey/id6760834274"
+        ],
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "author": {
+            "@type": "Person",
+            "name": "chentao1006"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "What is Sidey?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Sidey is a lightweight AI assistant for macOS designed for quick tasks in the current app, with app-specific assistants and contextual input."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Does Sidey require an API key?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Sidey includes a limited public AI service and also supports custom API keys, endpoints, and multiple AI API formats."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What context can Sidey use?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Sidey can use selected text, clipboard content, and the active application as context."
+                }
+            }
+        ]
+    }
+    </script>
+
     <style>
         :root {
-            --bg-color: #ffffff;
-            --text-color: #1d1d1f;
-            --secondary-text: #86868b;
-            --accent-color: #007aff;
-            --card-bg: rgba(255, 255, 255, 0.8);
-            --border-color: rgba(0, 0, 0, 0.1);
-            --glass-bg: rgba(255, 255, 255, 0.7);
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            --bg: #ffffff;
+            --surface: #f5f6f8;
+            --surface-strong: #eceef2;
+            --text: #15171a;
+            --muted: #5f6670;
+            --border: #dfe3e8;
+            --accent: #0a66ff;
+            --accent-strong: #0047bf;
+            --shadow: 0 24px 60px rgba(20, 30, 50, 0.12);
+            --radius: 8px;
         }
 
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-color: #000000;
-                --text-color: #f5f5f7;
-                --secondary-text: #86868b;
-                --accent-color: #2997ff;
-                --card-bg: rgba(28, 28, 30, 0.8);
-                --border-color: rgba(255, 255, 255, 0.1);
-                --glass-bg: rgba(0, 0, 0, 0.5);
-                --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                --bg: #0b0c0f;
+                --surface: #15171c;
+                --surface-strong: #1d2027;
+                --text: #f4f6f8;
+                --muted: #a0a7b2;
+                --border: #2b3038;
+                --accent: #5b9dff;
+                --accent-strong: #8bbcff;
+                --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
             }
         }
 
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
-            -webkit-font-smoothing: antialiased;
+        }
+
+        html {
+            scroll-behavior: smooth;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.5;
-            transition: background-color 0.3s, color 0.3s;
-            overflow-x: hidden;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.55;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
 
-        header {
-            position: fixed;
+        a {
+            color: inherit;
+        }
+
+        img {
+            max-width: 100%;
+        }
+
+        .page {
+            min-height: 100vh;
+        }
+
+        .container {
+            width: min(1120px, calc(100% - 40px));
+            margin: 0 auto;
+        }
+
+        .site-header {
+            position: sticky;
             top: 0;
-            width: 100%;
-            padding: 1rem 2rem;
+            z-index: 20;
+            border-bottom: 1px solid var(--border);
+            background: color-mix(in srgb, var(--bg) 88%, transparent);
+            backdrop-filter: blur(18px);
+        }
+
+        .nav {
+            height: 68px;
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(20px);
-            background: var(--glass-bg);
-            border-bottom: 1px solid var(--border-color);
-            z-index: 1000;
+            gap: 20px;
         }
 
-        .logo {
-            display: flex;
+        .brand {
+            display: inline-flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 10px;
             font-weight: 700;
-            font-size: 1.25rem;
             text-decoration: none;
-            color: var(--text-color);
         }
 
-        .logo img {
+        .brand img {
             width: 32px;
             height: 32px;
             border-radius: 8px;
         }
 
-        .nav-right {
+        .nav-links {
             display: flex;
             align-items: center;
-            gap: 1.5rem;
+            gap: 18px;
+            color: var(--muted);
+            font-size: 0.94rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+        }
+
+        .nav-links a:hover {
+            color: var(--text);
+        }
+
+        .lang-switch {
+            appearance: none;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            color: var(--text);
+            height: 36px;
+            padding: 0 12px;
+            font: inherit;
+            cursor: pointer;
         }
 
         .hero {
-            padding-top: 8rem;
-            padding-bottom: 4rem;
-            text-align: center;
-            max-width: 900px;
-            margin: 0 auto;
-            padding-left: 2rem;
-            padding-right: 2rem;
+            padding: 88px 0 44px;
         }
 
-        .badge {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: var(--accent-color);
-            color: white;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInBody 0.6s forwards;
+        .hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 360px;
+            gap: 48px;
+            align-items: center;
+        }
+
+        .eyebrow {
+            margin: 0 0 16px;
+            color: var(--accent);
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
 
         h1 {
-            font-size: 4rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(180deg, var(--text-color) 0%, var(--secondary-text) 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInBody 0.6s 0.1s forwards;
+            margin: 0;
+            max-width: 780px;
+            font-size: clamp(2rem, 4.5vw, 3.6rem);
+            line-height: 1.08;
+            letter-spacing: -0.025em;
         }
 
-        .hero p {
-            font-size: 1.5rem;
-            color: var(--secondary-text);
-            margin-bottom: 2.5rem;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInBody 0.6s 0.2s forwards;
+        .lead {
+            margin: 24px 0 0;
+            max-width: 700px;
+            color: var(--muted);
+            font-size: clamp(1.1rem, 2vw, 1.32rem);
         }
 
-        .cta-buttons {
+        .hero-actions {
             display: flex;
-            gap: 1rem;
-            justify-content: center;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInBody 0.6s 0.3s forwards;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 32px;
         }
 
-        .btn {
-            height: 44px;
-            padding: 0 1.8rem;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1rem;
-            text-decoration: none;
-            transition: all 0.2s;
-            display: flex;
+        .button {
+            min-height: 44px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            box-sizing: border-box;
+            gap: 8px;
+            border-radius: var(--radius);
+            padding: 0 18px;
+            border: 1px solid var(--border);
+            font-weight: 650;
+            text-decoration: none;
+            transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
         }
 
-        .btn-primary {
-            background: var(--accent-color);
-            color: white;
+        .button:hover {
+            transform: translateY(-1px);
+            border-color: var(--accent);
         }
 
-        .btn-primary:hover {
-            transform: scale(1.02);
-            filter: brightness(1.1);
+        .button.primary {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: #fff;
         }
 
-        .btn-secondary {
-            background: var(--card-bg);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background: var(--border-color);
+        .button.primary:hover {
+            background: var(--accent-strong);
         }
 
         .appstore-link {
             height: 44px;
             display: inline-flex;
             align-items: center;
-            transition: transform 0.2s;
-            box-sizing: border-box;
+            transition: transform 0.16s ease;
         }
 
         .appstore-link:hover {
-            transform: scale(1.02);
+            transform: translateY(-1px);
         }
 
         .appstore-link img {
-            height: 100%;
+            height: 44px;
+            width: auto;
+            display: block;
         }
 
-        .screenshot-container {
-            max-width: 1000px;
-            margin: 4rem auto;
-            padding: 0 2rem;
-            opacity: 0;
-            transform: translateY(40px);
-            animation: fadeInBody 0.8s 0.4s forwards;
-            position: relative;
+        .hero-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            padding: 22px;
+        }
+
+        .hero-card h2 {
+            margin: 0 0 14px;
+            font-size: 1rem;
+        }
+
+        .hero-card ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 12px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .hero-card li {
+            display: flex;
+            gap: 10px;
+        }
+
+        .hero-card li::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            margin-top: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex: 0 0 auto;
+        }
+
+        .media-section {
+            padding: 34px 0 72px;
         }
 
         .carousel {
             position: relative;
-            width: 100%;
             overflow: hidden;
-            border-radius: 20px;
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            box-shadow: var(--shadow);
         }
 
         .carousel-track {
             display: flex;
-            transition: transform 0.5s ease-in-out;
-            width: 100%;
+            transition: transform 0.45s ease;
         }
 
         .carousel-slide {
             min-width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            background: var(--surface-strong);
         }
 
         .carousel-slide img {
+            display: block;
             width: 100%;
             height: auto;
-            display: block;
-        }
-
-        .carousel-dots {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-            z-index: 10;
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.5);
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .dot.active {
-            background: white;
-            transform: scale(1.2);
         }
 
         .carousel-nav {
@@ -260,320 +364,591 @@
             transform: translateY(-50%);
             width: 40px;
             height: 40px;
-            background: rgba(0, 0, 0, 0.3);
-            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.36);
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: rgba(0, 0, 0, 0.45);
+            color: #fff;
             cursor: pointer;
-            border: none;
-            backdrop-filter: blur(5px);
-            z-index: 10;
-            transition: background 0.3s;
         }
 
         .carousel-nav:hover {
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.62);
         }
 
-        .carousel-nav.prev { left: 20px; }
-        .carousel-nav.next { right: 20px; }
+        .carousel-nav.prev {
+            left: 16px;
+        }
 
-        .features {
+        .carousel-nav.next {
+            right: 16px;
+        }
+
+        .carousel-dots {
+            position: absolute;
+            left: 50%;
+            bottom: 16px;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+        }
+
+        .dot.active {
+            background: #fff;
+        }
+
+        section {
+            scroll-margin-top: 88px;
+        }
+
+        .section-header {
+            max-width: 760px;
+            margin-bottom: 28px;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 3rem);
+            line-height: 1.08;
+            letter-spacing: -0.03em;
+        }
+
+        .section-header p {
+            margin: 14px 0 0;
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+
+        .features,
+        .workflow,
+        .faq,
+        .final-cta {
+            padding: 72px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            max-width: 1100px;
-            margin: 6rem auto;
-            padding: 0 2rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
         }
 
         .feature-card {
-            padding: 2.5rem;
-            border-radius: 24px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            transition: transform 0.3s;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .feature-icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            display: block;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            padding: 22px;
         }
 
         .feature-card h3 {
-            font-size: 1.25rem;
-            margin-bottom: 0.75rem;
-            font-weight: 600;
+            margin: 0 0 8px;
+            font-size: 1.08rem;
         }
 
         .feature-card p {
-            color: var(--secondary-text);
-            font-size: 0.95rem;
-            line-height: 1.6;
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.96rem;
         }
 
-        .lang-switch {
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            counter-reset: step;
+        }
+
+        .step {
+            counter-increment: step;
+            padding: 22px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--bg);
+        }
+
+        .step::before {
+            content: counter(step);
+            display: inline-flex;
+            width: 28px;
+            height: 28px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            border-radius: 50%;
+            background: var(--surface-strong);
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .step h3 {
+            margin: 0 0 8px;
+            font-size: 1.05rem;
+        }
+
+        .step p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .faq-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        details {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--surface);
+            padding: 18px 20px;
+        }
+
+        summary {
             cursor: pointer;
-            padding: 0.4rem 0.8rem;
-            border-radius: 8px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-color);
+            font-weight: 700;
+        }
+
+        details p {
+            margin: 12px 0 0;
+            color: var(--muted);
+        }
+
+        .final-cta {
+            text-align: center;
+        }
+
+        .final-cta h2 {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 3rem);
+            letter-spacing: -0.03em;
+        }
+
+        .final-cta p {
+            max-width: 680px;
+            margin: 14px auto 0;
+            color: var(--muted);
+        }
+
+        .final-cta .hero-actions {
+            justify-content: center;
         }
 
         footer {
-            padding: 4rem 2rem;
-            text-align: center;
-            border-top: 1px solid var(--border-color);
-            color: var(--secondary-text);
-            font-size: 0.875rem;
+            border-top: 1px solid var(--border);
+            padding: 30px 0;
+            color: var(--muted);
+            font-size: 0.92rem;
         }
 
-        @keyframes fadeInBody {
-            to {
-                opacity: 1;
-                transform: translateY(0);
+        .footer-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 16px;
+        }
+
+        .footer-links a {
+            color: var(--muted);
+            text-decoration: none;
+        }
+
+        .footer-links a:hover {
+            color: var(--text);
+        }
+
+        body.lang-en [lang="zh"],
+        body.lang-zh [lang="en"] {
+            display: none !important;
+        }
+
+        body.lang-en [lang="en"],
+        body.lang-zh [lang="zh"] {
+            display: revert;
+        }
+
+        body.lang-en [lang="en"].inline,
+        body.lang-zh [lang="zh"].inline {
+            display: inline;
+        }
+
+        @media (max-width: 860px) {
+            .nav {
+                height: auto;
+                padding: 14px 0;
+            }
+
+            .nav-links a {
+                display: none;
+            }
+
+            .hero {
+                padding-top: 56px;
+            }
+
+            .hero-grid,
+            .feature-grid,
+            .steps {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-card {
+                padding: 18px;
+            }
+
+            .carousel-nav {
+                display: none;
             }
         }
 
-        @media (max-width: 768px) {
-            h1 { font-size: 2.5rem; }
-            .hero p { font-size: 1.1rem; }
-            .cta-buttons { flex-direction: column; }
-            .btn { justify-content: center; }
-        }
+        @media (max-width: 560px) {
+            .container {
+                width: min(100% - 28px, 1120px);
+            }
 
-        /* Localization Hiding */
-        [lang="zh"] { display: none; }
-        body.lang-zh [lang="en"] { display: none; }
-        body.lang-zh [lang="zh"] { display: block; }
-        body.lang-zh [lang="zh"].inline { display: inline; }
-        body.lang-zh [lang="zh"].inline-block { display: inline-block; }
+            .hero-actions {
+                flex-direction: column;
+            }
+
+            .button {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body class="lang-en">
-    <header>
-        <a href="#" class="logo">
-            <img src="Resources/AppIcon.png" alt="Sidey Icon">
-            <span lang="en" class="inline">Sidey</span>
-            <span lang="zh" class="inline">旁白</span>
-        </a>
-        <div class="nav-right">
-            <!-- GitHub Star Button -->
-            <iframe src="https://ghbtns.com/github-btn.html?user=chentao1006&repo=sidey&type=star&count=true&size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>
-            <button class="lang-switch" onclick="toggleLang()">
-                <span lang="en">中文</span>
-                <span lang="zh">English</span>
-            </button>
-        </div>
-    </header>
-
-    <main>
-        <section class="hero">
-            <h1 lang="en">Your Intelligent macOS Sidekick</h1>
-            <h1 lang="zh">你的智能 macOS 助手 - 旁白</h1>
-            <p lang="en">A lightweight, context-aware AI assistant that understands your workflow. Summon your sidekick with a shortcut and get help instantly.</p>
-            <p lang="zh">一款轻量级、场景感知的 AI 助手。一键唤醒，它能实时理解你的工作上下文并提供智能建议。</p>
-            
-            <div class="cta-buttons">
-                <a href="https://apps.apple.com/app/sidey/id6760834274" class="appstore-link">
-                    <img src="https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg" alt="Download on the App Store" lang="en" class="inline">
-                    <img src="https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg" alt="App Store 下载" lang="zh" class="inline">
+    <div class="page">
+        <header class="site-header">
+            <nav class="container nav" aria-label="Primary navigation">
+                <a href="/" class="brand" aria-label="Sidey home">
+                    <img src="Resources/AppIcon.png" alt="" width="32" height="32">
+                    <span lang="en" class="inline">Sidey</span>
+                    <span lang="zh" class="inline">旁白</span>
                 </a>
-                <a href="https://github.com/chentao1006/Sidey/releases/latest" class="btn btn-primary">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 16L8 12H11V8H13V12H16L12 16Z"></path></svg>
-                    <span lang="en">Installer Download</span>
-                    <span lang="zh">安装包下载</span>
-                </a>
-                <a href="https://github.com/chentao1006/Sidey" class="btn btn-secondary">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 16.4179 4.865 20.1619 8.834 21.4819C9.334 21.5739 9.516 21.2659 9.516 20.9999C9.516 20.7659 9.507 20.1419 9.503 19.3149C6.722 19.9219 6.137 17.9789 5.917 17.3619C5.795 17.0509 5.267 16.0919 4.803 15.8329C4.417 15.6239 3.864 15.1119 4.794 15.0999C5.664 15.0879 6.284 15.8999 6.49 16.2239C7.485 17.8999 9.074 17.4209 9.707 17.1359C9.808 16.4139 10.096 15.9279 10.413 15.6499C8.193 15.3979 5.871 14.5389 5.871 10.7149C5.871 9.62394 6.261 8.72394 6.9 8.01694C6.797 7.76494 6.453 6.74194 7.001 5.36194C7.001 5.36194 7.84 5.09394 9.747 6.38194C10.544 6.15994 11.4 6.04994 12.251 6.04594C13.102 6.04994 13.958 6.15994 14.756 6.38194C16.663 5.08194 17.502 5.36194 17.502 5.36194C18.05 6.74194 17.706 7.76494 17.603 8.01694C18.244 8.72394 18.634 9.61194 18.634 10.7149C18.634 14.5499 16.307 15.3979 14.079 15.6499C14.437 15.9579 14.755 16.5519 14.755 17.4699C14.755 18.7759 14.743 19.8299 14.743 20.9999C14.743 21.2659 14.925 21.5779 15.429 21.4819C19.395 20.1579 22.251 16.4179 22.251 12C22.251 6.47715 17.773 2 12.251 2H12Z"></path></svg>
-                    <span lang="en">View Source</span>
-                    <span lang="zh">查看源码</span>
-                </a>
-            </div>
-        </section>
-
-        <section class="screenshot-container">
-            <div class="carousel">
-                <div class="carousel-track" id="carouselTrack">
-                    <!-- Images will be injected by JS based on language -->
+                <div class="nav-links">
+                    <a href="#features" lang="en">Features</a>
+                    <a href="#features" lang="zh">功能</a>
+                    <a href="#workflow" lang="en">Workflow</a>
+                    <a href="#workflow" lang="zh">工作流</a>
+                    <a href="#faq" lang="en">FAQ</a>
+                    <a href="#faq" lang="zh">常见问题</a>
+                    <button class="lang-switch" type="button" onclick="toggleLang()" aria-label="Switch language">
+                        <span lang="en">Chinese</span>
+                        <span lang="zh">English</span>
+                    </button>
                 </div>
-                <div class="carousel-dots" id="carouselDots"></div>
-                <button class="carousel-nav prev" onclick="moveSlide(-1, true)">❮</button>
-                <button class="carousel-nav next" onclick="moveSlide(1, true)">❯</button>
-            </div>
-        </section>
+            </nav>
+        </header>
 
-        <section class="features">
-            <div class="feature-card">
-                <span class="feature-icon">⚓️</span>
-                <h3 lang="en">Window Companion</h3>
-                <h3 lang="zh">随窗助手</h3>
-                <p lang="en">A dynamic icon that docks to your active window's edge. It follows you as you work, providing instant AI access without breaking your focus.</p>
-                <p lang="zh">轻量级的灵动图标自动吸附于当前活动窗口边缘。它随窗而动，让你在不离开当前工作流的情况下，随时一键触达 AI 助手。</p>
-            </div>
-            <div class="feature-card">
-                <span class="feature-icon">🔍</span>
-                <h3 lang="en">Context Awareness</h3>
-                <h3 lang="zh">场景感知</h3>
-                <p lang="en">Automatically identifies the active application and retrieves your selected text using Accessibility API for a non-disruptive experience.</p>
-                <p lang="zh">自动识别当前活动的应用程序，并通过辅助功能进行深度内容读取，确保精准且不干扰剪贴板的交互体验。</p>
-            </div>
-            <div class="feature-card">
-                <span class="feature-icon">🖱️</span>
-                <h3 lang="en">Selection Assistant</h3>
-                <h3 lang="zh">快速选择助手</h3>
-                <p lang="en">A premium floating button that appears elegantly near your selection. Capture and process text with one click, offering a seamless "select-to-interact" experience.</p>
-                <p lang="zh">在您选中文字时，光标附近会轻盈弹出一个悬浮按钮。无需额外操作，即可一键将选中内容发送给 AI 助手，实现极致的交互体验。</p>
-            </div>
-            <div class="feature-card">
-                <span class="feature-icon">👁️</span>
-                <h3 lang="en">Deep Text Recognition</h3>
-                <h3 lang="zh">深度视觉上下文</h3>
-                <p lang="en">Extracts text from images, non-selectable UIs, or your entire screen using built-in OCR (Vision framework) for a truly comprehensive perspective.</p>
-                <p lang="zh">内置 OCR 视觉引擎。通过对当前应用窗口或全屏进行扫描，提取出图片、特殊 UI 甚至无法选中的界面文字，为您提供全方位的上下文支持。</p>
-            </div>
-            <div class="feature-card">
-                <span class="feature-icon">✨</span>
-                <h3 lang="en">Auto Assistant Creation</h3>
-                <h3 lang="zh">自动生成助手</h3>
-                <p lang="en">AI automatically designs professional personas like "Code Auditor" (Serious) or "Creative Editor" (Lively) based on your active application.</p>
-                <p lang="zh">AI 根据您当前正在使用的应用，通过“严肃型”或“活泼型”两种人设及其对应风格，为您自动设计最贴切的专属 AI 助手角色。</p>
-            </div>
-            <div class="feature-card">
-                <span class="feature-icon">🌐</span>
-                <h3 lang="en">Public AI Service</h3>
-                <h3 lang="zh">公共 AI 服务</h3>
-                <p lang="en">Use Sidey instantly with a built-in public AI service — no API key required. Available out of the box with daily rate limits. Also supports custom API Key and endpoint.</p>
-                <p lang="zh">无需 API Key 即可立即开始。使用内置的公共 AI 服务一键开启你的智能助手之路（受每日请求量限制）。也支持自定义 API Key 和接口地址。</p>
-            </div>
-            <div class="feature-card">
-                <span class="feature-icon">⌨️</span>
-                <h3 lang="en">Global Hotkey</h3>
-                <h3 lang="zh">全局唤醒</h3>
-                <p lang="en">Summon your assistant instantly from anywhere with a customizable keyboard shortcut. Fast and fluid.</p>
-                <p lang="zh">通过可点击或自定义的全局快捷键随时随地呼出助手。极速响应，无缝衔接。</p>
-            </div>
-            <div class="feature-card">
-                <span class="feature-icon">☁️</span>
-                <h3 lang="en">iCloud Sync</h3>
-                <h3 lang="zh">iCloud 同步</h3>
-                <p lang="en">Keep your assistants and settings seamlessly synced across your devices via your Apple ID.</p>
-                <p lang="zh">通过 Apple ID 在您的多台 Mac 之间自动、安全地同步设置与助手指令。</p>
-            </div>
-            <div class="feature-card">
-                <span class="feature-icon">🪄</span>
-                <h3 lang="en">Customizable Prompts</h3>
-                <h3 lang="zh">高度自定义</h3>
-                <p lang="en">Create different AI personas for specific apps (e.g., Code Review for Xcode, Summarize for Safari).</p>
-                <p lang="zh">为不同的应用创建专属的 AI 角色。Xcode 里的代码审计，Safari 里的内容总结，随心定制。</p>
-            </div>
-        </section>
+        <main>
+            <section class="hero">
+                <div class="container hero-grid">
+                    <div>
+                        <h1 lang="en">A lightweight AI assistant for macOS menu bar and app context.</h1>
+                        <h1 lang="zh">一款用于 macOS 菜单栏和应用上下文的轻量 AI 助手。</h1>
+                        <p class="lead" lang="en">Sidey opens from the menu bar as a compact popover for the short AI jobs that appear while you work: explain a snippet, rewrite a paragraph, inspect selected text, or ask an assistant tuned for the current app.</p>
+                        <p class="lead" lang="zh">旁白从菜单栏打开为紧凑浮窗，面向工作中随手出现的小任务：解释一段内容、改写一句话、处理选中文本，或调用为当前应用准备好的专属助手。</p>
+                        <div class="hero-actions">
+                            <a href="https://apps.apple.com/app/sidey/id6760834274" class="appstore-link" rel="noopener" aria-label="Download on the Mac App Store">
+                                <img src="https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg" alt="Download on the Mac App Store" lang="en" class="inline">
+                                <img src="https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg" alt="App Store 下载" lang="zh" class="inline">
+                            </a>
+                            <a href="https://github.com/chentao1006/Sidey/releases/latest" class="button" rel="noopener">
+                                <span lang="en">Installer download</span>
+                                <span lang="zh">下载安装包</span>
+                            </a>
+                            <a href="https://github.com/chentao1006/Sidey" class="button" rel="noopener">
+                                <span lang="en">View source</span>
+                                <span lang="zh">查看源码</span>
+                            </a>
+                        </div>
+                    </div>
+                    <aside class="hero-card" aria-label="Product highlights">
+                        <h2 lang="en">Small surface, relevant answers</h2>
+                        <h2 lang="zh">界面克制，回答贴近场景</h2>
+                        <ul>
+                            <li lang="en">The menu bar popover is always close, but never takes over your desktop.</li>
+                            <li lang="zh">菜单栏浮窗触手可及，但不会接管你的桌面。</li>
+                            <li lang="en">Different apps can have different assistants, prompts, and response styles.</li>
+                            <li lang="zh">不同应用可以绑定不同助手、提示词和回答风格。</li>
+                            <li lang="en">Use selected text, clipboard, and active-app context only when needed.</li>
+                            <li lang="zh">按需使用选中文本、剪贴板和当前应用上下文。</li>
+                        </ul>
+                    </aside>
+                </div>
+            </section>
 
-        <section class="hero" style="padding-top: 8rem; padding-bottom: 8rem; border-top: 1px solid var(--border-color);">
-            <h2 lang="en" style="font-size: 2.5rem; margin-bottom: 2rem;">Ready to boost your workflow?</h2>
-            <h2 lang="zh" style="font-size: 2.5rem; margin-bottom: 2rem;">准备好提升你的工作效率了吗？</h2>
-            <div class="cta-buttons">
-                <a href="https://apps.apple.com/app/sidey/id6760834274" class="appstore-link">
-                    <img src="https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg" alt="Download on the App Store" lang="en" class="inline">
-                    <img src="https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg" alt="App Store 下载" lang="zh" class="inline">
-                </a>
-                <a href="https://github.com/chentao1006/Sidey/releases/latest" class="btn btn-primary">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 16L8 12H11V8H13V12H16L12 16Z"></path></svg>
-                    <span lang="en">Installer Download</span>
-                    <span lang="zh">安装包下载</span>
-                </a>
-                <a href="https://github.com/chentao1006/Sidey" class="btn btn-secondary">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.47715 2 2 6.47715 2 12C2 16.4179 4.865 20.1619 8.834 21.4819C9.334 21.5739 9.516 21.2659 9.516 20.9999C9.516 20.7659 9.507 20.1419 9.503 19.3149C6.722 19.9219 6.137 17.9789 5.917 17.3619C5.795 17.0509 5.267 16.0919 4.803 15.8329C4.417 15.6239 3.864 15.1119 4.794 15.0999C5.664 15.0879 6.284 15.8999 6.49 16.2239C7.485 17.8999 9.074 17.4209 9.707 17.1359C9.808 16.4139 10.096 15.9279 10.413 15.6499C8.193 15.3979 5.871 14.5389 5.871 10.7149C5.871 9.62394 6.261 8.72394 6.9 8.01694C6.797 7.76494 6.453 6.74194 7.001 5.36194C7.001 5.36194 7.84 5.09394 9.747 6.38194C10.544 6.15994 11.4 6.04994 12.251 6.04594C13.102 6.04994 13.958 6.15994 14.756 6.38194C16.663 5.08194 17.502 5.36194 17.502 5.36194C18.05 6.74194 17.706 7.76494 17.603 8.01694C18.244 8.72394 18.634 9.61194 18.634 10.7149C18.634 14.5499 16.307 15.3979 14.079 15.6499C14.437 15.9579 14.755 16.5519 14.755 17.4699C14.755 18.7759 14.743 19.8299 14.743 20.9999C14.743 21.2659 14.925 21.5779 15.429 21.4819C19.395 20.1579 22.251 16.4179 22.251 12C22.251 6.47715 17.773 2 12.251 2H12Z"></path></svg>
-                    <span lang="en">View Source</span>
-                    <span lang="zh">查看源码</span>
-                </a>
-            </div>
-        </section>
-    </main>
+            <section class="media-section" aria-label="Sidey screenshots">
+                <div class="container">
+                    <div class="carousel">
+                        <div class="carousel-track" id="carouselTrack"></div>
+                        <div class="carousel-dots" id="carouselDots" aria-label="Screenshot navigation"></div>
+                        <button class="carousel-nav prev" type="button" onclick="moveSlide(-1, true)" aria-label="Previous screenshot">‹</button>
+                        <button class="carousel-nav next" type="button" onclick="moveSlide(1, true)" aria-label="Next screenshot">›</button>
+                        <noscript>
+                            <img src="Resources/menu-bar-flow.png" alt="Sidey menu bar assistant flow on macOS">
+                        </noscript>
+                    </div>
+                </div>
+            </section>
 
-    <footer>
-        <p>
-            <span lang="en">© 2026 Sidey. Made by chentao1006.</span>
-            <span lang="zh">© 2026 旁白. 由 chentao1006 打造。</span>
-        </p>
-    </footer>
+            <section class="features" id="features">
+                <div class="container">
+                    <div class="section-header">
+                        <h2 lang="en">Designed for short, app-specific work.</h2>
+                        <h2 lang="zh">为短任务和应用场景而设计。</h2>
+                        <p lang="en">Sidey keeps the assistant close but not dominant. The useful part is not another chat app; it is the right prompt, in the right app, with the right context.</p>
+                        <p lang="zh">旁白不会把自己变成另一个沉重聊天窗口。关键是：在合适的应用里，用合适的助手，带上合适的上下文。</p>
+                    </div>
+                    <div class="feature-grid">
+                        <article class="feature-card">
+                            <h3 lang="en">Menu bar popover</h3>
+                            <h3 lang="zh">菜单栏浮窗</h3>
+                            <p lang="en">Open Sidey from the menu bar, finish the request in a focused popover, and return to the same app.</p>
+                            <p lang="zh">从菜单栏唤起旁白，在聚焦的小浮窗里完成请求，然后回到原来的应用。</p>
+                        </article>
+                        <article class="feature-card">
+                            <h3 lang="en">Context from where you are</h3>
+                            <h3 lang="zh">上下文来自当前位置</h3>
+                            <p lang="en">Use selection, clipboard, and the active app so the assistant starts with the material already in front of you.</p>
+                            <p lang="zh">利用选中文本、剪贴板和当前应用信息，让助手从眼前内容开始回答。</p>
+                        </article>
+                        <article class="feature-card">
+                            <h3 lang="en">Assistants that match the app</h3>
+                            <h3 lang="zh">助手跟着应用变化</h3>
+                            <p lang="en">A coding app can surface a reviewer, a browser can surface a summarizer, and a writing app can surface an editor.</p>
+                            <p lang="zh">代码应用里可以是审阅助手，浏览器里可以是总结助手，写作应用里可以是编辑助手。</p>
+                        </article>
+                        <article class="feature-card">
+                            <h3 lang="en">Flexible AI providers</h3>
+                            <h3 lang="zh">灵活的 AI 服务</h3>
+                            <p lang="en">Start with the limited public service, or bring your own API key, endpoint, and protocol.</p>
+                            <p lang="zh">可使用内置公共服务，也可配置自己的 API Key、接口地址和协议格式。</p>
+                        </article>
+                        <article class="feature-card">
+                            <h3 lang="en">iCloud sync</h3>
+                            <h3 lang="zh">iCloud 同步</h3>
+                            <p lang="en">Sync assistant settings and prompts across Macs through your Apple ID.</p>
+                            <p lang="zh">通过 Apple ID 在多台 Mac 间同步助手设置和提示词。</p>
+                        </article>
+                        <article class="feature-card">
+                            <h3 lang="en">Native macOS behavior</h3>
+                            <h3 lang="zh">原生 macOS 体验</h3>
+                            <p lang="en">Designed for keyboard shortcuts, Accessibility permissions, menu bar usage, and window-focused work.</p>
+                            <p lang="zh">围绕快捷键、辅助功能权限、菜单栏和窗口级工作流设计。</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="workflow" id="workflow">
+                <div class="container">
+                    <div class="section-header">
+                        <h2 lang="en">Fast enough to use casually.</h2>
+                        <h2 lang="zh">轻到可以随手使用。</h2>
+                    </div>
+                    <div class="steps">
+                        <article class="step">
+                            <h3 lang="en">Start from the current app</h3>
+                            <h3 lang="zh">从当前应用开始</h3>
+                            <p lang="en">Sidey knows which app is active and can present assistants that fit that app.</p>
+                            <p lang="zh">旁白知道当前活动应用，并展示更适合该应用的助手。</p>
+                        </article>
+                        <article class="step">
+                            <h3 lang="en">Bring only the needed context</h3>
+                            <h3 lang="zh">只带必要上下文</h3>
+                            <p lang="en">Send the selected text or clipboard content for the specific task.</p>
+                            <p lang="zh">针对具体任务发送选中文本或剪贴板内容。</p>
+                        </article>
+                        <article class="step">
+                            <h3 lang="en">Finish and return</h3>
+                            <h3 lang="zh">完成后回到工作</h3>
+                            <p lang="en">Use the answer, then continue in the same app without managing another workspace.</p>
+                            <p lang="zh">拿到结果后继续留在原应用里，不需要维护另一个工作空间。</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section class="faq" id="faq">
+                <div class="container">
+                    <div class="section-header">
+                        <h2 lang="en">FAQ</h2>
+                        <h2 lang="zh">常见问题</h2>
+                    </div>
+                    <div class="faq-list">
+                        <details>
+                            <summary>
+                                <span lang="en">Is Sidey free?</span>
+                                <span lang="zh">旁白是免费的吗？</span>
+                            </summary>
+                            <p lang="en">Sidey can be used with a limited public AI service. You can also configure your own AI provider for unrestricted usage based on that provider's terms.</p>
+                            <p lang="zh">旁白可使用带限制的公共 AI 服务。你也可以配置自己的 AI 服务商，实际用量以服务商规则为准。</p>
+                        </details>
+                        <details>
+                            <summary>
+                                <span lang="en">Which AI providers are supported?</span>
+                                <span lang="zh">支持哪些 AI 服务商？</span>
+                            </summary>
+                            <p lang="en">Sidey supports OpenAI-compatible APIs plus native formats for Anthropic Claude, Google Gemini, and Ollama.</p>
+                            <p lang="zh">旁白支持 OpenAI 兼容接口，也支持 Anthropic Claude、Google Gemini 和 Ollama 的原生格式。</p>
+                        </details>
+                        <details>
+                            <summary>
+                                <span lang="en">Why does Sidey ask for Accessibility permission?</span>
+                                <span lang="zh">为什么需要辅助功能权限？</span>
+                            </summary>
+                            <p lang="en">Accessibility permission lets Sidey detect the active app and capture selected text for context. It is used for local interaction with your Mac.</p>
+                            <p lang="zh">辅助功能权限用于识别当前应用和捕获选中文本，帮助旁白理解上下文。该权限用于本地 Mac 交互。</p>
+                        </details>
+                    </div>
+                </div>
+            </section>
+
+            <section class="final-cta">
+                <div class="container">
+                    <h2 lang="en">Use AI where the small tasks happen.</h2>
+                    <h2 lang="zh">让 AI 出现在小任务发生的地方。</h2>
+                    <p lang="en">Install Sidey, assign assistants to the apps you use most, and call it only when the task deserves it.</p>
+                    <p lang="zh">安装旁白，为常用应用配置合适助手，然后在真正需要时再唤起它。</p>
+                    <div class="hero-actions">
+                        <a href="https://github.com/chentao1006/Sidey/releases/latest" class="button" rel="noopener">
+                            <span lang="en">Latest release</span>
+                            <span lang="zh">最新安装包</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="container footer-row">
+                <p>
+                    <span lang="en">© 2026 Sidey by chentao1006.</span>
+                    <span lang="zh">© 2026 旁白，由 chentao1006 打造。</span>
+                </p>
+                <div class="footer-links">
+                    <a href="privacy.html" lang="en">Privacy</a>
+                    <a href="privacy.html" lang="zh">隐私</a>
+                    <a href="https://github.com/chentao1006/Sidey" rel="noopener">GitHub</a>
+                </div>
+            </div>
+        </footer>
+    </div>
 
     <script>
         const translations = {
             en: {
-                title: "Sidey - Your Intelligent macOS Sidekick",
-                description: "A lightweight, context-aware AI assistant designed specifically for macOS."
+                title: "Sidey - Lightweight, app-aware AI assistant for macOS",
+                description: "Sidey is a lightweight macOS AI assistant with a menu bar popover for quick tasks inside the app you are using, with app-aware assistants and custom AI providers.",
+                htmlLang: "en"
             },
             zh: {
-                title: "旁白 - 你的智能 macOS 助手",
-                description: "一款专为 macOS 设计的轻量级、场景感知 AI 助手。"
+                title: "旁白 Sidey - 轻量、按应用感知的 macOS AI 助手",
+                description: "旁白 Sidey 提供轻量菜单栏浮窗，面向当前应用里的短任务，可按应用配置不同助手，并支持自定义 AI 服务。",
+                htmlLang: "zh-Hans"
             }
         };
 
         const screenshots = {
             en: [
-                "Resources/side-icon-en.jpg",
-                "Resources/Screenshot-en.jpg",
-                "Resources/side-window-en.jpg",
-                "Resources/auto-assistant-en.png"
+                {
+                    src: "Resources/menu-bar-flow.png",
+                    alt: "Sidey menu bar assistant flow on macOS"
+                },
+                {
+                    src: "Resources/side-icon-en.jpg",
+                    alt: "Sidey companion icon beside an active macOS window"
+                },
+                {
+                    src: "Resources/Screenshot-en.jpg",
+                    alt: "Sidey assistant window with app-specific prompts"
+                },
+                {
+                    src: "Resources/side-window-en.jpg",
+                    alt: "Sidey regular window mode on macOS"
+                },
+                {
+                    src: "Resources/auto-assistant-en.png",
+                    alt: "Sidey auto assistant creation screen"
+                }
             ],
             zh: [
-                "Resources/side-icon-cn.jpg",
-                "Resources/Screenshot-cn.jpg",
-                "Resources/side-window-cn.jpg",
-                "Resources/auto-assistent-cn.png"
+                {
+                    src: "Resources/menu-bar-flow.png",
+                    alt: "旁白菜单栏助手流程截图"
+                },
+                {
+                    src: "Resources/side-icon-cn.jpg",
+                    alt: "旁白随窗图标截图"
+                },
+                {
+                    src: "Resources/Screenshot-cn.jpg",
+                    alt: "旁白助手窗口截图"
+                },
+                {
+                    src: "Resources/side-window-cn.jpg",
+                    alt: "旁白普通窗口模式截图"
+                },
+                {
+                    src: "Resources/auto-assistent-cn.png",
+                    alt: "旁白自动创建助手截图"
+                }
             ]
         };
 
         let currentSlide = 0;
-        let currentLang = 'en';
-
+        let currentLang = "en";
         let timer;
+
         function resetTimer() {
             clearInterval(timer);
-            timer = setInterval(() => moveSlide(1), 5000);
+            timer = setInterval(() => moveSlide(1), 5500);
         }
 
         function initCarousel() {
-            const track = document.getElementById('carouselTrack');
-            const dots = document.getElementById('carouselDots');
-            track.innerHTML = '';
-            dots.innerHTML = '';
+            const track = document.getElementById("carouselTrack");
+            const dots = document.getElementById("carouselDots");
+            track.innerHTML = "";
+            dots.innerHTML = "";
 
-            screenshots[currentLang].forEach((src, idx) => {
-                const slide = document.createElement('div');
-                slide.className = 'carousel-slide';
-                slide.innerHTML = `<img src="${src}" alt="Screenshot ${idx + 1}">`;
+            screenshots[currentLang].forEach((image, index) => {
+                const slide = document.createElement("div");
+                slide.className = "carousel-slide";
+                slide.innerHTML = `<img src="${image.src}" alt="${image.alt}" loading="${index === 0 ? "eager" : "lazy"}">`;
                 track.appendChild(slide);
 
-                const dot = document.createElement('div');
-                dot.className = `dot ${idx === 0 ? 'active' : ''}`;
-                dot.onclick = () => goToSlide(idx);
+                const dot = document.createElement("button");
+                dot.type = "button";
+                dot.className = `dot ${index === 0 ? "active" : ""}`;
+                dot.setAttribute("aria-label", `Show screenshot ${index + 1}`);
+                dot.onclick = () => goToSlide(index);
                 dots.appendChild(dot);
             });
+
             updateCarousel();
             resetTimer();
         }
 
         function updateCarousel() {
-            const track = document.getElementById('carouselTrack');
+            const track = document.getElementById("carouselTrack");
             if (track) {
                 track.style.transform = `translateX(-${currentSlide * 100}%)`;
             }
-            
-            const dots = document.querySelectorAll('.dot');
-            dots.forEach((dot, idx) => {
-                dot.classList.toggle('active', idx === currentSlide);
+
+            document.querySelectorAll(".dot").forEach((dot, index) => {
+                dot.classList.toggle("active", index === currentSlide);
             });
         }
 
@@ -584,41 +959,39 @@
             if (isManual) resetTimer();
         }
 
-        function goToSlide(idx) {
-            currentSlide = idx;
+        function goToSlide(index) {
+            currentSlide = index;
             updateCarousel();
             resetTimer();
         }
 
         function updateMeta(lang) {
             currentLang = lang;
+            document.documentElement.lang = translations[lang].htmlLang;
             document.title = translations[lang].title;
-            const metaDesc = document.querySelector('meta[name="description"]');
-            if (metaDesc) {
-                metaDesc.setAttribute('content', translations[lang].description);
+
+            const metaDescription = document.querySelector('meta[name="description"]');
+            if (metaDescription) {
+                metaDescription.setAttribute("content", translations[lang].description);
             }
-            currentSlide = 0; // Reset to first slide on lang change
+
+            currentSlide = 0;
             initCarousel();
         }
 
         function toggleLang() {
-            const body = document.body;
-            if (body.classList.contains('lang-en')) {
-                body.classList.replace('lang-en', 'lang-zh');
-                updateMeta('zh');
-            } else {
-                body.classList.replace('lang-zh', 'lang-en');
-                updateMeta('en');
-            }
+            const isEnglish = document.body.classList.contains("lang-en");
+            document.body.classList.toggle("lang-en", !isEnglish);
+            document.body.classList.toggle("lang-zh", isEnglish);
+            updateMeta(isEnglish ? "zh" : "en");
         }
 
-        // Auto language detection
-        const userLang = navigator.language || navigator.userLanguage;
-        if (userLang.startsWith('zh')) {
-            document.body.classList.replace('lang-en', 'lang-zh');
-            updateMeta('zh');
+        const userLang = navigator.language || navigator.userLanguage || "en";
+        if (userLang.toLowerCase().startsWith("zh")) {
+            document.body.classList.replace("lang-en", "lang-zh");
+            updateMeta("zh");
         } else {
-            initCarousel();
+            updateMeta("en");
         }
     </script>
 </body>
