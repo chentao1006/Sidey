@@ -19,6 +19,7 @@ class DebugLogger: ObservableObject {
     private let maxLogs = 2000
     private let logFile: URL
     private let queue = DispatchQueue(label: "com.sidey.debuglogger", qos: .background)
+    private var pendingSaveWorkItem: DispatchWorkItem?
     
     private init() {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
@@ -53,6 +54,15 @@ class DebugLogger: ObservableObject {
         }
     }
     
+    private func scheduleSaveLogs() {
+        pendingSaveWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.saveLogs()
+        }
+        pendingSaveWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8, execute: workItem)
+    }
+    
     func log(_ message: String, type: LogEntry.LogType = .info) {
         DispatchQueue.main.async {
             let entry = LogEntry(id: UUID(), timestamp: Date(), message: message, type: type)
@@ -62,7 +72,7 @@ class DebugLogger: ObservableObject {
                 self.logs.removeLast()
             }
             
-            self.saveLogs()
+            self.scheduleSaveLogs()
             
             // Print to console as well
             print("[\(type.rawValue.uppercased())] \(message)")
@@ -71,6 +81,8 @@ class DebugLogger: ObservableObject {
     
     func clear() {
         DispatchQueue.main.async {
+            self.pendingSaveWorkItem?.cancel()
+            self.pendingSaveWorkItem = nil
             self.logs = []
             self.queue.async {
                 try? FileManager.default.removeItem(at: self.logFile)

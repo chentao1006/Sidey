@@ -180,6 +180,7 @@
 "Debug Logs" = "调试日志";
 "Clear Logs" = "清空日志";
 "No logs available." = "暂无日志。";
+"Showing latest %d of %d logs." = "显示最近 %d / %d 条日志。";
 
 /* Icons */
 "brain" = "大脑";
@@ -198,6 +199,11 @@
 "Show Assistant" = "打开旁白";
 "Quit" = "退出";
 "Quit Sidey" = "退出 旁白";
+"Window Type" = "窗口类型";
+"Menu Bar Popover" = "菜单栏浮窗";
+"Regular Window" = "普通窗口";
+"Switch to Menu Bar Popover" = "切换到菜单栏浮窗";
+"Switch to Regular Window" = "切换到普通窗口";
 
 /* Attachments */
 "Clipboard" = "剪贴板";

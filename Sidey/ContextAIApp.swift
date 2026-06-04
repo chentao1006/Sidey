@@ -54,7 +54,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private var statusItem: NSStatusItem?
     private var statusMenu: NSMenu?
+    private var menuBarAssistantPopover: NSPopover?
     private let updaterViewModel = UpdaterViewModel()
+    private let menuBarAssistantSize = NSSize(width: 320, height: 540)
     
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSAppleEventManager.shared().setEventHandler(
@@ -77,7 +79,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.register(defaults: [
             "showDockIcon": false,
             "openAI_BaseURL": "https://api.openai.com/v1",
-            "usePublicService": true
+            "usePublicService": true,
+            "assistantWindowType": "menuBarPopover"
         ])
         
         setupAssistantWindow()
@@ -186,10 +189,61 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         DockingManager.shared.iconWindow = window
     }
     
-    func showAssistant(targetScreen: NSScreen? = nil, shouldActivate: Bool = true) {
+    func showAssistant(targetScreen: NSScreen? = nil, shouldActivate: Bool = true, reopenMenuBarPopover: Bool = false) {
+        if usesRegularAssistantWindow {
+            showStandardAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate)
+        } else {
+            showMenuBarAssistantPopover(forceReopen: reopenMenuBarPopover)
+        }
+    }
+    
+    var usesRegularAssistantWindow: Bool {
+        (UserDefaults.standard.string(forKey: "assistantWindowType") ?? "menuBarPopover") == "regularWindow"
+    }
+    
+    func applyAssistantWindowTypePreference() {
+        if usesRegularAssistantWindow {
+            if menuBarAssistantPopover?.isShown == true {
+                menuBarAssistantPopover?.performClose(nil)
+            }
+        } else {
+            if assistantWindow?.isVisible == true {
+                assistantWindow?.orderOut(nil)
+            }
+            DockingManager.shared.iconWindow?.orderOut(nil)
+        }
+        DockingManager.shared.updatePositions()
+    }
+    
+    func toggleAssistantWindowType() {
+        let nextType = usesRegularAssistantWindow ? "menuBarPopover" : "regularWindow"
+        UserDefaults.standard.set(nextType, forKey: "assistantWindowType")
+        applyAssistantWindowTypePreference()
+        SyncManager.shared.syncToCloud()
+        
+        DispatchQueue.main.async {
+            self.showAssistant(reopenMenuBarPopover: true)
+        }
+    }
+    
+    func updateMenuBarAssistantPopoverBehavior() {
+        menuBarAssistantPopover?.behavior = UserDefaults.standard.bool(forKey: "alwaysOnTop") ? .applicationDefined : .transient
+    }
+    
+    func closeMenuBarAssistantPopoverIfNeeded() {
+        if menuBarAssistantPopover?.isShown == true {
+            menuBarAssistantPopover?.performClose(nil)
+        }
+    }
+    
+    private func showStandardAssistant(targetScreen: NSScreen? = nil, shouldActivate: Bool = true) {
+        if menuBarAssistantPopover?.isShown == true {
+            menuBarAssistantPopover?.performClose(nil)
+        }
+        
         guard let window = assistantWindow else {
             setupAssistantWindow()
-            showAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate)
+            showStandardAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate)
             return
         }
         
@@ -333,7 +387,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidBecomeActive(_ notification: Notification) {
         if launchReady {
             let visible = NSApplication.shared.windows.filter { $0.isVisible && $0.className != "NSMenuWindow" }
-            if visible.isEmpty {
+            if usesRegularAssistantWindow && visible.isEmpty {
                 showAssistant()
             }
             updateDockIconVisibility()
@@ -347,6 +401,50 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         showAssistant()
         return true
+    }
+    
+    private func showMenuBarAssistantPopover(allowToggle: Bool = false, forceReopen: Bool = false) {
+        guard let button = statusItem?.button else { return }
+        
+        if assistantWindow?.isVisible == true {
+            assistantWindow?.orderOut(nil)
+        }
+        
+        if menuBarAssistantPopover == nil {
+            let popover = NSPopover()
+            popover.behavior = UserDefaults.standard.bool(forKey: "alwaysOnTop") ? .applicationDefined : .transient
+            popover.animates = true
+            popover.contentSize = menuBarAssistantSize
+            popover.contentViewController = NSHostingController(rootView: AssistantWindow(hidesDockingControl: true))
+            menuBarAssistantPopover = popover
+        }
+        
+        guard let popover = menuBarAssistantPopover else { return }
+        updateMenuBarAssistantPopoverBehavior()
+        
+        if popover.isShown {
+            if allowToggle {
+                popover.performClose(nil)
+            } else if forceReopen {
+                popover.performClose(nil)
+                DispatchQueue.main.async { [weak self] in
+                    self?.showMenuBarAssistantPopover()
+                }
+            } else {
+                NotificationCenter.default.post(name: Notification.Name("SideyRefreshContext"), object: nil, userInfo: nil)
+            }
+            return
+        }
+        
+        contextDetector.refresh()
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        popover.contentSize = menuBarAssistantSize
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        NotificationCenter.default.post(name: Notification.Name("SideyRefreshContext"), object: nil, userInfo: nil)
+        
+        DispatchQueue.main.async {
+            popover.contentViewController?.view.window?.level = .floating
+        }
     }
 }
 
@@ -389,9 +487,12 @@ extension AppDelegate: NSMenuDelegate {
         
         let menu = NSMenu()
         menu.delegate = self
-        statusItem?.menu = menu
+        statusMenu = menu
         
         if let button = statusItem?.button {
+            button.target = self
+            button.action = #selector(statusItemClicked(_:))
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             updateStatusItemIcon()
         }
         
@@ -400,6 +501,7 @@ extension AppDelegate: NSMenuDelegate {
     
     @objc private func userDefaultsDidChange() {
         updateStatusItemIcon()
+        applyAssistantWindowTypePreference()
     }
     
     private func updateStatusItemIcon() {
@@ -416,6 +518,26 @@ extension AppDelegate: NSMenuDelegate {
             } else if let fallback = NSImage(systemSymbolName: "brain", accessibilityDescription: localizedAppName) {
                 let config = NSImage.SymbolConfiguration(scale: .medium)
                 statusItem?.button?.image = fallback.withSymbolConfiguration(config)
+            }
+        }
+    }
+    
+    @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
+        let event = NSApplication.shared.currentEvent
+        let isRightClick = event?.type == .rightMouseUp || (event?.modifierFlags.contains(.control) == true)
+        
+        if isRightClick {
+            if menuBarAssistantPopover?.isShown == true && !UserDefaults.standard.bool(forKey: "alwaysOnTop") {
+                menuBarAssistantPopover?.performClose(nil)
+            }
+            if let menu = statusMenu {
+                statusItem?.popUpMenu(menu)
+            }
+        } else {
+            if usesRegularAssistantWindow {
+                showAssistant()
+            } else {
+                showMenuBarAssistantPopover(allowToggle: true)
             }
         }
     }
@@ -446,6 +568,11 @@ extension AppDelegate: NSMenuDelegate {
         let showItem = NSMenuItem(title: "\(L("Show Assistant")) (\(hotKeyString))", action: #selector(showAssistantAction), keyEquivalent: "")
         showItem.target = self
         menu.addItem(showItem)
+        
+        let switchWindowTypeTitle = usesRegularAssistantWindow ? L("Switch to Menu Bar Popover") : L("Switch to Regular Window")
+        let switchWindowTypeItem = NSMenuItem(title: switchWindowTypeTitle, action: #selector(toggleAssistantWindowTypeAction), keyEquivalent: "")
+        switchWindowTypeItem.target = self
+        menu.addItem(switchWindowTypeItem)
         
         let settingsItem = NSMenuItem(title: L("Settings..."), action: #selector(showSettingsAction), keyEquivalent: "")
         settingsItem.target = self
@@ -483,6 +610,10 @@ extension AppDelegate: NSMenuDelegate {
     
     @objc private func showSettingsAction() {
         showSettings()
+    }
+    
+    @objc private func toggleAssistantWindowTypeAction() {
+        toggleAssistantWindowType()
     }
     
     #if !APPSTORE

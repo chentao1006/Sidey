@@ -62,6 +62,10 @@ class DockingManager: ObservableObject {
     private var currentTargetScreen: NSScreen? // Stability filter for multi-monitor tracking
     @Published var isIconHovered: Bool = false
     
+    private var usesRegularAssistantWindow: Bool {
+        (UserDefaults.standard.string(forKey: "assistantWindowType") ?? "menuBarPopover") == "regularWindow"
+    }
+    
     private func setupDefaults() {
         if UserDefaults.standard.object(forKey: "isAdsorptionEnabled") == nil {
             self.isAdsorptionEnabled = true
@@ -104,6 +108,15 @@ class DockingManager: ObservableObject {
     }
     
     func refreshActiveWindowFrame() {
+        guard usesRegularAssistantWindow else {
+            if activeWindowFrame != nil {
+                activeWindowFrame = nil
+            }
+            iconWindow?.orderOut(nil)
+            assistantWindow?.orderOut(nil)
+            return
+        }
+        
         guard isAdsorptionEnabled || isIconVisible else { 
             if activeWindowFrame != nil {
                 DispatchQueue.main.async {
@@ -249,6 +262,12 @@ class DockingManager: ObservableObject {
     }
     
     func updatePositions() {
+        guard usesRegularAssistantWindow else {
+            iconWindow?.orderOut(nil)
+            assistantWindow?.orderOut(nil)
+            return
+        }
+        
         guard let activeFrame = activeWindowFrame else { return }
         if !isAdsorptionEnabled && !isIconVisible {
             iconWindow?.orderOut(nil)
@@ -302,6 +321,10 @@ class DockingManager: ObservableObject {
     
     func updateIconPosition(activeFrame: NSRect, screen: NSScreen? = nil, show: Bool = true) {
         guard let iconWin = iconWindow else { return }
+        guard usesRegularAssistantWindow else {
+            iconWin.orderOut(nil)
+            return
+        }
         if !show { iconWin.orderOut(nil); return }
             
         let screenFrame = screen?.frame ?? .zero
@@ -366,6 +389,10 @@ class DockingManager: ObservableObject {
     
     func updateAssistantPosition(activeFrame: NSRect, screen: NSScreen? = nil, show: Bool = true) {
         guard let assistant = assistantWindow else { return }
+        guard usesRegularAssistantWindow else {
+            assistant.orderOut(nil)
+            return
+        }
         if !show { assistant.orderOut(nil); return }
         
         let targetScreen = screen ?? assistant.screen ?? NSScreen.main
@@ -439,6 +466,11 @@ class DockingManager: ObservableObject {
         let shouldBeVisible = appAssistantStates[bundleID] ?? false
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
+            guard AppDelegate.shared.usesRegularAssistantWindow else {
+                self.assistantWindow?.orderOut(nil)
+                self.updatePositions()
+                return
+            }
             if shouldBeVisible {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     AppDelegate.shared.showAssistant(shouldActivate: false)
@@ -556,5 +588,3 @@ class PermissionManager: ObservableObject {
         #endif
     }
 }
-
-

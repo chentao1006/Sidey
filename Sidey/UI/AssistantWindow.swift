@@ -47,6 +47,8 @@ struct Attachment: Identifiable, Equatable, Codable {
 }
 
 struct AssistantWindow: View {
+    private let hidesDockingControl: Bool
+    
     @ObservedObject private var contextDetector = ContextDetector.shared
     @ObservedObject private var promptStore = PromptStore.shared
     @ObservedObject private var historyStore = HistoryStore.shared
@@ -60,6 +62,7 @@ struct AssistantWindow: View {
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("sendBehavior") private var sendBehavior = "return"
     @AppStorage("appLanguage") private var appLanguage = "system"
+    @AppStorage("assistantWindowType") private var assistantWindowType = "menuBarPopover"
     @AppStorage("hasDismissedAccessibilityTip") private var hasDismissedAccessibilityTip = false
     
     @State private var window: NSWindow?
@@ -87,6 +90,10 @@ struct AssistantWindow: View {
     @State private var autoCreateContext: AutoCreateContext?
     @State private var previewedAttachment: Attachment?
     
+    init(hidesDockingControl: Bool = false) {
+        self.hidesDockingControl = hidesDockingControl
+    }
+    
     var body: some View {
         let currentLocale = appLanguage == "system" ? Locale.current : Locale(identifier: appLanguage)
         ZStack(alignment: .bottom) {
@@ -108,6 +115,7 @@ struct AssistantWindow: View {
 
         .onChangeCompatible(of: alwaysOnTop) { newValue in
             window?.level = newValue ? .floating : .normal
+            AppDelegate.shared.updateMenuBarAssistantPopoverBehavior()
         }
         .onChangeCompatible(of: windowOpacity) { newValue in
             window?.alphaValue = CGFloat(newValue)
@@ -291,14 +299,7 @@ struct AssistantWindow: View {
         HStack(spacing: 8) {
             Button(action: {
                 if !contextDetector.currentBundleID.isEmpty {
-                    if let app = NSRunningApplication.runningApplications(withBundleIdentifier: contextDetector.currentBundleID).first {
-                        // Snapshot the screen BEFORE activating to avoid Space-switch timing issues
-                        let targetScreen = AppDelegate.shared.screenForApp(app)
-                        app.activate(options: .activateIgnoringOtherApps)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            AppDelegate.shared.showAssistant(targetScreen: targetScreen)
-                        }
-                    }
+                    activateOrOpenApp(bundleID: contextDetector.currentBundleID)
                 }
             }) {
                 HStack(spacing: 8) {
@@ -324,62 +325,56 @@ struct AssistantWindow: View {
             .buttonStyle(.plain)
             .help(contextDetector.currentAppName.isEmpty ? "" : L("Back to App"))
             
-            Button {
-                dockingManager.isAdsorptionEnabled.toggle()
-            } label: {
-                Image(systemName: "dock.arrow.down.rectangle")
-                    .rotationEffect(.degrees(90))
-                    .foregroundColor(dockingManager.isAdsorptionEnabled ? .accentColor : .secondary)
-                    .font(.system(size: 14, weight: .bold))
+            if !hidesDockingControl {
+                Button {
+                    dockingManager.isAdsorptionEnabled.toggle()
+                } label: {
+                    Image(systemName: "dock.arrow.down.rectangle")
+                        .rotationEffect(.degrees(90))
+                        .foregroundColor(dockingManager.isAdsorptionEnabled ? .accentColor : .secondary)
+                        .font(.system(size: 14, weight: .bold))
+                }
+                .buttonStyle(.plain)
+                .help(dockingManager.isAdsorptionEnabled ? L("Disable Docking") : L("Enable Docking"))
             }
-            .buttonStyle(.plain)
-            .help(dockingManager.isAdsorptionEnabled ? L("Disable Docking") : L("Enable Docking"))
             
             Spacer()
             
             ZStack(alignment: .topTrailing) {
                 Menu {
-                    Text(L("Recent Apps"))
-                    let recent = filteredRecentApps
-                    if recent.isEmpty {
-                        Text(L("No Recent Apps"))
-                    } else {
-                        ForEach(recent) { appCtx in
-                            Button {
-                                if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == appCtx.bundleID }) {
-                                    let targetScreen = AppDelegate.shared.screenForApp(app)
-                                    app.activate(options: .activateIgnoringOtherApps)
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                        AppDelegate.shared.showAssistant(targetScreen: targetScreen)
+                        Text(L("Recent Apps"))
+                        let recent = filteredRecentApps
+                        if recent.isEmpty {
+                            Text(L("No Recent Apps"))
+                        } else {
+                            ForEach(recent) { appCtx in
+                                Button {
+                                    activateOrOpenApp(bundleID: appCtx.bundleID)
+                                } label: {
+                                    let suffix = hasUnreadFor(bundleID: appCtx.bundleID) ? L(" (New Answer)") : (hasLoadingFor(bundleID: appCtx.bundleID) ? L(" (Thinking...)") : "")
+                                    Text(appCtx.appName + suffix)
+                                }
+                            }
+                        }
+                        
+                        Divider()
+                        Text(L("Running Apps"))
+                        let running = filteredRunningApps
+                        if running.isEmpty {
+                            Text(L("No Running Apps"))
+                        } else {
+                            ForEach(running, id: \.bundleIdentifier) { app in
+                                Button {
+                                    if let bundleID = app.bundleIdentifier {
+                                        activateOrOpenApp(bundleID: bundleID)
                                     }
+                                } label: {
+                                    let suffix = hasUnreadFor(bundleID: app.bundleIdentifier) ? L(" (New Answer)") : (hasLoadingFor(bundleID: app.bundleIdentifier) ? L(" (Thinking...)") : "")
+                                    let name = app.localizedName ?? (app.bundleIdentifier ?? "Unknown")
+                                    Text(name + suffix)
                                 }
-                            } label: {
-                                let suffix = hasUnreadFor(bundleID: appCtx.bundleID) ? L(" (New Answer)") : (hasLoadingFor(bundleID: appCtx.bundleID) ? L(" (Thinking...)") : "")
-                                Text(appCtx.appName + suffix)
                             }
                         }
-                    }
-                    
-                    Divider()
-                    Text(L("Running Apps"))
-                    let running = filteredRunningApps
-                    if running.isEmpty {
-                        Text(L("No Running Apps"))
-                    } else {
-                        ForEach(running, id: \.bundleIdentifier) { app in
-                            Button {
-                                let targetScreen = AppDelegate.shared.screenForApp(app)
-                                app.activate(options: .activateIgnoringOtherApps)
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                    AppDelegate.shared.showAssistant(targetScreen: targetScreen)
-                                }
-                            } label: {
-                                let suffix = hasUnreadFor(bundleID: app.bundleIdentifier) ? L(" (New Answer)") : (hasLoadingFor(bundleID: app.bundleIdentifier) ? L(" (Thinking...)") : "")
-                                let name = app.localizedName ?? (app.bundleIdentifier ?? "Unknown")
-                                Text(name + suffix)
-                            }
-                        }
-                    }
                 } label: {
                     Image(systemName: "arrow.right.arrow.left")
                 }
@@ -405,6 +400,14 @@ struct AssistantWindow: View {
             }
             .buttonStyle(.plain)
             .help(alwaysOnTop ? L("Unpin Window") : L("Pin Window"))
+            
+            Button {
+                AppDelegate.shared.toggleAssistantWindowType()
+            } label: {
+                Image(systemName: assistantWindowType == "regularWindow" ? "menubar.rectangle" : "macwindow")
+            }
+            .buttonStyle(.plain)
+            .help(assistantWindowType == "regularWindow" ? L("Switch to Menu Bar Popover") : L("Switch to Regular Window"))
             
             Button {
                 AppDelegate.shared.showSettings()
@@ -571,8 +574,20 @@ struct AssistantWindow: View {
             Text(L("Ask AI..."))
                 .font(.headline)
             
-            MacTextEditor(text: $userInput, textToInsert: $textToInsert, sendBehavior: sendBehavior, onSend: sendMessage)
-                .frame(minHeight: 20, idealHeight: 30, maxHeight: 40)
+            ZStack(alignment: .topLeading) {
+                MacTextEditor(text: $userInput, textToInsert: $textToInsert, sendBehavior: sendBehavior, onSend: sendMessage)
+                
+                if !inputPlaceholder.isEmpty {
+                    Text(inputPlaceholder.replacingOccurrences(of: "\n", with: " "))
+                        .font(.system(size: NSFont.systemFontSize))
+                        .foregroundColor(Color(NSColor.placeholderTextColor))
+                        .lineLimit(2)
+                        .truncationMode(.tail)
+                        .padding(.horizontal, 4)
+                        .allowsHitTesting(false)
+                }
+            }
+            .frame(minHeight: 20, idealHeight: 30, maxHeight: 40)
                 .padding(8)
                 .background(Color(NSColor.textBackgroundColor))
                 .cornerRadius(8)
@@ -657,6 +672,14 @@ struct AssistantWindow: View {
                 }
             }
         }
+    }
+    
+    private var inputPlaceholder: String {
+        guard userInput.isEmpty,
+              let clipboard = attachments.first(where: { $0.type == .clipboard && $0.isSelected && !$0.content.isEmpty }) else {
+            return ""
+        }
+        return clipboard.content
     }
     
     @ViewBuilder
@@ -1030,8 +1053,7 @@ struct AssistantWindow: View {
         
         // 1. Clipboard
         if let clip = NSPasteboard.general.string(forType: .string), !clip.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
-            let isFromSelf = contextDetector.lastClipboardSourceBundleID == Bundle.main.bundleIdentifier
-            self.attachments.append(Attachment(type: .clipboard, content: clip, isSelected: isFromSelf))
+            self.attachments.append(Attachment(type: .clipboard, content: clip, isSelected: true))
         }
         
         if let completion = completion {
@@ -1047,6 +1069,55 @@ struct AssistantWindow: View {
             return last
         }
         return available.first
+    }
+    
+    private func activateOrOpenApp(bundleID: String) {
+        let runningApp = NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == bundleID }
+        let targetScreen = runningApp.flatMap { AppDelegate.shared.screenForApp($0) }
+        
+        if let runningApp = runningApp, targetScreen != nil {
+            activateAppAndSwitchSpace(bundleID: bundleID, app: runningApp)
+            focusAppThenReshowAssistant(bundleID: bundleID, app: runningApp, targetScreen: targetScreen, delay: 0.7)
+            return
+        }
+        
+        if let appURL = runningApp?.bundleURL ?? NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.activates = true
+            NSWorkspace.shared.openApplication(at: appURL, configuration: configuration) { app, _ in
+                focusAppThenReshowAssistant(bundleID: bundleID, app: app, targetScreen: targetScreen, delay: 0.7)
+            }
+            return
+        }
+        
+        if let runningApp = runningApp {
+            activateAppAndSwitchSpace(bundleID: bundleID, app: runningApp)
+        }
+        focusAppThenReshowAssistant(bundleID: bundleID, app: runningApp, targetScreen: targetScreen)
+    }
+    
+    private func activateAppAndSwitchSpace(bundleID: String, app: NSRunningApplication) {
+        AppDelegate.shared.closeMenuBarAssistantPopoverIfNeeded()
+        if let appURL = app.bundleURL ?? NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) {
+            let configuration = NSWorkspace.OpenConfiguration()
+            configuration.activates = true
+            NSWorkspace.shared.openApplication(at: appURL, configuration: configuration)
+        }
+        app.activate(options: [.activateIgnoringOtherApps, .activateAllWindows])
+    }
+    
+    private func focusAppThenReshowAssistant(bundleID: String, app: NSRunningApplication? = nil, targetScreen: NSScreen?, delay: TimeInterval = 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            let focusedApp = app ?? NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == bundleID }
+            let screen = focusedApp.flatMap { AppDelegate.shared.screenForApp($0) } ?? targetScreen
+            if let focusedApp {
+                activateAppAndSwitchSpace(bundleID: bundleID, app: focusedApp)
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+                AppDelegate.shared.showAssistant(targetScreen: screen, reopenMenuBarPopover: true)
+            }
+        }
     }
 
     private var hasAnyOtherUnread: Bool {
@@ -1313,7 +1384,9 @@ struct MacTextEditor: NSViewRepresentable {
 
     class Coordinator: NSObject, NSTextViewDelegate {
         var parent: MacTextEditor
+        
         init(_ parent: MacTextEditor) { self.parent = parent }
+
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             self.parent.text = textView.string

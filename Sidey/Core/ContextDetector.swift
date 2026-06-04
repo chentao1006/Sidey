@@ -290,7 +290,8 @@ class SelectionMonitor: ObservableObject {
         // Skip apps in blocklist
         if AppBlocklist.isBlockedForSelection(bundleID) { return }
         
-        guard let text = SelectionManager.shared.getSelectedText(from: app),
+        let allowClipboardFallback = isKeyboardTriggered
+        guard let text = SelectionManager.shared.getSelectedText(from: app, allowClipboardFallback: allowClipboardFallback),
               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             // No text selected
             if !isKeyboardTriggered && lastPeriodicCheckText != nil {
@@ -349,7 +350,7 @@ class SelectionMonitor: ObservableObject {
         if let provided = text {
             capturedText = provided
         } else {
-            guard let fetched = SelectionManager.shared.getSelectedText(from: app), !fetched.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            guard let fetched = SelectionManager.shared.getSelectedText(from: app, allowClipboardFallback: true), !fetched.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 DebugLogger.shared.log("SelectionMonitor: No text found in \(bundleID) (Time: \(String(format: "%.3f", Date().timeIntervalSince(startTime)))s)")
                 self.hideButton()
                 return

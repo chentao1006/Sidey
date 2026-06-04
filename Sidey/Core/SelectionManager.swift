@@ -4,7 +4,7 @@ import ApplicationServices
 class SelectionManager {
     static let shared = SelectionManager()
 
-    func getSelectedText(from app: NSRunningApplication? = nil) -> String? {
+    func getSelectedText(from app: NSRunningApplication? = nil, allowClipboardFallback: Bool = true) -> String? {
         let currentBundleID = ContextDetector.shared.currentBundleID
         let targetApp: NSRunningApplication?
 
@@ -52,6 +52,8 @@ class SelectionManager {
             // Try app element root (deep recursive, last AX resort)
             if let text = findSelectedText(in: appElement) { return text }
         }
+
+        guard allowClipboardFallback else { return nil }
 
         // 3. Cmd+C fallback — for apps that don't expose selection via AX
         //    (e.g. some Electron apps, games, remote desktop clients).

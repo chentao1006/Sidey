@@ -53,10 +53,15 @@ struct GeneralSettingsView: View {
     @AppStorage("windowOpacity") private var windowOpacity: Double = 1.0
     @AppStorage("sendBehavior") private var sendBehavior = "return"
     @AppStorage("menuBarIcon") private var menuBarIcon = "brain"
+    @AppStorage("assistantWindowType") private var assistantWindowType = "menuBarPopover"
     @AppStorage("isSelectionCaptureEnabled") private var isSelectionCaptureEnabled = true
     @ObservedObject private var dockingManager = DockingManager.shared
     @ObservedObject private var permissionManager = PermissionManager.shared
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    
+    private var usesRegularAssistantWindow: Bool {
+        assistantWindowType == "regularWindow"
+    }
     
     let menuBarIcons = [
         "none", "brain", "sparkles", "bolt.fill", "cpu", "circle.hexagongrid.fill", 
@@ -108,6 +113,16 @@ struct GeneralSettingsView: View {
                 }
                 .pickerStyle(.menu)
                 .onChangeCompatible(of: menuBarIcon) { _ in SyncManager.shared.syncToCloud() }
+                
+                Picker(L("Window Type"), selection: $assistantWindowType) {
+                    Text(L("Menu Bar Popover")).tag("menuBarPopover")
+                    Text(L("Regular Window")).tag("regularWindow")
+                }
+                .pickerStyle(.menu)
+                .onChangeCompatible(of: assistantWindowType) { _ in
+                    AppDelegate.shared.applyAssistantWindowTypePreference()
+                    SyncManager.shared.syncToCloud()
+                }
 
                 HStack {
                     Text(L("Window Opacity"))
@@ -178,6 +193,7 @@ struct GeneralSettingsView: View {
             } header: {
                 Text(L("Window Companion")).font(.headline)
             }
+            .disabled(!usesRegularAssistantWindow)
             
             Section {
                 Picker(L("Send Behavior"), selection: $sendBehavior) {
@@ -444,7 +460,7 @@ struct PromptSettingsView: View {
                     Section {
                         TextEditor(text: $store.allPrompts[index].system)
                             .font(.system(.body, design: .monospaced))
-                            .frame(height: 140)
+                            .frame(height: 100)
                             .padding(.horizontal, 4)
                             .padding(.vertical, 8)
                             .background(Color(NSColor.textBackgroundColor))
@@ -692,6 +708,11 @@ struct DataSettingsView: View {
     @State private var importSuccess = false
     @State private var exportSuccess = false
     @AppStorage("appLanguage") private var appLanguage = "system"
+    private let logDisplayLimit = 100
+    
+    private var displayedLogs: [LogEntry] {
+        Array(logger.logs.prefix(logDisplayLimit))
+    }
     
     var body: some View {
         Form {
@@ -735,7 +756,14 @@ struct DataSettingsView: View {
                             if logger.logs.isEmpty {
                                 Text(L("No logs available.")).foregroundColor(.secondary).italic().frame(maxWidth: .infinity, alignment: .center).padding(.top, 80)
                             } else {
-                                ForEach(logger.logs) { entry in
+                                if logger.logs.count > logDisplayLimit {
+                                    Text(String(format: L("Showing latest %d of %d logs."), logDisplayLimit, logger.logs.count))
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .padding(.bottom, 4)
+                                }
+                                
+                                ForEach(displayedLogs) { entry in
                                     VStack(alignment: .leading, spacing: 2) {
                                         HStack {
                                             Text(entry.timestamp, style: .time).font(.system(.caption2, design: .monospaced)).foregroundColor(.secondary)
