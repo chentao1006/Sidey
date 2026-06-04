@@ -38,14 +38,21 @@ extension Bundle {
 
 func L(_ key: String) -> String {
     let appLang = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
-    let target: String
-    
-    if appLang == "system" {
-        let preferred = Locale.preferredLanguages.first?.lowercased() ?? "en"
-        target = preferred.hasPrefix("zh") ? "zh-Hans" : "en"
-    } else {
-        target = appLang.hasPrefix("zh") ? "zh-Hans" : "en"
+    let supportedLanguages = ["en", "zh-Hans", "ja", "ko", "de", "fr", "es", "it"]
+
+    func normalizedLanguage(_ identifier: String) -> String {
+        let lowercased = identifier.lowercased()
+        if lowercased.hasPrefix("zh") { return "zh-Hans" }
+        if lowercased.hasPrefix("ja") { return "ja" }
+        if lowercased.hasPrefix("ko") { return "ko" }
+        if lowercased.hasPrefix("de") { return "de" }
+        if lowercased.hasPrefix("fr") { return "fr" }
+        if lowercased.hasPrefix("es") { return "es" }
+        if lowercased.hasPrefix("it") { return "it" }
+        return "en"
     }
+    
+    let target = appLang == "system" ? normalizedLanguage(Locale.preferredLanguages.first ?? "en") : (supportedLanguages.contains(appLang) ? appLang : normalizedLanguage(appLang))
     
     // Aggressively find the specific .lproj bundle
     func findSpecificBundle() -> Bundle {

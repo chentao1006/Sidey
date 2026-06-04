@@ -62,6 +62,20 @@ struct GeneralSettingsView: View {
     private var usesRegularAssistantWindow: Bool {
         assistantWindowType == "regularWindow"
     }
+
+    private var systemDefaultLanguageTitle: String {
+        localizedLanguageOption("System Default", for: systemPreferredLanguageIdentifier)
+    }
+
+    private var systemLanguageTitle: String {
+        localizedLanguageOption("Language", for: systemPreferredLanguageIdentifier)
+    }
+
+    private var systemPreferredLanguageIdentifier: String {
+        let globalLanguages = UserDefaults.standard
+            .persistentDomain(forName: UserDefaults.globalDomain)?["AppleLanguages"] as? [String]
+        return globalLanguages?.first ?? "en"
+    }
     
     let menuBarIcons = [
         "none", "brain", "sparkles", "bolt.fill", "cpu", "circle.hexagongrid.fill", 
@@ -71,7 +85,7 @@ struct GeneralSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Picker(L("Language"), selection: Binding(
+                Picker(systemLanguageTitle, selection: Binding(
                     get: { appLanguage },
                     set: { newValue in
                         if newValue == "system" {
@@ -82,9 +96,15 @@ struct GeneralSettingsView: View {
                         appLanguage = newValue
                     }
                 )) {
-                    Text(L("System Default")).tag("system")
+                    Text(systemDefaultLanguageTitle).tag("system")
                     Text(L("English")).tag("en")
                     Text(L("简体中文")).tag("zh-Hans")
+                    Text(L("日本語")).tag("ja")
+                    Text(L("한국어")).tag("ko")
+                    Text(L("Deutsch")).tag("de")
+                    Text(L("Français")).tag("fr")
+                    Text(L("Español")).tag("es")
+                    Text(L("Italiano")).tag("it")
                 }
                 .pickerStyle(.menu)
                 .help(L("Restart or reopen windows to apply language changes."))
@@ -239,11 +259,67 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
     }
+
+    private func localizedLanguageOption(_ key: String, for languageIdentifier: String) -> String {
+        let languageCode = normalizedLanguageIdentifier(languageIdentifier)
+        let bundle = Bundle.sideyModule
+        if let path = bundle.path(forResource: languageCode, ofType: "lproj"),
+           let languageBundle = Bundle(path: path) {
+            return languageBundle.localizedString(forKey: key, value: key, table: nil)
+        }
+        return key
+    }
+
+    private func normalizedLanguageIdentifier(_ identifier: String) -> String {
+        let lowercased = identifier.lowercased()
+        if lowercased.hasPrefix("zh") { return "zh-Hans" }
+        if lowercased.hasPrefix("ja") { return "ja" }
+        if lowercased.hasPrefix("ko") { return "ko" }
+        if lowercased.hasPrefix("de") { return "de" }
+        if lowercased.hasPrefix("fr") { return "fr" }
+        if lowercased.hasPrefix("es") { return "es" }
+        if lowercased.hasPrefix("it") { return "it" }
+        return "en"
+    }
 }
 
 struct APISettingsView: View {
+    private struct ProviderPreset: Identifiable, Equatable {
+        let id: String
+        let name: String
+        let apiFormat: String
+        let baseURL: String
+        let defaultModel: String
+    }
+
+    private static let customProviderID = "custom"
+    private static let apiFormatOptions = [
+        ("openai", "OpenAI Chat Completions"),
+        ("anthropic", "Anthropic Messages"),
+        ("gemini", "Google Gemini Native"),
+        ("ollama", "Ollama Native")
+    ]
+    private static let providerPresets: [ProviderPreset] = [
+        ProviderPreset(id: "openai", name: "OpenAI", apiFormat: "openai", baseURL: "https://api.openai.com/v1", defaultModel: "gpt-4o-mini"),
+        ProviderPreset(id: "anthropic", name: "Anthropic Claude", apiFormat: "anthropic", baseURL: "https://api.anthropic.com", defaultModel: "claude-sonnet-4-20250514"),
+        ProviderPreset(id: "google", name: "Google Gemini", apiFormat: "gemini", baseURL: "https://generativelanguage.googleapis.com/v1beta", defaultModel: "gemini-2.5-flash"),
+        ProviderPreset(id: "ollama", name: "Ollama (Local)", apiFormat: "ollama", baseURL: "http://localhost:11434", defaultModel: "llama3.2"),
+        ProviderPreset(id: "deepseek", name: "DeepSeek", apiFormat: "openai", baseURL: "https://api.deepseek.com", defaultModel: "deepseek-chat"),
+        ProviderPreset(id: "dashscope", name: "Alibaba Cloud Bailian (Qwen)", apiFormat: "openai", baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1", defaultModel: "qwen3.5-plus"),
+        ProviderPreset(id: "kimi", name: "Moonshot Kimi", apiFormat: "openai", baseURL: "https://api.moonshot.ai/v1", defaultModel: "kimi-k2.5"),
+        ProviderPreset(id: "siliconflow", name: "SiliconFlow", apiFormat: "openai", baseURL: "https://api.siliconflow.com/v1", defaultModel: "Qwen/Qwen3-235B-A22B"),
+        ProviderPreset(id: "openrouter", name: "OpenRouter", apiFormat: "openai", baseURL: "https://openrouter.ai/api/v1", defaultModel: "openrouter/auto"),
+        ProviderPreset(id: "groq", name: "Groq", apiFormat: "openai", baseURL: "https://api.groq.com/openai/v1", defaultModel: "llama-3.3-70b-versatile"),
+        ProviderPreset(id: "mistral", name: "Mistral AI", apiFormat: "openai", baseURL: "https://api.mistral.ai/v1", defaultModel: "mistral-small-latest"),
+        ProviderPreset(id: "together", name: "Together AI", apiFormat: "openai", baseURL: "https://api.together.ai/v1", defaultModel: "openai/gpt-oss-20b"),
+        ProviderPreset(id: "xai", name: "xAI", apiFormat: "openai", baseURL: "https://api.x.ai/v1", defaultModel: "grok-4.3"),
+        ProviderPreset(id: "zhipu", name: "Zhipu AI", apiFormat: "openai", baseURL: "https://open.bigmodel.cn/api/paas/v4", defaultModel: "glm-4.5")
+    ]
+
     @StateObject private var client = LLMClient()
     @AppStorage("usePublicService") private var usePublicService = true
+    @AppStorage("openAI_Provider") private var provider = "openai"
+    @AppStorage("openAI_APIFormat") private var apiFormat = "openai"
     @AppStorage("openAI_APIKey") private var apiKey = ""
     @AppStorage("openAI_BaseURL") private var baseURL = "https://api.openai.com/v1"
     @AppStorage("openAI_Model") private var model = "gpt-4o-mini"
@@ -251,13 +327,14 @@ struct APISettingsView: View {
     
     @State private var testResult: String?
     @State private var isTesting = false
+    @State private var isApplyingProviderPreset = false
     
     var body: some View {
         Form {
             Section {
                 Picker(L("AI Service"), selection: $usePublicService) {
                     Text(L("Public Service (Limited)")).tag(true)
-                    Text(L("Custom (OpenAI Compatible)")).tag(false)
+                    Text(L("Custom API")).tag(false)
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
@@ -279,22 +356,49 @@ struct APISettingsView: View {
 
             if !usePublicService {
                 Section {
+                    Picker(L("Provider"), selection: $provider) {
+                        ForEach(Self.providerPresets) { preset in
+                            Text(preset.name).tag(preset.id)
+                        }
+                        Divider()
+                        Text(L("Custom Provider")).tag(Self.customProviderID)
+                    }
+                    .pickerStyle(.menu)
+                    .help(L("Choose a common provider preset."))
+                    .onChangeCompatible(of: provider) { newValue in
+                        applyProviderPreset(newValue)
+                        SyncManager.shared.syncToCloud()
+                    }
+
+                    Picker(L("API Format"), selection: $apiFormat) {
+                        ForEach(Self.apiFormatOptions, id: \.0) { option in
+                            Text(option.1).tag(option.0)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .help(L("Choose the wire protocol used by this service."))
+                    .onChangeCompatible(of: apiFormat) { _ in
+                        markProviderAsCustomIfNeeded()
+                        SyncManager.shared.syncToCloud()
+                    }
+
                     TextField(L("Base URL"), text: $baseURL)
                         .textFieldStyle(.roundedBorder)
                         .help(L("Default: https://api.openai.com/v1"))
                         .onChangeCompatible(of: baseURL) { newValue in
                             if newValue.isEmpty {
-                                baseURL = "https://"
+                                baseURL = apiFormat == "ollama" ? "http://" : "https://"
                             }
+                            markProviderAsCustomIfNeeded()
                             SyncManager.shared.syncToCloud()
                         }
 
                     VStack(alignment: .leading, spacing: 4) {
                         SecureField(L("API Key"), text: $apiKey)
                             .textFieldStyle(.roundedBorder)
-                            .help(L("Enter your OpenAI or compatible API key."))
+                            .help(L("Enter the API key for this service."))
                             .onChangeCompatible(of: apiKey) { _ in SyncManager.shared.syncToCloud() }
-                        if apiKey.isEmpty {
+                        if apiKey.isEmpty && apiFormat != "ollama" {
                             Text(L("⚠️ You need to provide an API key to use the assistant."))
                                 .foregroundColor(.red)
                                 .font(.caption)
@@ -304,7 +408,10 @@ struct APISettingsView: View {
                     TextField(L("Model"), text: $model)
                         .textFieldStyle(.roundedBorder)
                         .help(L("Default: gpt-4o-mini"))
-                        .onChangeCompatible(of: model) { _ in SyncManager.shared.syncToCloud() }
+                        .onChangeCompatible(of: model) { _ in
+                            markProviderAsCustomIfNeeded()
+                            SyncManager.shared.syncToCloud()
+                        }
                     
                     HStack {
                         Button(action: testConnection) {
@@ -315,7 +422,7 @@ struct APISettingsView: View {
                             }
                             Text(L("Test Connection"))
                         }
-                        .disabled(isTesting || apiKey.isEmpty)
+                        .disabled(isTesting || (apiKey.isEmpty && apiFormat != "ollama"))
                         
                         if let result = testResult {
                             Text(result)
@@ -326,7 +433,7 @@ struct APISettingsView: View {
                     }
                     .padding(.top, 4)
                 } header: {
-                    Text(L("Custom OpenAI Settings")).font(.headline)
+                    Text(L("Custom API Settings")).font(.headline)
                 }
             } else {
                 Section {
@@ -354,6 +461,31 @@ struct APISettingsView: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private func applyProviderPreset(_ providerID: String) {
+        guard let preset = Self.providerPresets.first(where: { $0.id == providerID }) else {
+            return
+        }
+        isApplyingProviderPreset = true
+        apiFormat = preset.apiFormat
+        baseURL = preset.baseURL
+        model = preset.defaultModel
+        DispatchQueue.main.async {
+            isApplyingProviderPreset = false
+        }
+    }
+
+    private func markProviderAsCustomIfNeeded() {
+        guard !isApplyingProviderPreset else { return }
+        guard provider != Self.customProviderID else { return }
+        guard let preset = Self.providerPresets.first(where: { $0.id == provider }) else {
+            provider = Self.customProviderID
+            return
+        }
+        if apiFormat != preset.apiFormat || baseURL != preset.baseURL || model != preset.defaultModel {
+            provider = Self.customProviderID
+        }
     }
     
     private func testConnection() {
@@ -974,7 +1106,7 @@ struct AutoCreatePromptsSheet: View {
         isGenerating = true; errorMessage = nil; suggestions = []
         let appDescriptions = activeApps.map { "\($0.name) (\($0.bundleID))" }.joined(separator: ", ")
         let appLang = UserDefaults.standard.string(forKey: "appLanguage") ?? "system"
-        let lang = (appLang == "system" ? (Locale.preferredLanguages.first?.lowercased().hasPrefix("zh") == true ? "Chinese" : "English") : (appLang.hasPrefix("zh") ? "Chinese" : "English"))
+        let lang = Self.promptLanguageName(for: appLang)
         let systemPrompt = """
 Objective: Design 2-3 professional AI assistant personas specifically for the provided applications.
 CRITICAL: ALL OUTPUT (NAMES AND SYSTEM INSTRUCTIONS) MUST BE IN \(lang.uppercased()).
@@ -1007,5 +1139,18 @@ STRICT RULES:
             }
             suggestions = raw.map { PromptSuggestion(name: $0.name, system: $0.system) }; isGenerating = false
         }
+    }
+
+    private static func promptLanguageName(for appLang: String) -> String {
+        let identifier = appLang == "system" ? (Locale.preferredLanguages.first ?? "en") : appLang
+        let lowercased = identifier.lowercased()
+        if lowercased.hasPrefix("zh") { return "Chinese" }
+        if lowercased.hasPrefix("ja") { return "Japanese" }
+        if lowercased.hasPrefix("ko") { return "Korean" }
+        if lowercased.hasPrefix("de") { return "German" }
+        if lowercased.hasPrefix("fr") { return "French" }
+        if lowercased.hasPrefix("es") { return "Spanish" }
+        if lowercased.hasPrefix("it") { return "Italian" }
+        return "English"
     }
 }

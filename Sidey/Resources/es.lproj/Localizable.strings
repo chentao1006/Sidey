@@ -1,97 +1,97 @@
 /* App Info */
 "Sidey" = "Sidey";
-"Version" = "Version";
-"A lightweight, context-aware AI assistant for macOS." = "A lightweight, context-aware AI assistant for macOS.";
+"Version" = "Versión";
+"A lightweight, context-aware AI assistant for macOS." = "Un asistente de IA ligero y contextual para macOS.";
 "© 2026 chentao1006" = "© 2026 chentao1006";
 
 /* Navigation & Tabs */
 "General" = "General";
-"API" = "Service";
-"AI Service" = "Service";
-"Prompts" = "Assistants";
-"Data" = "Data";
-"About" = "About";
-"Settings" = "Settings";
-"Settings..." = "Settings...";
+"API" = "Servicio";
+"AI Service" = "Servicio";
+"Prompts" = "Asistentes";
+"Data" = "Datos";
+"About" = "Acerca de";
+"Settings" = "Ajustes";
+"Settings..." = "Ajustes...";
 
 /* Appearance */
-"Appearance" = "Appearance";
+"Appearance" = "Apariencia";
 "Appearance & Behavior" = "Appearance & Behavior";
-"Always on top" = "Always on top";
+"Always on top" = "Siempre visible";
 "Keep the Assistant window above all other windows." = "Keep the Assistant window above all other windows.";
-"Window Opacity" = "Window Opacity";
+"Window Opacity" = "Opacidad de la ventana";
 "Pin Window" = "Pin Window";
 "Unpin Window" = "Unpin Window";
-"Menu Bar Icon" = "Menu Bar Icon";
+"Menu Bar Icon" = "Icono de la barra de menús";
 "Show application in Dock" = "Show application in Dock";
 "If disabled, the app will only appear in the menu bar." = "If disabled, the app will only appear in the menu bar.";
 "Hide Dock Icon" = "Hide Dock Icon";
 "Show Dock Icon" = "Show Dock Icon";
 
 /* Behavior */
-"Behavior" = "Behavior";
-"Send Behavior" = "Send Behavior";
+"Behavior" = "Comportamiento";
+"Send Behavior" = "Modo de envío";
 "Return to Send, ⇧+Return to Newline" = "Return to Send, ⇧+Return to Newline";
 "⌘+Return to Send, Return to Newline" = "⌘+Return to Send, Return to Newline";
-"Launch at Login" = "Launch at Login";
+"Launch at Login" = "Abrir al iniciar sesión";
 "Start the app automatically when you log in." = "Start the app automatically when you log in.";
 
 /* Shortcuts */
-"Shortcuts" = "Shortcuts";
-"Global Shortcut:" = "Global Shortcut:";
+"Shortcuts" = "Atajos";
+"Global Shortcut:" = "Atajo global:";
 "Brings the Assistant Window to the front globally." = "Brings the Assistant Window to the front globally.";
-"Recording..." = "Recording...";
+"Recording..." = "Grabando...";
 
 /* AI Service / OpenAI */
 "OpenAI Settings" = "OpenAI Settings";
 "Custom OpenAI Settings" = "Custom OpenAI Settings";
 "OpenAI-Compatible Settings" = "OpenAI-Compatible Settings";
-"Custom API Settings" = "Custom API Settings";
-"Public Service Settings" = "Public Service Settings";
-"Provider" = "Provider";
-"API Format" = "API Format";
-"Custom Provider" = "Custom Provider";
+"Custom API Settings" = "Ajustes de API personalizada";
+"Public Service Settings" = "Ajustes del servicio público";
+"Provider" = "Proveedor";
+"API Format" = "Formato de API";
+"Custom Provider" = "Proveedor personalizado";
 "Choose a common OpenAI-compatible provider preset." = "Choose a common OpenAI-compatible provider preset.";
-"Choose a common provider preset." = "Choose a common provider preset.";
-"Choose the wire protocol used by this service." = "Choose the wire protocol used by this service.";
-"Custom API" = "Custom API";
-"API Key" = "API Key";
+"Choose a common provider preset." = "Elige un preajuste de proveedor común.";
+"Choose the wire protocol used by this service." = "Elige el protocolo usado por este servicio.";
+"Custom API" = "API personalizada";
+"API Key" = "Clave API";
 "Enter your OpenAI or compatible API key." = "Enter your OpenAI or compatible API key.";
-"Enter the API key for this service." = "Enter the API key for this service.";
-"Base URL" = "Base URL";
+"Enter the API key for this service." = "Introduce la clave API de este servicio.";
+"Base URL" = "URL base";
 "Default: https://api.openai.com/v1" = "Default: https://api.openai.com/v1";
-"Model" = "Model";
-"Service Mode" = "Service Mode";
-"Public Service (Limited)" = "Public Service (Limited)";
+"Model" = "Modelo";
+"Service Mode" = "Modo de servicio";
+"Public Service (Limited)" = "Servicio público (limitado)";
 "Custom (OpenAI Compatible)" = "Custom (OpenAI Compatible)";
 "Public service has rate limits and daily total limits. Use your own API for unrestricted access." = "Public service has rate limits and daily total limits. Use your own API for unrestricted access.";
 "⚠️ You need to provide an API key to use the assistant." = "⚠️ You need to provide an API key to use the assistant.";
-"Test Connection" = "Test Connection";
-"Connection Successful" = "Connection Successful";
+"Test Connection" = "Probar conexión";
+"Connection Successful" = "Conexión correcta";
 
 /* Assistants / Prompts */
 "Prompt Identity" = "Assistant Identity";
-"Name" = "Name";
-"System Prompt" = "System Instruction";
+"Name" = "Nombre";
+"System Prompt" = "Instrucción del sistema";
 "System:" = "System:";
-"Matched Apps" = "Matched Apps";
+"Matched Apps" = "Apps asignadas";
 "All Apps (*)" = "All Apps (*)";
 "Match All (*)" = "Match All (*)";
 "Add App..." = "Add App...";
 "App" = "App";
 "Select a prompt to edit" = "Select an assistant to edit";
-"Edit Assistant" = "Edit Assistant";
+"Edit Assistant" = "Editar asistente";
 "Edit Prompt" = "Edit Assistant";
-"New Prompt" = "New Assistant";
-"Delete Prompt?" = "Delete Assistant?";
+"New Prompt" = "Nuevo asistente";
+"Delete Prompt?" = "¿Eliminar asistente?";
 "Are you sure you want to delete this prompt? This action cannot be undone." = "Are you sure you want to delete this assistant? This action cannot be undone.";
-"Available Prompts" = "Available Assistants";
+"Available Prompts" = "Asistentes disponibles";
 "No prompts available for this app. Please check prompts.json or select an app with configured prompts." = "No assistants available for this app.";
 "Assign Existing Prompt:" = "Assign Existing Assistant:";
-"Create New..." = "Create New...";
-"Auto Create Assistants" = "Auto Create Assistants";
+"Create New..." = "Crear...";
+"Auto Create Assistants" = "Crear asistentes automáticamente";
 "AI is generating assistant suggestions..." = "AI is generating assistant suggestions...";
-"Add Selected" = "Add Selected";
+"Add Selected" = "Añadir selección";
 "selected" = "selected";
 "Failed to parse AI response. Please try again." = "Failed to parse AI response. Please try again.";
 "Please select applications first." = "Please select applications first.";
@@ -104,28 +104,28 @@
 "Normal" = "Normal";
 
 /* Chat / Conversation */
-"Ask AI..." = "Ask anything...";
-"Send" = "Send";
-"AI Response" = "Response";
+"Ask AI..." = "Preguntar a la IA...";
+"Send" = "Enviar";
+"AI Response" = "Respuesta";
 "Output will appear here..." = "Output will appear here...";
-"Thinking..." = "Thinking...";
-"Stop" = "Stop";
+"Thinking..." = "Pensando...";
+"Stop" = "Detener";
 " (Thinking...)" = " (Thinking...)";
 " (New Answer)" = " (New Answer)";
 "Response Completed" = "Response Completed";
-"Retry" = "Retry";
-"Regenerate" = "Regenerate";
-"Copy" = "Copy";
+"Retry" = "Reintentar";
+"Regenerate" = "Regenerar";
+"Copy" = "Copiar";
 "Copy Line" = "Copy Line";
 "Copy and back to App" = "Copy and back to App";
-"Copied!" = "Copied!";
-"Preview" = "Preview";
-"Edit" = "Edit";
-"Undo" = "Undo";
+"Copied!" = "¡Copiado!";
+"Preview" = "Vista previa";
+"Edit" = "Editar";
+"Undo" = "Deshacer";
 "Clear Input" = "Clear Input";
-"Delete" = "Delete";
-"Cancel" = "Cancel";
-"None" = "None";
+"Delete" = "Eliminar";
+"Cancel" = "Cancelar";
+"None" = "Ninguno";
 "Back to %@" = "Back to %@";
 "Send back to App" = "Send to App";
 "Click to expand" = "Click to expand";
@@ -151,25 +151,19 @@
 "Clear Clipboard Preview" = "Clear Clipboard Preview";
 
 /* Language */
-"Language" = "Language";
-"System Default" = "System Default";
+"Language" = "Idioma";
+"System Default" = "Predeterminado del sistema";
 "English" = "English";
 "简体中文" = "简体中文";
-"日本語" = "日本語";
-"한국어" = "한국어";
-"Deutsch" = "Deutsch";
-"Français" = "Français";
-"Español" = "Español";
-"Italiano" = "Italiano";
 "Restart or reopen windows to apply language changes." = "Restart or reopen windows to apply language changes.";
 
 /* Data / Sync */
-"Backup & Restore" = "Backup & Restore";
-"Export Backup..." = "Export Backup...";
-"Import Backup..." = "Import Backup...";
-"Exported!" = "Exported!";
-"Imported!" = "Imported!";
-"iCloud Sync" = "iCloud Sync";
+"Backup & Restore" = "Copia de seguridad y restauración";
+"Export Backup..." = "Exportar copia...";
+"Import Backup..." = "Importar copia...";
+"Exported!" = "Exportado";
+"Imported!" = "Importado";
+"iCloud Sync" = "Sincronización con iCloud";
 "Enable iCloud Sync" = "Enable iCloud Sync";
 "Sync to iCloud Now" = "Sync to iCloud Now";
 "Load from iCloud" = "Load from iCloud";
@@ -187,13 +181,13 @@
 
 /* Updates */
 "Check for Updates..." = "Check for Updates...";
-"Check for Updates" = "Check for Updates";
+"Check for Updates" = "Buscar actualizaciones";
 "Updater.Checking" = "Checking for updates...";
 "Updater.NoUpdate" = "You're up to date!";
 "Updater.UpdateFound" = "A new version is available!";
 
 /* Debug */
-"Debug Logs" = "Debug Logs";
+"Debug Logs" = "Registros de depuración";
 "Clear Logs" = "Clear Logs";
 "No logs available." = "No logs available.";
 "Showing latest %d of %d logs." = "Showing latest %d of %d logs.";
@@ -212,40 +206,40 @@
 
 /* Menu / Status */
 "Assistants for %@:" = "Assistants for %@:";
-"Show Assistant" = "Open Sidey";
-"Quit" = "Quit";
+"Show Assistant" = "Abrir Sidey";
+"Quit" = "Salir";
 "Quit Sidey" = "Quit Sidey";
-"Window Type" = "Window Type";
-"Menu Bar Popover" = "Menu Bar Popover";
-"Regular Window" = "Regular Window";
+"Window Type" = "Tipo de ventana";
+"Menu Bar Popover" = "Ventana de barra de menús";
+"Regular Window" = "Ventana normal";
 "Switch to Menu Bar Popover" = "Switch to Menu Bar Popover";
 "Switch to Regular Window" = "Switch to Regular Window";
 
 /* Attachments */
-"Clipboard" = "Clipboard";
+"Clipboard" = "Portapapeles";
 
 /* Window Companion & Docking */
-"Window Companion" = "Window Companion";
+"Window Companion" = "Asistente de ventana";
 "Window Docking" = "Window Docking";
 "Attach the assistant to the side of the active application window." = "Attach the assistant to the side of the active application window.";
 "Show Window Icon" = "Show Window Icon";
 "Show a small floating icon next to the active application window." = "Show a small floating icon next to the active application window.";
 "Docking Position" = "Docking Position";
-"Right" = "Right";
-"Left" = "Left";
+"Right" = "Derecha";
+"Left" = "Izquierda";
 "Auto" = "Auto";
 "Enable Docking" = "Enable Docking";
 "Disable Docking" = "Disable Docking";
 
 /* Permissions */
-"Permissions" = "Permissions";
+"Permissions" = "Permisos";
 "Quick Selection Capture" = "Quick Selection Assistant";
 "Show a floating button when text is selected in other apps." = "Show a floating button when text is selected in other apps to quickly get context.";
-"Accessibility Permission" = "Quick Selection Access (Accessibility)";
-"Authorized" = "Authorized";
-"Authorize..." = "Authorize...";
+"Accessibility Permission" = "Permiso de accesibilidad";
+"Authorized" = "Autorizado";
+"Authorize..." = "Autorizar...";
 "Required for capturing text selection and global shortcuts. If authorized but not working, try toggling the switch in System Settings." = "Enables the Quick Selection capture feature. If authorized but not working, try toggling the switch in System Settings.";
-"Selection" = "Selection";
+"Selection" = "Selección";
 "Clipboard Fallback (Cmd+C)" = "Clipboard Fallback (Cmd+C)";
 "When accessibility methods fail, simulate Cmd+C to capture the selection. Useful for apps like VSCode. The clipboard is automatically restored afterwards." = "When accessibility methods fail, simulate Cmd+C to capture the selection. Useful for apps like VSCode. The clipboard is automatically restored afterwards.";
 
@@ -258,9 +252,9 @@
 "1. Click the button below to open System Settings." = "1. Click the button below to open System Settings.";
 "2. Find 'Sidey' in the Accessibility list." = "2. Find 'Sidey' in the Accessibility list.";
 "3. Toggle the switch to ON." = "3. Toggle the switch to ON.";
-"Open System Settings" = "Open System Settings";
+"Open System Settings" = "Abrir Ajustes del Sistema";
 
 /* Discovery */
 "Enable Selection Support" = "Quick Selection is here";
 "Get AI context by selecting text in any app." = "Enable permissions to chat with AI by simply selecting text—no more pasting required.";
-"Enable Now" = "Enable Now";
+"Enable Now" = "Activar ahora";

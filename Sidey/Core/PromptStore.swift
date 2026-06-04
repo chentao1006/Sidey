@@ -100,7 +100,7 @@ class PromptStore: ObservableObject {
     }
     
     private var settingsKeys: [String] {
-        ["openAI_APIKey", "openAI_BaseURL", "openAI_Model", "alwaysOnTop", "showDockIcon", "windowOpacity", "sendBehavior", "appLanguage", "hotKeyKeyCode", "hotKeyModifiers", "menuBarIcon", "assistantWindowType"]
+        ["openAI_Provider", "openAI_APIFormat", "openAI_APIKey", "openAI_BaseURL", "openAI_Model", "alwaysOnTop", "showDockIcon", "windowOpacity", "sendBehavior", "appLanguage", "hotKeyKeyCode", "hotKeyModifiers", "menuBarIcon", "assistantWindowType"]
     }
     
     func loadPrompts() {

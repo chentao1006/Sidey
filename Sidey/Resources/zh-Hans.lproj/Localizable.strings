@@ -45,9 +45,19 @@
 /* AI Service / OpenAI */
 "OpenAI Settings" = "OpenAI 设置";
 "Custom OpenAI Settings" = "自定义 OpenAI 设置";
+"OpenAI-Compatible Settings" = "OpenAI 兼容接口设置";
+"Custom API Settings" = "自定义 API 设置";
 "Public Service Settings" = "公共服务设置";
+"Provider" = "服务商";
+"API Format" = "接口格式";
+"Custom Provider" = "自定义服务商";
+"Choose a common OpenAI-compatible provider preset." = "选择常用的 OpenAI 兼容服务商预设。";
+"Choose a common provider preset." = "选择常用服务商预设。";
+"Choose the wire protocol used by this service." = "选择该服务使用的接口协议。";
+"Custom API" = "自定义 API";
 "API Key" = "API 密钥";
 "Enter your OpenAI or compatible API key." = "输入您的 OpenAI 或兼容的 API 密钥。";
+"Enter the API key for this service." = "输入该服务的 API 密钥。";
 "Base URL" = "接口地址 (Base URL)";
 "Default: https://api.openai.com/v1" = "默认: https://api.openai.com/v1";
 "Model" = "模型";
@@ -145,6 +155,12 @@
 "System Default" = "跟随系统";
 "English" = "English";
 "简体中文" = "简体中文";
+"日本語" = "日本語";
+"한국어" = "한국어";
+"Deutsch" = "Deutsch";
+"Français" = "Français";
+"Español" = "Español";
+"Italiano" = "Italiano";
 "Restart or reopen windows to apply language changes." = "重新启动或重新开启窗口以应用语言更改。";
 
 /* Data / Sync */

@@ -1,0 +1,260 @@
+/* App Info */
+"Sidey" = "Sidey";
+"Version" = "バージョン";
+"A lightweight, context-aware AI assistant for macOS." = "macOS向けの軽量なコンテキスト対応AIアシスタント。";
+"© 2026 chentao1006" = "© 2026 chentao1006";
+
+/* Navigation & Tabs */
+"General" = "一般";
+"API" = "サービス";
+"AI Service" = "サービス";
+"Prompts" = "アシスタント";
+"Data" = "データ";
+"About" = "情報";
+"Settings" = "設定";
+"Settings..." = "設定...";
+
+/* Appearance */
+"Appearance" = "外観";
+"Appearance & Behavior" = "外観と動作";
+"Always on top" = "常に前面に表示";
+"Keep the Assistant window above all other windows." = "アシスタントウィンドウを他のすべてのウィンドウより前面に保ちます。";
+"Window Opacity" = "ウィンドウの不透明度";
+"Pin Window" = "ウィンドウを固定";
+"Unpin Window" = "固定を解除";
+"Menu Bar Icon" = "メニューバーアイコン";
+"Show application in Dock" = "Show application in Dock";
+"If disabled, the app will only appear in the menu bar." = "If disabled, the app will only appear in the menu bar.";
+"Hide Dock Icon" = "Hide Dock Icon";
+"Show Dock Icon" = "Show Dock Icon";
+
+/* Behavior */
+"Behavior" = "動作";
+"Send Behavior" = "送信方法";
+"Return to Send, ⇧+Return to Newline" = "Returnで送信、⇧+Returnで改行";
+"⌘+Return to Send, Return to Newline" = "⌘+Returnで送信、Returnで改行";
+"Launch at Login" = "ログイン時に起動";
+"Start the app automatically when you log in." = "ログイン時にアプリを自動的に起動します。";
+
+/* Shortcuts */
+"Shortcuts" = "ショートカット";
+"Global Shortcut:" = "グローバルショートカット:";
+"Brings the Assistant Window to the front globally." = "アシスタントウィンドウをグローバルに前面へ表示します。";
+"Recording..." = "記録中...";
+
+/* AI Service / OpenAI */
+"OpenAI Settings" = "OpenAI Settings";
+"Custom OpenAI Settings" = "Custom OpenAI Settings";
+"OpenAI-Compatible Settings" = "OpenAI-Compatible Settings";
+"Custom API Settings" = "カスタムAPI設定";
+"Public Service Settings" = "公開サービス設定";
+"Provider" = "プロバイダー";
+"API Format" = "API形式";
+"Custom Provider" = "カスタムプロバイダー";
+"Choose a common OpenAI-compatible provider preset." = "Choose a common OpenAI-compatible provider preset.";
+"Choose a common provider preset." = "一般的なプロバイダープリセットを選択します。";
+"Choose the wire protocol used by this service." = "このサービスで使用する通信プロトコルを選択します。";
+"Custom API" = "カスタムAPI";
+"API Key" = "APIキー";
+"Enter your OpenAI or compatible API key." = "Enter your OpenAI or compatible API key.";
+"Enter the API key for this service." = "このサービスのAPIキーを入力します。";
+"Base URL" = "Base URL";
+"Default: https://api.openai.com/v1" = "Default: https://api.openai.com/v1";
+"Model" = "モデル";
+"Service Mode" = "サービスモード";
+"Public Service (Limited)" = "公開サービス（制限あり）";
+"Custom (OpenAI Compatible)" = "Custom (OpenAI Compatible)";
+"Public service has rate limits and daily total limits. Use your own API for unrestricted access." = "公開サービスにはレート制限と1日の総量制限があります。無制限に利用するには独自のAPIを設定してください。";
+"⚠️ You need to provide an API key to use the assistant." = "⚠️ アシスタントを使用するにはAPIキーが必要です。";
+"Test Connection" = "接続をテスト";
+"Connection Successful" = "接続に成功しました";
+
+/* Assistants / Prompts */
+"Prompt Identity" = "アシスタントID";
+"Name" = "名前";
+"System Prompt" = "システム指示";
+"System:" = "System:";
+"Matched Apps" = "対象アプリ";
+"All Apps (*)" = "すべてのアプリ (*)";
+"Match All (*)" = "Match All (*)";
+"Add App..." = "アプリを追加...";
+"App" = "アプリ";
+"Select a prompt to edit" = "編集するアシスタントを選択";
+"Edit Assistant" = "アシスタントを編集";
+"Edit Prompt" = "Edit Assistant";
+"New Prompt" = "新規アシスタント";
+"Delete Prompt?" = "アシスタントを削除しますか？";
+"Are you sure you want to delete this prompt? This action cannot be undone." = "Are you sure you want to delete this assistant? This action cannot be undone.";
+"Available Prompts" = "利用可能なアシスタント";
+"No prompts available for this app. Please check prompts.json or select an app with configured prompts." = "No assistants available for this app.";
+"Assign Existing Prompt:" = "Assign Existing Assistant:";
+"Create New..." = "新規作成...";
+"Auto Create Assistants" = "アシスタントを自動作成";
+"AI is generating assistant suggestions..." = "AIがアシスタント候補を生成しています...";
+"Add Selected" = "選択項目を追加";
+"selected" = "選択済み";
+"Failed to parse AI response. Please try again." = "AI応答の解析に失敗しました。もう一度お試しください。";
+"Please select applications first." = "先にアプリケーションを選択してください。";
+"No apps selected. Please choose apps first." = "No apps selected. Please choose apps first.";
+"Pick Apps..." = "アプリを選択...";
+"Add..." = "Add...";
+"Auto Create..." = "自動作成...";
+"Serious" = "真面目";
+"Lively" = "活発";
+"Normal" = "通常";
+
+/* Chat / Conversation */
+"Ask AI..." = "AIに質問...";
+"Send" = "送信";
+"AI Response" = "応答";
+"Output will appear here..." = "出力はここに表示されます...";
+"Thinking..." = "考え中...";
+"Stop" = "停止";
+" (Thinking...)" = " (Thinking...)";
+" (New Answer)" = " (New Answer)";
+"Response Completed" = "応答が完了しました";
+"Retry" = "再試行";
+"Regenerate" = "再生成";
+"Copy" = "コピー";
+"Copy Line" = "この行をコピー";
+"Copy and back to App" = "コピーしてアプリに戻る";
+"Copied!" = "コピーしました";
+"Preview" = "プレビュー";
+"Edit" = "編集";
+"Undo" = "取り消す";
+"Clear Input" = "入力をクリア";
+"Delete" = "削除";
+"Cancel" = "キャンセル";
+"None" = "なし";
+"Back to %@" = "%@ に戻る";
+"Send back to App" = "アプリに送信";
+"Click to expand" = "クリックして展開";
+"No App" = "アプリなし";
+"Current App:" = "現在のアプリ:";
+"Refresh Frontmost App" = "最前面のアプリを更新";
+"Recent Apps" = "最近のアプリ";
+"Running Apps" = "実行中のアプリ";
+"No Recent Apps" = "最近のアプリはありません";
+"No Running Apps" = "実行中のアプリはありません";
+
+/* Clipboard */
+"Clipboard Content" = "クリップボード内容";
+"New Clipboard Content" = "New Clipboard Content";
+"Clipboard:" = "クリップボード:";
+"Auto Paste from Clipboard" = "クリップボードから自動貼り付け";
+"Automatically paste copied text from other apps when Assistant activates." = "Automatically paste copied text from other apps when Assistant activates.";
+"Automatically pasted from clipboard" = "Automatically pasted from clipboard";
+"Overwrite" = "上書き";
+"Append" = "追加";
+"Dismiss" = "閉じる";
+"Paste" = "貼り付け";
+"Clear Clipboard Preview" = "Clear Clipboard Preview";
+
+/* Language */
+"Language" = "言語";
+"System Default" = "システム標準";
+"English" = "English";
+"简体中文" = "简体中文";
+"Restart or reopen windows to apply language changes." = "言語変更を適用するには再起動するかウィンドウを開き直してください。";
+
+/* Data / Sync */
+"Backup & Restore" = "バックアップと復元";
+"Export Backup..." = "バックアップを書き出す...";
+"Import Backup..." = "バックアップを読み込む...";
+"Exported!" = "書き出しました";
+"Imported!" = "読み込みました";
+"iCloud Sync" = "iCloud同期";
+"Enable iCloud Sync" = "iCloud同期を有効にする";
+"Sync to iCloud Now" = "今すぐiCloudへ同期";
+"Load from iCloud" = "iCloudから読み込む";
+"Last Sync" = "最終同期";
+"Sync settings and prompts across your devices using iCloud." = "Sync settings and assistants across your devices using iCloud.";
+"Settings sync automatically; Prompts can be manually synced (limit 100KB)." = "Settings sync automatically; Assistants can be manually synced (limit 100KB).";
+"Cloud -> Local" = "Cloud -> Local";
+"Local -> Cloud" = "Local -> Cloud";
+"Prompts -> Cloud" = "Assistants -> Cloud";
+"Prompts <- Cloud" = "Cloud -> Assistants";
+"Loaded!" = "Loaded!";
+"No Data Found" = "No Data Found";
+"Error: Data too large" = "Error: Data too large";
+"Error: Sync failed" = "Error: Sync failed";
+
+/* Updates */
+"Check for Updates..." = "アップデートを確認...";
+"Check for Updates" = "アップデートを確認";
+"Updater.Checking" = "Checking for updates...";
+"Updater.NoUpdate" = "You're up to date!";
+"Updater.UpdateFound" = "A new version is available!";
+
+/* Debug */
+"Debug Logs" = "デバッグログ";
+"Clear Logs" = "ログを消去";
+"No logs available." = "ログはありません。";
+"Showing latest %d of %d logs." = "Showing latest %d of %d logs.";
+
+/* Icons */
+"brain" = "Brain";
+"sparkles" = "Sparkles";
+"bolt.fill" = "Bolt";
+"cpu" = "CPU";
+"circle.hexagongrid.fill" = "Matrix";
+"antenna.radiowaves.left.and.right" = "Antenna";
+"gearshape.2.fill" = "Engine";
+"face.smiling" = "Assistant";
+"command" = "Command";
+"wand.and.stars" = "Magic Wand";
+
+/* Menu / Status */
+"Assistants for %@:" = "Assistants for %@:";
+"Show Assistant" = "Sideyを開く";
+"Quit" = "終了";
+"Quit Sidey" = "Sideyを終了";
+"Window Type" = "ウィンドウタイプ";
+"Menu Bar Popover" = "メニューバーポップオーバー";
+"Regular Window" = "通常ウィンドウ";
+"Switch to Menu Bar Popover" = "Switch to Menu Bar Popover";
+"Switch to Regular Window" = "Switch to Regular Window";
+
+/* Attachments */
+"Clipboard" = "クリップボード";
+
+/* Window Companion & Docking */
+"Window Companion" = "ウィンドウ連携";
+"Window Docking" = "ウィンドウドッキング";
+"Attach the assistant to the side of the active application window." = "Attach the assistant to the side of the active application window.";
+"Show Window Icon" = "ウィンドウアイコンを表示";
+"Show a small floating icon next to the active application window." = "Show a small floating icon next to the active application window.";
+"Docking Position" = "ドッキング位置";
+"Right" = "右";
+"Left" = "左";
+"Auto" = "自動";
+"Enable Docking" = "Enable Docking";
+"Disable Docking" = "Disable Docking";
+
+/* Permissions */
+"Permissions" = "権限";
+"Quick Selection Capture" = "クイック選択アシスタント";
+"Show a floating button when text is selected in other apps." = "Show a floating button when text is selected in other apps to quickly get context.";
+"Accessibility Permission" = "アクセシビリティ権限";
+"Authorized" = "許可済み";
+"Authorize..." = "許可...";
+"Required for capturing text selection and global shortcuts. If authorized but not working, try toggling the switch in System Settings." = "Enables the Quick Selection capture feature. If authorized but not working, try toggling the switch in System Settings.";
+"Selection" = "選択範囲";
+"Clipboard Fallback (Cmd+C)" = "Clipboard Fallback (Cmd+C)";
+"When accessibility methods fail, simulate Cmd+C to capture the selection. Useful for apps like VSCode. The clipboard is automatically restored afterwards." = "When accessibility methods fail, simulate Cmd+C to capture the selection. Useful for apps like VSCode. The clipboard is automatically restored afterwards.";
+
+
+
+/* Permission Guide */
+"Sidey needs Accessibility permission to assist in retrieving selected text for AI context. Your data stays on your machine and is never collected." = "Sidey needs Accessibility permission to assist in retrieving selected text for AI context. Your data stays on your machine and is never collected.";
+"Grant Accessibility Permission" = "アクセシビリティ権限を付与";
+"How to grant:" = "付与方法:";
+"1. Click the button below to open System Settings." = "1. Click the button below to open System Settings.";
+"2. Find 'Sidey' in the Accessibility list." = "2. Find 'Sidey' in the Accessibility list.";
+"3. Toggle the switch to ON." = "3. Toggle the switch to ON.";
+"Open System Settings" = "システム設定を開く";
+
+/* Discovery */
+"Enable Selection Support" = "選択サポートを有効化";
+"Get AI context by selecting text in any app." = "Enable permissions to chat with AI by simply selecting text—no more pasting required.";
+"Enable Now" = "今すぐ有効化";

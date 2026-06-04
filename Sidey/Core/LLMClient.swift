@@ -32,6 +32,41 @@ struct ChatStreamResponse: Codable {
     let choices: [Choice]
 }
 
+struct AnthropicRequest: Codable {
+    let model: String
+    let maxTokens: Int
+    let system: String
+    let messages: [ChatMessage]
+    let stream: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case model
+        case maxTokens = "max_tokens"
+        case system
+        case messages
+        case stream
+    }
+}
+
+struct GeminiRequest: Codable {
+    struct Part: Codable {
+        let text: String
+    }
+
+    struct Content: Codable {
+        let role: String?
+        let parts: [Part]
+    }
+
+    let systemInstruction: Content
+    let contents: [Content]
+
+    enum CodingKeys: String, CodingKey {
+        case systemInstruction = "system_instruction"
+        case contents
+    }
+}
+
 
 class LLMClient: ObservableObject {
     @Published var loadingStates: [String: Bool] = [:]
@@ -85,13 +120,15 @@ class LLMClient: ObservableObject {
     private func performRequest(systemPrompt: String, messages: [ChatMessage], sessionKey: String, retryCount: Int, onUpdate: @escaping (String) -> Void, completion: @escaping (String) -> Void) {
         let apiKey = UserDefaults.standard.string(forKey: "openAI_APIKey") ?? ""
         let usePublicService = UserDefaults.standard.bool(forKey: "usePublicService")
+        let apiFormat = usePublicService ? "openai" : (UserDefaults.standard.string(forKey: "openAI_APIFormat") ?? "openai")
         
-        guard usePublicService || !apiKey.isEmpty else {
+        guard usePublicService || apiFormat == "ollama" || !apiKey.isEmpty else {
             completion("Error: API Key not set. Please set it in Settings (Cmd+,).")
             return
         }
         
         let publicServiceURL = Bundle.main.infoDictionary?["PublicServiceURL"] as? String ?? ""
+        let model = UserDefaults.standard.string(forKey: "openAI_Model") ?? "gpt-4o-mini"
         let finalURL: URL?
         
         if usePublicService {
@@ -107,12 +144,7 @@ class LLMClient: ObservableObject {
                 baseURLStr = "https://api.openai.com/v1"
             }
             
-            let suffix = "/chat/completions"
-            var cleanBaseURL = baseURLStr
-            if cleanBaseURL.hasSuffix("/") {
-                cleanBaseURL.removeLast()
-            }
-            let finalURLStr = cleanBaseURL.hasSuffix(suffix) ? cleanBaseURL : cleanBaseURL + suffix
+            let finalURLStr = requestURLString(baseURL: baseURLStr, model: model, apiFormat: apiFormat)
             finalURL = URL(string: finalURLStr)
             DebugLogger.shared.log("Requesting: \(finalURLStr)", type: .request)
         }
@@ -129,7 +161,12 @@ class LLMClient: ObservableObject {
             let token = generateToken(deviceId: deviceId)
             request.addValue(deviceId, forHTTPHeaderField: "X-Device-Id")
             request.addValue(token, forHTTPHeaderField: "X-Token")
-        } else {
+        } else if apiFormat == "anthropic" {
+            request.addValue(apiKey, forHTTPHeaderField: "x-api-key")
+            request.addValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        } else if apiFormat == "gemini" {
+            request.addValue(apiKey, forHTTPHeaderField: "x-goog-api-key")
+        } else if !apiKey.isEmpty {
             request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }
         
@@ -137,19 +174,8 @@ class LLMClient: ObservableObject {
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
         
-        let model = UserDefaults.standard.string(forKey: "openAI_Model") ?? "gpt-4o-mini"
-        
-        var fullMessages = [ChatMessage(role: "system", content: systemPrompt)]
-        fullMessages.append(contentsOf: messages)
-        
-        let chatRequest = ChatRequest(
-            model: model,
-            messages: fullMessages,
-            stream: true
-        )
-        
         do {
-            request.httpBody = try JSONEncoder().encode(chatRequest)
+            request.httpBody = try requestBody(systemPrompt: systemPrompt, messages: messages, model: model, apiFormat: apiFormat)
         } catch {
             completion("Failed to encode request: \(error.localizedDescription)")
             return
@@ -213,17 +239,10 @@ class LLMClient: ObservableObject {
                                     let cleanDataStr = trimmedLine.hasPrefix("data: ") ? String(trimmedLine.dropFirst(6)) : String(trimmedLine.dropFirst(5))
                                     let finalStr = cleanDataStr.trimmingCharacters(in: .whitespacesAndNewlines)
                                     
-                                    if let data = finalStr.data(using: .utf8) {
-                                        do {
-                                            let streamResponse = try decoder.decode(ChatStreamResponse.self, from: data)
-                                            if let content = streamResponse.choices.first?.delta.content {
-                                                fullResponse += content
-                                                DispatchQueue.main.async {
-                                                    onUpdate(fullResponse)
-                                                }
-                                            }
-                                        } catch {
-                                            DebugLogger.shared.log("SSE parsing failed: \(error.localizedDescription) for data: \(finalStr)", type: .error)
+                                    if let content = self.parseStreamContent(finalStr, apiFormat: apiFormat) {
+                                        fullResponse += content
+                                        DispatchQueue.main.async {
+                                            onUpdate(fullResponse)
                                         }
                                     }
                                 } else {
@@ -240,20 +259,35 @@ class LLMClient: ObservableObject {
                     for try await byte in bytes {
                         if Task.isCancelled { break }
                         collectedData.append(byte)
-                    }
-                    
-                    if !collectedData.isEmpty {
-                        do {
-                            let chatResponse = try decoder.decode(ChatResponse.self, from: collectedData)
-                            if let content = chatResponse.choices.first?.message.content {
-                                fullResponse = content
+                        if apiFormat == "ollama", byte == 10 {
+                            if let line = String(data: collectedData, encoding: .utf8),
+                               let content = self.parseStreamContent(line.trimmingCharacters(in: .whitespacesAndNewlines), apiFormat: apiFormat) {
+                                fullResponse += content
+                                collectedData.removeAll()
                                 DispatchQueue.main.async {
                                     onUpdate(fullResponse)
                                 }
                             }
-                        } catch {
+                        }
+                    }
+                    
+                    if !collectedData.isEmpty {
+                        if apiFormat == "ollama" {
+                            if let line = String(data: collectedData, encoding: .utf8),
+                               let content = self.parseStreamContent(line.trimmingCharacters(in: .whitespacesAndNewlines), apiFormat: apiFormat) {
+                                fullResponse += content
+                                DispatchQueue.main.async {
+                                    onUpdate(fullResponse)
+                                }
+                            }
+                        } else if let content = self.parseResponseContent(collectedData, apiFormat: apiFormat) {
+                            fullResponse = content
+                            DispatchQueue.main.async {
+                                onUpdate(fullResponse)
+                            }
+                        } else {
                             if let bodyContent = String(data: collectedData, encoding: .utf8) {
-                                DebugLogger.shared.log("Non-SSE parse failed: \(error.localizedDescription)", type: .error)
+                                DebugLogger.shared.log("Non-SSE parse failed for \(apiFormat)", type: .error)
                                 fullResponse = bodyContent
                             }
                         }
@@ -294,5 +328,131 @@ class LLMClient: ObservableObject {
         }
         
         activeTasks[sessionKey] = task
+    }
+
+    private func requestURLString(baseURL: String, model: String, apiFormat: String) -> String {
+        let cleanBaseURL = baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        switch apiFormat {
+        case "anthropic":
+            let suffix = "/v1/messages"
+            return cleanBaseURL.hasSuffix(suffix) ? cleanBaseURL : cleanBaseURL + suffix
+        case "gemini":
+            let suffix = ":streamGenerateContent?alt=sse"
+            if cleanBaseURL.contains(":streamGenerateContent") || cleanBaseURL.contains(":generateContent") {
+                return cleanBaseURL
+            }
+            let encodedModel = model.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? model
+            return cleanBaseURL + "/models/\(encodedModel)" + suffix
+        case "ollama":
+            let suffix = "/api/chat"
+            return cleanBaseURL.hasSuffix(suffix) ? cleanBaseURL : cleanBaseURL + suffix
+        default:
+            let suffix = "/chat/completions"
+            return cleanBaseURL.hasSuffix(suffix) ? cleanBaseURL : cleanBaseURL + suffix
+        }
+    }
+
+    private func requestBody(systemPrompt: String, messages: [ChatMessage], model: String, apiFormat: String) throws -> Data {
+        switch apiFormat {
+        case "anthropic":
+            let request = AnthropicRequest(
+                model: model,
+                maxTokens: 4096,
+                system: systemPrompt,
+                messages: messages,
+                stream: true
+            )
+            return try JSONEncoder().encode(request)
+        case "gemini":
+            let contents = messages.map { message in
+                GeminiRequest.Content(
+                    role: message.role == "assistant" ? "model" : "user",
+                    parts: [GeminiRequest.Part(text: message.content)]
+                )
+            }
+            let request = GeminiRequest(
+                systemInstruction: GeminiRequest.Content(role: nil, parts: [GeminiRequest.Part(text: systemPrompt)]),
+                contents: contents
+            )
+            return try JSONEncoder().encode(request)
+        case "ollama":
+            var fullMessages = [ChatMessage(role: "system", content: systemPrompt)]
+            fullMessages.append(contentsOf: messages)
+            let request = ChatRequest(model: model, messages: fullMessages, stream: true)
+            return try JSONEncoder().encode(request)
+        default:
+            var fullMessages = [ChatMessage(role: "system", content: systemPrompt)]
+            fullMessages.append(contentsOf: messages)
+            let request = ChatRequest(model: model, messages: fullMessages, stream: true)
+            return try JSONEncoder().encode(request)
+        }
+    }
+
+    private func parseStreamContent(_ jsonString: String, apiFormat: String) -> String? {
+        guard !jsonString.isEmpty, jsonString != "[DONE]" else { return nil }
+        guard let data = jsonString.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            DebugLogger.shared.log("Stream parsing failed for \(apiFormat): \(jsonString)", type: .error)
+            return nil
+        }
+
+        switch apiFormat {
+        case "anthropic":
+            if let delta = object["delta"] as? [String: Any],
+               let text = delta["text"] as? String {
+                return text
+            }
+        case "gemini":
+            if let candidates = object["candidates"] as? [[String: Any]],
+               let content = candidates.first?["content"] as? [String: Any],
+               let parts = content["parts"] as? [[String: Any]] {
+                return parts.compactMap { $0["text"] as? String }.joined()
+            }
+        case "ollama":
+            if let message = object["message"] as? [String: Any],
+               let content = message["content"] as? String {
+                return content
+            }
+        default:
+            if let choices = object["choices"] as? [[String: Any]],
+               let delta = choices.first?["delta"] as? [String: Any],
+               let content = delta["content"] as? String {
+                return content
+            }
+        }
+
+        return nil
+    }
+
+    private func parseResponseContent(_ data: Data, apiFormat: String) -> String? {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+
+        switch apiFormat {
+        case "anthropic":
+            if let content = object["content"] as? [[String: Any]] {
+                return content.compactMap { $0["text"] as? String }.joined()
+            }
+        case "gemini":
+            if let candidates = object["candidates"] as? [[String: Any]],
+               let content = candidates.first?["content"] as? [String: Any],
+               let parts = content["parts"] as? [[String: Any]] {
+                return parts.compactMap { $0["text"] as? String }.joined()
+            }
+        case "ollama":
+            if let message = object["message"] as? [String: Any],
+               let content = message["content"] as? String {
+                return content
+            }
+        default:
+            if let choices = object["choices"] as? [[String: Any]],
+               let message = choices.first?["message"] as? [String: Any],
+               let content = message["content"] as? String {
+                return content
+            }
+        }
+
+        return nil
     }
 }
