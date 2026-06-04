@@ -4,7 +4,7 @@
   <img src="Resources/AppIcon.png" width="128" height="128" alt="Sidey Logo">
 </p>
 
-**English** | [Simplified Chinese](README_zh.md)
+**English** | [简体中文](README_zh.md)
 
 ---
 
