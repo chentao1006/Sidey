@@ -14,6 +14,12 @@
 
 [![Download Installer](https://img.shields.io/badge/Download-Installer-blue?style=for-the-badge&logo=apple)](https://github.com/chentao1006/Sidey/releases/latest)
 
+Or install via Homebrew:
+```sh
+brew tap chentao1006/tap
+brew install --cask sidey
+```
+
 ### ✨ Key Features
 
 - **Menu Bar Popover**: Open Sidey from the menu bar for quick questions, rewrites, summaries, or selected-text tasks without switching into a full chat app.

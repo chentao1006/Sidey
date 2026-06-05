@@ -14,6 +14,12 @@
 
 [![下载最新安装包](https://img.shields.io/badge/下载最新安装包-Latest%20Release-blue?style=for-the-badge&logo=apple)](https://github.com/chentao1006/Sidey/releases/latest)
 
+或者通过 Homebrew 安装：
+```sh
+brew tap chentao1006/tap
+brew install --cask sidey
+```
+
 ### ✨ 核心功能
 
 - **菜单栏浮窗**：从菜单栏快速打开旁白，在紧凑浮窗里完成提问、改写、总结或选中文本处理，不需要切换到完整聊天窗口。
