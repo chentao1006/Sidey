@@ -552,8 +552,7 @@ class PermissionManager: ObservableObject {
     
     @discardableResult
     func checkAccessibilityStatus() -> Bool {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: kCFBooleanFalse]
-        let status = AXIsProcessTrustedWithOptions(options as CFDictionary)
+        let status = AXIsProcessTrusted()
         
         DispatchQueue.main.async {
             if self.isAccessibilityGranted != status {
@@ -564,9 +563,13 @@ class PermissionManager: ObservableObject {
     }
     
     func checkAccessibility(prompt: Bool = false) -> Bool {
-        let promptValue = prompt ? kCFBooleanTrue : kCFBooleanFalse
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: promptValue]
-        let status = AXIsProcessTrustedWithOptions(options as CFDictionary)
+        let status: Bool
+        if prompt {
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: kCFBooleanTrue]
+            status = AXIsProcessTrustedWithOptions(options as CFDictionary)
+        } else {
+            status = AXIsProcessTrusted()
+        }
         
         DispatchQueue.main.async {
             if self.isAccessibilityGranted != status {

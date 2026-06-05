@@ -100,14 +100,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApplication.shared.applicationIconImage = icon
         }
         
-        // Initialize Selection Monitoring and Floating Button
+        // Initialize Selection Monitoring and Floating Button only if already authorized.
+        // This prevents the system permission dialog from appearing on cold start.
+        // Touching SelectionMonitor.shared registers its internal Combine subscriber so it
+        // will auto-call start() the moment the user grants Accessibility permission.
         _ = FloatingButtonManager.shared
-        SelectionMonitor.shared.start()
+        _ = SelectionMonitor.shared  // registers Combine subscriber; start() called only after permission granted
+        if PermissionManager.shared.checkAccessibilityStatus() {
+            SelectionMonitor.shared.start()
+        }
         
         // Use a small delay to detect manual launch vs login launch
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             if !self.launchedAsLoginItem {
-                self.showAssistant()
+                if self.usesRegularAssistantWindow {
+                    self.showAssistant()
+                }
                 
                 // If API key is not set and not using public service, also show settings
                 let apiKey = UserDefaults.standard.string(forKey: "openAI_APIKey") ?? ""
@@ -242,16 +250,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func showAssistantWithCurrentSelection(targetScreen: NSScreen? = nil, shouldActivate: Bool = true, reopenMenuBarPopover: Bool = false) {
-        queueSelectedTextForAssistant(captureSelectedTextForAssistant())
         showAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate, reopenMenuBarPopover: reopenMenuBarPopover)
-        notifyPendingSelectedTextIfNeeded()
+        captureSelectedTextForAssistantAsync { [weak self] text in
+            if let text = text {
+                self?.queueSelectedTextForAssistant(text)
+                self?.notifyPendingSelectedTextIfNeeded()
+            }
+        }
     }
     
-    private func captureSelectedTextForAssistant() -> String? {
+    private func captureSelectedTextForAssistantAsync(completion: @escaping (String?) -> Void) {
         if SelectionMonitor.shared.isShowingButton,
            let text = SelectionMonitor.shared.currentSelection,
            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return text
+            completion(text)
+            return
         }
         
         let app = selectionSourceApplication()
@@ -259,14 +272,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard !bundleID.isEmpty,
               bundleID != Bundle.main.bundleIdentifier,
               !AppBlocklist.isBlockedForSelection(bundleID) else {
-            return nil
+            completion(nil)
+            return
         }
         
-        guard let text = SelectionManager.shared.getSelectedText(from: app, allowClipboardFallback: true),
-              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return nil
+        DispatchQueue.global(qos: .userInitiated).async {
+            let text = SelectionManager.shared.getSelectedText(from: app, allowClipboardFallback: true)
+            DispatchQueue.main.async {
+                if let t = text, !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    completion(t)
+                } else {
+                    completion(nil)
+                }
+            }
         }
-        return text
     }
     
     private func selectionSourceApplication() -> NSRunningApplication? {
@@ -695,10 +714,17 @@ extension AppDelegate: NSMenuDelegate {
             if usesRegularAssistantWindow {
                 showAssistantWithCurrentSelection()
             } else {
-                let selectedText = menuBarAssistantPopover?.isShown == true ? nil : captureSelectedTextForAssistant()
-                queueSelectedTextForAssistant(selectedText)
-                showMenuBarAssistantPopover(allowToggle: true)
-                notifyPendingSelectedTextIfNeeded()
+                if menuBarAssistantPopover?.isShown == true {
+                    showMenuBarAssistantPopover(allowToggle: true)
+                } else {
+                    showMenuBarAssistantPopover(allowToggle: true)
+                    captureSelectedTextForAssistantAsync { [weak self] text in
+                        if let text = text {
+                            self?.queueSelectedTextForAssistant(text)
+                            self?.notifyPendingSelectedTextIfNeeded()
+                        }
+                    }
+                }
             }
         }
     }
