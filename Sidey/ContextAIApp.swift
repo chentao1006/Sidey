@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import ServiceManagement
 import Carbon
-import Carbon
+import Aptabase
 
 
 @main
@@ -12,6 +12,9 @@ struct SideyApp: App {
     @AppStorage("menuBarIcon") private var menuBarIcon = "brain"
     
     init() {
+        if UserDefaults.standard.bool(forKey: "allowAnalytics") {
+            Aptabase.shared.initialize(appKey: "A-US-3536295643")
+        }
         _ = SyncManager.shared
         _ = NotificationManager.shared
     }
@@ -132,6 +135,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 DebugLogger.shared.log("Assistant window closed manually, disabling adsorption for current app.")
             }
         }
+        
+        setupAnalyticsPrompt()
+    }
+    
+    private func setupAnalyticsPrompt() {
+        guard !UserDefaults.standard.bool(forKey: "hasAskedAnalytics") else { return }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 600) {
+            guard !UserDefaults.standard.bool(forKey: "hasAskedAnalytics") else { return }
+            
+            let alert = NSAlert()
+            alert.messageText = L("Help Improve Sidey")
+            alert.informativeText = L("Would you like to share anonymous usage data to help improve the app? You can change this later in Settings > About.")
+            alert.addButton(withTitle: L("Yes, Share Anonymous Data"))
+            alert.addButton(withTitle: L("No Thanks"))
+            
+            let showAndHandle = {
+                NSApplication.shared.activate(ignoringOtherApps: true)
+                let response = alert.runModal()
+                UserDefaults.standard.set(true, forKey: "hasAskedAnalytics")
+                if response == .alertFirstButtonReturn {
+                    UserDefaults.standard.set(true, forKey: "allowAnalytics")
+                    Aptabase.shared.initialize(appKey: "A-US-3536295643")
+                }
+            }
+            
+            if let window = NSApplication.shared.windows.first(where: { $0.isKeyWindow }) {
+                alert.beginSheetModal(for: window) { response in
+                    UserDefaults.standard.set(true, forKey: "hasAskedAnalytics")
+                    if response == .alertFirstButtonReturn {
+                        UserDefaults.standard.set(true, forKey: "allowAnalytics")
+                        Aptabase.shared.initialize(appKey: "A-US-3536295643")
+                    }
+                }
+            } else {
+                showAndHandle()
+            }
+        }
     }
     
     private func setupAssistantWindow() {
@@ -192,6 +233,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func showAssistant(targetScreen: NSScreen? = nil, shouldActivate: Bool = true, reopenMenuBarPopover: Bool = false) {
+        Aptabase.shared.trackEvent("show_assistant")
         if usesRegularAssistantWindow {
             showStandardAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate)
         } else {
@@ -446,6 +488,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func showSettings() {
+        Aptabase.shared.trackEvent("show_settings")
         if settingsWindow == nil {
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 500, height: 600),

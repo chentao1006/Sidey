@@ -1,6 +1,7 @@
 import Foundation
 import CryptoKit
 import Combine
+import Aptabase
 
 struct ChatMessage: Codable {
     let role: String
@@ -110,6 +111,7 @@ class LLMClient: ObservableObject {
     }
 
     func sendRequest(systemPrompt: String, messages: [ChatMessage], sessionKey: String = "", onUpdate: @escaping (String) -> Void, completion: @escaping (String) -> Void) {
+        Aptabase.shared.trackEvent("send_request")
         // Cancel existing task synchronously to avoid race condition with the new task
         activeTasks[sessionKey]?.cancel()
         activeTasks.removeValue(forKey: sessionKey)

@@ -263,3 +263,11 @@
 "Enable Selection Support" = "已支持选中文本快捷交互";
 "Get AI context by selecting text in any app." = "开启权限后，在任意界面选中文字即可直接询问，无需手动粘贴。";
 "Enable Now" = "立即开启";
+
+
+/* Analytics Opt-In */
+"Help Improve Sidey" = "帮助改进 Sidey";
+"Would you like to share anonymous usage data to help improve the app? You can change this later in Settings > About." = "您是否愿意分享匿名使用数据以帮助我们改进应用？您稍后可以在“设置 > 关于”中更改此选项。";
+"Yes, Share Anonymous Data" = "同意分享匿名数据";
+"No Thanks" = "不，谢谢";
+"Help improve Sidey by sharing anonymous usage data" = "通过分享匿名使用数据来帮助改进 Sidey";

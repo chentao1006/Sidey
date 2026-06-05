@@ -150,9 +150,7 @@ class SelectionMonitor: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] granted in
                 guard granted, let self = self else { return }
-                if self.keyboardMonitor == nil || self.flagsMonitor == nil {
-                    self.installKeyboardMonitors()
-                }
+                self.start()
             }
     }
     
@@ -161,16 +159,22 @@ class SelectionMonitor: ObservableObject {
         let hasPermissions = PermissionManager.shared.checkAccessibilityStatus()
         DebugLogger.shared.log("SelectionMonitor: Starting monitors (Permissions: \(hasPermissions))")
         
+        guard hasPermissions else { return }
+        
         // Track mouse-down position (used as fallback for keyboard-triggered button placement)
-        mouseDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
-            let loc = NSEvent.mouseLocation
-            self?.startPosition = loc
-            self?.lastClickPosition = loc
+        if mouseDownMonitor == nil {
+            mouseDownMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
+                let loc = NSEvent.mouseLocation
+                self?.startPosition = loc
+                self?.lastClickPosition = loc
+            }
         }
         
         // Mouse-up: drag or multi-click selection
-        mouseUpMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] event in
-            self?.handleMouseUp(event: event)
+        if mouseUpMonitor == nil {
+            mouseUpMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp]) { [weak self] event in
+                self?.handleMouseUp(event: event)
+            }
         }
         
         installKeyboardMonitors()

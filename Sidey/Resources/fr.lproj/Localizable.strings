@@ -259,3 +259,11 @@
 "Enable Selection Support" = "Quick Selection is here";
 "Get AI context by selecting text in any app." = "Enable permissions to chat with AI by simply selecting text—no more pasting required.";
 "Enable Now" = "Activer maintenant";
+
+
+/* Analytics Opt-In */
+"Help Improve Sidey" = "Aidez à améliorer Sidey";
+"Would you like to share anonymous usage data to help improve the app? You can change this later in Settings > About." = "Souhaitez-vous partager des données d'utilisation anonymes pour aider à améliorer l'application ? Vous pourrez modifier cela plus tard dans Paramètres > À propos.";
+"Yes, Share Anonymous Data" = "Oui, partager les données anonymes";
+"No Thanks" = "Non merci";
+"Help improve Sidey by sharing anonymous usage data" = "Aidez à améliorer Sidey en partageant des données d'utilisation anonymes";

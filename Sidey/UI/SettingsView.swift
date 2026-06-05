@@ -3,6 +3,8 @@ import UniformTypeIdentifiers
 import ServiceManagement
 import Combine
 import AppKit
+import Aptabase
+
 
 struct SettingsView: View {
     @AppStorage("settingsSelectedTab") private var selectedTab = "prompts"
@@ -539,6 +541,7 @@ struct PromptSettingsView: View {
                     Button(action: {
                         let newPrompt = Prompt(id: UUID().uuidString, name: L("New Prompt"), system: L("You are a helpful assistant."), apps: [])
                         store.allPrompts.append(newPrompt)
+                        Aptabase.shared.trackEvent("add_assistant")
                         store.savePrompts()
                         selectedPromptID = newPrompt.id
                     }) {
@@ -691,6 +694,7 @@ struct PromptSettingsView: View {
                 for prompt in newPrompts {
                     store.allPrompts.append(prompt)
                 }
+                Aptabase.shared.trackEvent("add_assistant_bulk")
                 store.savePrompts()
                 if let first = newPrompts.first {
                     selectedPromptID = first.id
@@ -929,6 +933,7 @@ struct DataSettingsView: View {
 
 struct AboutSettingsView: View {
     @StateObject private var updater = UpdaterViewModel()
+    @AppStorage("allowAnalytics") private var allowAnalytics = false
     var version: String { Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0" }
     var body: some View {
         VStack(spacing: 20) {
@@ -944,6 +949,15 @@ struct AboutSettingsView: View {
 
             Text(L("A lightweight, context-aware AI assistant for macOS.")).font(.body).multilineTextAlignment(.center).padding(.horizontal).frame(maxWidth: 300)
             Link(destination: URL(string: "https://github.com/chentao1006/Sidey")!) { HStack { Image(systemName: "link"); Text("GitHub") }.foregroundColor(.accentColor) }
+            
+            Toggle(L("Help improve Sidey by sharing anonymous usage data"), isOn: $allowAnalytics)
+                .onChange(of: allowAnalytics) { newValue in
+                    if newValue {
+                        Aptabase.shared.initialize(appKey: "A-US-3536295643")
+                    }
+                }
+                .padding(.top, 10)
+            
             Spacer()
             Text("© 2026 chentao1006").font(.caption2).foregroundColor(.secondary).padding(.bottom, 20)
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
