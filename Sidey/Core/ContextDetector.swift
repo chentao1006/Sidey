@@ -117,11 +117,9 @@ class SelectionMonitor: ObservableObject {
     private var mouseUpMonitor: Any?
     private var mouseDownMonitor: Any?
     private var keyboardMonitor: Any?
-    private var flagsMonitor: Any?
     private var startPosition: CGPoint = .zero
     /// Position of the last left-mouse-down — used as fallback for keyboard-triggered button placement.
     private var lastClickPosition: CGPoint = .zero
-    private var shiftWasDown = false
     private var timer: Timer?
     private var distanceTimer: Timer?
     private var accessibilityCancellable: AnyCancellable?
@@ -190,21 +188,15 @@ class SelectionMonitor: ObservableObject {
                 self?.handleKeyDown(event: event)
             }
         }
-        if flagsMonitor == nil {
-            flagsMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.flagsChanged]) { [weak self] event in
-                self?.handleFlagsChanged(event: event)
-            }
-        }
     }
     
     func stop() {
-        [mouseUpMonitor, mouseDownMonitor, keyboardMonitor, flagsMonitor]
+        [mouseUpMonitor, mouseDownMonitor, keyboardMonitor]
             .compactMap { $0 }
             .forEach { NSEvent.removeMonitor($0) }
         mouseUpMonitor = nil
         mouseDownMonitor = nil
         keyboardMonitor = nil
-        flagsMonitor = nil
     }
     
     private func handleMouseUp(event: NSEvent) {
@@ -242,25 +234,20 @@ class SelectionMonitor: ObservableObject {
                   && !flags.contains(.control)
                   && code == 0
         
-        // Shift + arrow / navigation keys — incremental keyboard selection
+        // Shift + arrow keys — incremental keyboard selection
         let arrowCodes: Set<Int> = [123, 124, 125, 126]           // ← → ↓ ↑
-        let navCodes:   Set<Int> = [115, 116, 117, 119, 121, 122] // Home PageUp Del End PageDn F5
-        let isShiftNav  = flags.contains(.shift) && (arrowCodes.contains(code) || navCodes.contains(code))
+        let isShiftNav  = flags.contains(.shift) && arrowCodes.contains(code)
         
-        guard isCmdA || isShiftNav else { return }
+        guard isCmdA || isShiftNav else {
+            if isShowingButton {
+                hideButton()
+            }
+            return
+        }
         scheduleKeyboardCheck()
     }
     
-    private func handleFlagsChanged(event: NSEvent) {
-        guard isSelectionCaptureEnabled else { return }
-        
-        let shiftIsDown = event.modifierFlags.contains(.shift)
-        if shiftWasDown && !shiftIsDown {
-            // Shift just released — user finished a Shift-selection
-            scheduleKeyboardCheck()
-        }
-        shiftWasDown = shiftIsDown
-    }
+
     
     private func scheduleKeyboardCheck() {
         timer?.invalidate()

@@ -32,11 +32,19 @@ BUILD_DIR=".build/apple/Products/Release"
 DIST_DIR="dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 
-# 1. Build in Release mode
+echo "🛑 Quitting existing $APP_NAME process..."
+pkill -x "$APP_NAME" || true
+sleep 1
+
 echo "🏗️ Building $APP_NAME in release mode..."
 SIGNING_IDENTITIES=$(security find-identity -v -p codesigning)
 USE_AD_HOC_SIGNING=false
 
+echo "🛡️ Resetting system permissions for $BUNDLE_ID..."
+tccutil reset Accessibility "$BUNDLE_ID" 2>/dev/null || true
+tccutil reset ScreenCapture "$BUNDLE_ID" 2>/dev/null || true
+
+# 1. Build in Release mode
 if echo "$SIGNING_IDENTITIES" | grep -q "valid identities found" && ! echo "$SIGNING_IDENTITIES" | grep -q " 0 valid identities found"; then
     # Use xcodebuild to create a normally signed app bundle when a trusted identity is available.
     xcodebuild -project "$PROJ_FILE" -scheme "$APP_NAME" -configuration Release -derivedDataPath ".build" -xcconfig "Sidey/Config.xcconfig" build
@@ -63,19 +71,10 @@ if [ "$USE_AD_HOC_SIGNING" = true ]; then
     codesign --force --deep --sign - --timestamp=none "$APP_BUNDLE"
 fi
 
-echo "🛑 Quitting existing $APP_NAME process..."
-pkill -x "$APP_NAME" || true
-sleep 1
-
 echo "📦 Installing to /Applications..."
 rm -rf "/Applications/$APP_NAME.app"
 rm -rf "/Applications/旁白.app"
 cp -R "$APP_BUNDLE" "/Applications/"
-
-# 4. Reset TCC permissions for testing
-echo "🛡️ Resetting system permissions for $BUNDLE_ID..."
-tccutil reset Accessibility "$BUNDLE_ID" 2>/dev/null || true
-tccutil reset ScreenCapture "$BUNDLE_ID" 2>/dev/null || true
 
 echo "✅ Done! You can find the app in the '$DIST_DIR' folder and it has been installed to /Applications."
 open "/Applications/$APP_NAME.app"
