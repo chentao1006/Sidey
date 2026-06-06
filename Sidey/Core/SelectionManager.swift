@@ -118,6 +118,13 @@ class SelectionManager {
     /// then restores the original clipboard contents.
     /// Used as a last resort for apps that don't expose AX selection text.
     private func forceCaptureSelection(for app: NSRunningApplication) -> String? {
+        // Skip fallback for Apple system apps, as they perfectly support Accessibility API.
+        // If AX returns nil for them, it means nothing is selected. Simulating Cmd+C
+        // in these apps when there is no selection causes a system alert beep.
+        if app.bundleIdentifier?.hasPrefix("com.apple.") == true {
+            return nil
+        }
+        
         // Enforce a cooldown of 2 seconds to avoid flickering menu bars in apps like VSCode
         if Date().timeIntervalSince(lastCommandCTime) < 2.0 {
             return nil
