@@ -24,9 +24,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.2.5</string>
+	<string>1.2.6</string>
 	<key>CFBundleVersion</key>
-	<string>34</string>
+	<string>36</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
@@ -41,6 +41,8 @@
 	<true/>
 	<key>SUFeedURL</key>
 	<string>https://raw.githubusercontent.com/chentao1006/sidey/main/appcast.xml</string>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
 	<key>SUPublicEDKey</key>
 	<string>T9d+4vUpmrkAXNcwSOu7/MzSO6tIKr8JbVhYe4j0jaE=</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

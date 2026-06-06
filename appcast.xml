@@ -3,12 +3,12 @@
     <channel>
         <title>Sidey</title>
         <item>
-            <title>1.2.5</title>
-            <pubDate>Sat, 06 Jun 2026 15:52:05 +0800</pubDate>
-            <sparkle:version>34</sparkle:version>
-            <sparkle:shortVersionString>1.2.5</sparkle:shortVersionString>
+            <title>1.2.6</title>
+            <pubDate>Sat, 06 Jun 2026 16:29:56 +0800</pubDate>
+            <sparkle:version>36</sparkle:version>
+            <sparkle:shortVersionString>1.2.6</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/chentao1006/sidey/releases/download/v1.2.5/Sidey.dmg" length="4694194" type="application/octet-stream" sparkle:edSignature="BOUMyVaXKdVbRzT09R5z8LecY00b54wwt29ti1y7E3UIKSG/im1mms2NG79pIT1qnEgP/kt6yIMorDMue+2ECA=="/>
+            <enclosure url="https://github.com/chentao1006/sidey/releases/download/v1.2.6/Sidey.dmg" length="4695059" type="application/octet-stream" sparkle:edSignature="Kw8hPm0DVO9+3Lpnfk2EpfmWUkNQpn5tPaIHqjDfjHTzeNuucR0lhecpZqw3Q53mOMiIBoCtSaMLc64g/oTmCA=="/>
         </item>
     </channel>
 </rss>
