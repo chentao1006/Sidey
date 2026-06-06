@@ -17,6 +17,7 @@ VERSION="$1"
 # You can set these environment variables globally or replace them here
 APPLE_ID="${APPLE_ID}"
 APPLE_PASSWORD="${APPLE_PASSWORD}"
+DEVELOPER_ID_APPLICATION="${DEVELOPER_ID_APPLICATION:-Developer ID Application: Tao Chen (${TEAM_ID})}"
 SPARKLE_BIN_PATH="./Sparkle/bin" # Downloaded during build if missing
 
 # --- Ensure Sparkle tools exist locally ---
@@ -132,6 +133,10 @@ ln -s /Applications "${TMP_DMG_DIR}/Applications"
 
 hdiutil create -volname "${PROJECT_NAME}" -srcfolder "${TMP_DMG_DIR}" -ov -format UDZO "${DMG_PATH}"
 rm -rf "${TMP_DMG_DIR}"
+
+echo "✍️ Signing DMG..."
+codesign --force --timestamp --sign "${DEVELOPER_ID_APPLICATION}" "${DMG_PATH}"
+codesign --verify --verbose=2 "${DMG_PATH}"
 
 # 5. Notarize DMG (if credentials provided)
 if [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ]; then

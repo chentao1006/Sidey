@@ -8,7 +8,7 @@
             <sparkle:version>34</sparkle:version>
             <sparkle:shortVersionString>1.2.5</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/chentao1006/sidey/releases/download/v1.2.5/Sidey.dmg" length="4684750" type="application/octet-stream" sparkle:edSignature="m5Lc0nS6fGok6FAmHRwvKgFxpo8s0+dFLaDB2bgKp31PqeZ9NIf+n/5yVQigi4+g3X5D14fIcE85UF0yAb1ZAg=="/>
+            <enclosure url="https://github.com/chentao1006/sidey/releases/download/v1.2.5/Sidey.dmg" length="4694194" type="application/octet-stream" sparkle:edSignature="BOUMyVaXKdVbRzT09R5z8LecY00b54wwt29ti1y7E3UIKSG/im1mms2NG79pIT1qnEgP/kt6yIMorDMue+2ECA=="/>
         </item>
     </channel>
 </rss>
