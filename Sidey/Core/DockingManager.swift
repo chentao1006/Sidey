@@ -562,11 +562,15 @@ class PermissionManager: ObservableObject {
         return status
     }
     
+    @discardableResult
     func checkAccessibility(prompt: Bool = false) -> Bool {
         let status: Bool
         if prompt {
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: kCFBooleanTrue]
             status = AXIsProcessTrustedWithOptions(options as CFDictionary)
+            if !status {
+                triggerAccessibilityPromptByEventPost()
+            }
         } else {
             status = AXIsProcessTrusted()
         }
@@ -577,6 +581,17 @@ class PermissionManager: ObservableObject {
             }
         }
         return status
+    }
+
+    private func triggerAccessibilityPromptByEventPost() {
+        let location = NSEvent.mouseLocation
+        let event = CGEvent(
+            mouseEventSource: nil,
+            mouseType: .mouseMoved,
+            mouseCursorPosition: location,
+            mouseButton: .left
+        )
+        event?.post(tap: .cghidEventTap)
     }
     
     func openAccessibilitySettings() {

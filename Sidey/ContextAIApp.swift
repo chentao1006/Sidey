@@ -3,6 +3,7 @@ import AppKit
 import ServiceManagement
 import Carbon
 import Aptabase
+import Combine
 
 
 @main
@@ -62,6 +63,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let menuBarAssistantSize = NSSize(width: 320, height: 540)
     private var pendingAssistantSwitch: (bundleID: String, promptID: String)?
     private var pendingSelectedTextForAssistant: String?
+    private var accessibilityCancellable: AnyCancellable?
     
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSAppleEventManager.shared().setEventHandler(
@@ -100,20 +102,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApplication.shared.applicationIconImage = icon
         }
         
-        // Initialize Selection Monitoring and Floating Button only if already authorized.
-        // This prevents the system permission dialog from appearing on cold start.
-        // Touching SelectionMonitor.shared registers its internal Combine subscriber so it
-        // will auto-call start() the moment the user grants Accessibility permission.
-        _ = FloatingButtonManager.shared
-        _ = SelectionMonitor.shared  // registers Combine subscriber; start() called only after permission granted
+        // Initialize selection monitoring only when already authorized.
         if PermissionManager.shared.checkAccessibilityStatus() {
+            _ = FloatingButtonManager.shared
             SelectionMonitor.shared.start()
         }
+        accessibilityCancellable = PermissionManager.shared.$isAccessibilityGranted
+            .removeDuplicates()
+            .sink { granted in
+                guard granted else { return }
+                _ = FloatingButtonManager.shared
+                SelectionMonitor.shared.start()
+            }
         
         // Use a small delay to detect manual launch vs login launch
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             if !self.launchedAsLoginItem {
-                if self.usesRegularAssistantWindow {
+                if self.usesRegularAssistantWindow && PermissionManager.shared.checkAccessibilityStatus() {
                     self.showAssistant()
                 }
                 
@@ -260,6 +265,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func captureSelectedTextForAssistantAsync(completion: @escaping (String?) -> Void) {
+        guard PermissionManager.shared.checkAccessibilityStatus() else {
+            completion(nil)
+            return
+        }
+        
         if SelectionMonitor.shared.isShowingButton,
            let text = SelectionMonitor.shared.currentSelection,
            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -564,7 +574,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidBecomeActive(_ notification: Notification) {
         if launchReady {
             let visible = NSApplication.shared.windows.filter { $0.isVisible && $0.className != "NSMenuWindow" }
-            if usesRegularAssistantWindow && visible.isEmpty {
+            if usesRegularAssistantWindow && visible.isEmpty && PermissionManager.shared.checkAccessibilityStatus() {
                 showAssistant()
             }
             updateDockIconVisibility()
