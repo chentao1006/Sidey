@@ -23,6 +23,17 @@
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>Sidey URL</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>sidey</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleShortVersionString</key>
 	<string>1.2.7</string>
 	<key>CFBundleVersion</key>

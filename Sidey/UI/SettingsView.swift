@@ -60,6 +60,8 @@ struct GeneralSettingsView: View {
     @ObservedObject private var dockingManager = DockingManager.shared
     @ObservedObject private var permissionManager = PermissionManager.shared
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var isPopClipInstalled = PopClipIntegration.isPopClipInstalled
+    @State private var isPopClipExtensionInstalled = PopClipIntegration.isExtensionInstalled
     
     private var usesRegularAssistantWindow: Bool {
         assistantWindowType == "regularWindow"
@@ -161,8 +163,37 @@ struct GeneralSettingsView: View {
             }
 
             Section {
-                Toggle(L("Quick Selection Capture"), isOn: $isSelectionCaptureEnabled)
-                    .help(L("Show a floating button when text is selected in other apps."))
+                if isPopClipInstalled {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .top, spacing: 10) {
+                            popClipIcon
+                                .padding(.top, 1)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(L("Install PopClip Extension"))
+                                    .fontWeight(.semibold)
+                                Text(L("Install the plugin to send selected text from PopClip to Sidey and open the assistant instantly."))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        HStack {
+                            Spacer()
+                            if isPopClipExtensionInstalled {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text(L("Installed"))
+                            } else {
+                                Button(L("Install Plugin")) {
+                                    PopClipIntegration.installExtension()
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
                 
                 VStack(alignment: .leading, spacing: 8) {
 
@@ -187,11 +218,21 @@ struct GeneralSettingsView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 4)
-                .onAppear {
-                    permissionManager.checkAccessibilityStatus()
-                }
+                
+                Toggle(L("Quick Selection Capture"), isOn: $isSelectionCaptureEnabled)
+                    .help(L("Show a floating button when text is selected in other apps."))
+                    .disabled(!permissionManager.isAccessibilityGranted)
             } header: {
                 Text(L("Permissions")).font(.headline)
+            }
+            .onAppear {
+                isPopClipInstalled = PopClipIntegration.isPopClipInstalled
+                isPopClipExtensionInstalled = PopClipIntegration.isExtensionInstalled
+                permissionManager.checkAccessibilityStatus()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: PopClipIntegration.installStateDidChangeNotification)) { _ in
+                isPopClipInstalled = PopClipIntegration.isPopClipInstalled
+                isPopClipExtensionInstalled = PopClipIntegration.isExtensionInstalled
             }
 
 
@@ -260,6 +301,19 @@ struct GeneralSettingsView: View {
 
         }
         .formStyle(.grouped)
+    }
+    
+    @ViewBuilder
+    private var popClipIcon: some View {
+        if let icon = PopClipIntegration.applicationIcon {
+            Image(nsImage: icon)
+                .resizable()
+                .frame(width: 22, height: 22)
+        } else {
+            Image(systemName: "wand.and.stars")
+                .foregroundColor(.blue)
+                .font(.system(size: 18))
+        }
     }
 
     private func localizedLanguageOption(_ key: String, for languageIdentifier: String) -> String {

@@ -260,6 +260,11 @@
 "Open System Settings" = "打开系统设置";
 
 /* Discovery */
+"Install PopClip Extension" = "安装 PopClip 插件";
+"Install the plugin to send selected text from PopClip to Sidey and open the assistant instantly." = "安装后可在 PopClip 中把选中文字发送到 Sidey，并立即打开助手窗口。";
+"Install Plugin" = "安装插件";
+"Installed" = "已安装";
+"Not Now" = "暂不安装";
 "Enable Selection Support" = "已支持选中文本快捷交互";
 "Get AI context by selecting text in any app." = "开启权限后，在任意界面选中文字即可直接询问，无需手动粘贴。";
 "Enable Now" = "立即开启";

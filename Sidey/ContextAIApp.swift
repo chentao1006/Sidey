@@ -187,6 +187,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
     }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            handleIncomingURL(url)
+        }
+    }
+
+    private func handleIncomingURL(_ url: URL) {
+        guard url.scheme?.lowercased() == "sidey" else { return }
+
+        switch url.host?.lowercased() {
+        case "send":
+            handleSendURL(url)
+        default:
+            break
+        }
+    }
+
+    private func handleSendURL(_ url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let text = components.queryItems?.first(where: { $0.name == "text" })?.value,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            showAssistant(reopenMenuBarPopover: true)
+            return
+        }
+
+        queueSelectedTextForAssistant(text)
+        showAssistant(reopenMenuBarPopover: true)
+        notifyPendingSelectedTextIfNeeded()
+    }
     
     private func setupAssistantWindow() {
         let window = NSWindow(

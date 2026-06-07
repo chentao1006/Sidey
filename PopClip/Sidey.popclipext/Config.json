@@ -1,0 +1,7 @@
+{
+  "identifier": "com.chentao1006.sidey.popclip",
+  "name": "Sidey",
+  "description": "Send the selected text to Sidey and open the assistant.",
+  "icon": "symbol:wand.and.stars",
+  "url": "sidey://send?text={popclip text}"
+}

@@ -238,6 +238,7 @@
 "Show a floating button when text is selected in other apps." = "Show a floating button when text is selected in other apps to quickly get context.";
 "Accessibility Permission" = "손쉬운 사용 권한";
 "Authorized" = "승인됨";
+"Installed" = "설치됨";
 "Authorize..." = "승인...";
 "Required for capturing text selection and global shortcuts. If authorized but not working, try toggling the switch in System Settings." = "Enables the Quick Selection capture feature. If authorized but not working, try toggling the switch in System Settings.";
 "Selection" = "선택 영역";

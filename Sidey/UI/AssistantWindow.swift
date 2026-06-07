@@ -64,8 +64,11 @@ struct AssistantWindow: View {
     @AppStorage("appLanguage") private var appLanguage = "system"
     @AppStorage("assistantWindowType") private var assistantWindowType = "menuBarPopover"
     @AppStorage("hasDismissedAccessibilityTip") private var hasDismissedAccessibilityTip = false
+    @AppStorage("hasDismissedPopClipTip") private var hasDismissedPopClipTip = false
     
     @State private var window: NSWindow?
+    @State private var isPopClipInstalled = PopClipIntegration.isPopClipInstalled
+    @State private var isPopClipExtensionInstalled = PopClipIntegration.isExtensionInstalled
     
     @State private var selectedPrompt: Prompt?
     @State private var userInput: String = ""
@@ -77,6 +80,7 @@ struct AssistantWindow: View {
     @State private var unreadSessions: Set<String> = []
     @State private var textToInsert: String? = nil
     @State private var attachments: [Attachment] = []
+    @State private var inputWasFilledFromSelection = false
     @State private var lastFinishedExchangeID: UUID? = nil
     @State private var lastSentMessage: String = ""
     
@@ -98,7 +102,9 @@ struct AssistantWindow: View {
         let currentLocale = appLanguage == "system" ? Locale.current : Locale(identifier: appLanguage)
         ZStack(alignment: .bottom) {
             VStack(spacing: 10) {
-                if !permissionManager.isAccessibilityGranted && !hasDismissedAccessibilityTip {
+                if isPopClipInstalled && !isPopClipExtensionInstalled && !hasDismissedPopClipTip {
+                    popClipTip
+                } else if !isPopClipInstalled && !permissionManager.isAccessibilityGranted && !hasDismissedAccessibilityTip {
                     discoveryTip
                 }
                 appContextHeader
@@ -146,6 +152,8 @@ struct AssistantWindow: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            isPopClipInstalled = PopClipIntegration.isPopClipInstalled
+            isPopClipExtensionInstalled = PopClipIntegration.isExtensionInstalled
             contextDetector.refresh()
             
             let availablePrompts = promptStore.getPrompts(for: contextDetector.currentBundleID)
@@ -158,6 +166,10 @@ struct AssistantWindow: View {
             DispatchQueue.main.async {
                 consumePendingSelectedTextIfNeeded()
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: PopClipIntegration.installStateDidChangeNotification)) { _ in
+            isPopClipInstalled = PopClipIntegration.isPopClipInstalled
+            isPopClipExtensionInstalled = PopClipIntegration.isExtensionInstalled
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideySendSelectionToAssistant"))) { notification in
             if let selection = notification.object as? String {
@@ -223,6 +235,63 @@ struct AssistantWindow: View {
                     switchTo(bundleID: contextDetector.currentBundleID, prompt: first)
                 }
             }
+        }
+    }
+    
+    @ViewBuilder
+    private var popClipTip: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 12) {
+                popClipIcon
+                    .padding(.top, 2)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L("Install PopClip Extension"))
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                    Text(L("Install the plugin to send selected text from PopClip to Sidey and open the assistant instantly."))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            
+            HStack {
+                Spacer()
+                Button(L("Not Now")) {
+                    withAnimation {
+                        hasDismissedPopClipTip = true
+                    }
+                }
+                .controlSize(.small)
+                Button(L("Install Plugin")) {
+                    PopClipIntegration.installExtension()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .tint(.blue)
+            }
+        }
+        .padding(10)
+        .background(Color.blue.opacity(0.1))
+        .cornerRadius(10)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.blue.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal, 2)
+    }
+    
+    @ViewBuilder
+    private var popClipIcon: some View {
+        if let icon = PopClipIntegration.applicationIcon {
+            Image(nsImage: icon)
+                .resizable()
+                .frame(width: 20, height: 20)
+        } else {
+            Image(systemName: "wand.and.stars")
+                .foregroundColor(.blue)
+                .font(.system(size: 16))
         }
     }
     
@@ -586,6 +655,7 @@ struct AssistantWindow: View {
                 if !userInput.isEmpty || !currentExchanges.isEmpty {
                     Button(action: {
                         self.userInput = ""
+                        self.inputWasFilledFromSelection = false
                         self.currentExchanges = []
                         if !currentSessionKey.isEmpty {
                             promptStates[currentSessionKey] = SessionState(exchanges: [])
@@ -683,6 +753,7 @@ struct AssistantWindow: View {
                             self.switchTo(bundleID: contextDetector.currentBundleID, prompt: prompt)
                         }
                         self.userInput = ""
+                        self.inputWasFilledFromSelection = false
                         let exchange = MessageExchange(id: UUID(), userMessage: interaction.userMessage, aiResponse: interaction.aiResponse)
                         self.currentExchanges = [exchange]
                         self.promptStates[self.currentSessionKey] = SessionState(exchanges: [exchange])
@@ -908,6 +979,7 @@ struct AssistantWindow: View {
         self.currentExchanges.append(newExchange)
         self.lastSentMessage = self.userInput // Save before clearing
         self.userInput = ""
+        self.inputWasFilledFromSelection = false
         
         let currentBundleID = contextDetector.currentBundleID
         let currentAppName = contextDetector.currentAppName
@@ -1045,8 +1117,16 @@ struct AssistantWindow: View {
     
     private func applySelectionToInput(_ selection: String) {
         userInput = selection
-        let newAttachment = Attachment(type: .selection, content: selection)
-        if !attachments.contains(where: { $0.content == selection }) {
+        inputWasFilledFromSelection = true
+        
+        for index in attachments.indices where attachments[index].type == .clipboard {
+            attachments[index].isSelected = false
+        }
+        
+        if let existingIndex = attachments.firstIndex(where: { $0.type == .selection && $0.content == selection }) {
+            attachments[existingIndex].isSelected = true
+        } else {
+            let newAttachment = Attachment(type: .selection, content: selection)
             attachments.append(newAttachment)
         }
     }
@@ -1123,7 +1203,7 @@ struct AssistantWindow: View {
         
         // 1. Clipboard
         if let clip = NSPasteboard.general.string(forType: .string), !clip.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
-            self.attachments.append(Attachment(type: .clipboard, content: clip, isSelected: true))
+            self.attachments.append(Attachment(type: .clipboard, content: clip, isSelected: !inputWasFilledFromSelection))
         }
         
         if let completion = completion {

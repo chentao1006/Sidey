@@ -23,10 +23,13 @@
 		C655F18B2F74EA820044CC01 /* ContextDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C6553D2F6C44B4003A4BBD /* ContextDetector.swift */; };
 		C655F18C2F74EA820044CC01 /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C656002F6C44B4003A4BBD /* Updater.swift */; };
 		C655F18F2F74EA820044CC01 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = C655F17B2F74EA820044CC01 /* MarkdownUI */; };
+		C655F18E2F760010004CC01 /* PopClipIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C655F19D2F760010004CC01 /* PopClipIntegration.swift */; };
 		C655F1912F74EA820044CC01 /* prompts.json in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554E2F6C44B4003A4BBD /* prompts.json */; };
 		C655F1922F74EA820044CC01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C6C655472F6C44B4003A4BBD /* Assets.xcassets */; };
 		C655F1932F74EA820044CC01 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554D2F6C44B4003A4BBD /* Localizable.strings */; };
 		C655F1942F74EA820044CC01 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554A2F6C44B4003A4BBD /* InfoPlist.strings */; };
+		C655F19A2F760001004CC01 /* PopClip in Resources */ = {isa = PBXBuildFile; fileRef = C655F19C2F760001004CC01 /* PopClip */; };
+		C655F19B2F760001004CC01 /* PopClip in Resources */ = {isa = PBXBuildFile; fileRef = C655F19C2F760001004CC01 /* PopClip */; };
 		C6C655352F6C2B67003A4BBD /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = E5A0090129C12345001A2B3C /* MarkdownUI */; };
 		C6C655562F6C44B4003A4BBD /* AssistantWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655502F6C44B4003A4BBD /* AssistantWindow.swift */; };
 		C6C655572F6C44B4003A4BBD /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655432F6C44B4003A4BBD /* NotificationManager.swift */; };
@@ -40,6 +43,7 @@
 		C6C6555F2F6C44B4003A4BBD /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C6553E2F6C44B4003A4BBD /* DebugLogger.swift */; };
 		C6C655602F6C44B4003A4BBD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655512F6C44B4003A4BBD /* SettingsView.swift */; };
 		C6C655612F6C44B4003A4BBD /* ContextDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C6553D2F6C44B4003A4BBD /* ContextDetector.swift */; };
+		C6C655662F760010003A4BBD /* PopClipIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C655F19D2F760010004CC01 /* PopClipIntegration.swift */; };
 		C6C655622F6C44B4003A4BBD /* prompts.json in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554E2F6C44B4003A4BBD /* prompts.json */; };
 		C6C655632F6C44B4003A4BBD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C6C655472F6C44B4003A4BBD /* Assets.xcassets */; };
 		C6C655642F6C44B4003A4BBD /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554D2F6C44B4003A4BBD /* Localizable.strings */; };
@@ -63,6 +67,8 @@
 /* Begin PBXFileReference section */
 		C655F1982F74EA820044CC01 /* Sidey-Appstore.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Sidey-Appstore.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C655F1992F74EA830044CC01 /* Sidey-Appstore-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "Sidey-Appstore-Info.plist"; path = "/Users/chentao/Projects/chentao1006/sidey/Sidey-Appstore-Info.plist"; sourceTree = "<absolute>"; };
+		C655F19C2F760001004CC01 /* PopClip */ = {isa = PBXFileReference; lastKnownFileType = folder; path = PopClip; sourceTree = "<group>"; };
+		C655F19D2F760010004CC01 /* PopClipIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopClipIntegration.swift; sourceTree = "<group>"; };
 		C6C6553D2F6C44B4003A4BBD /* ContextDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextDetector.swift; sourceTree = "<group>"; };
 		C6C6553E2F6C44B4003A4BBD /* DebugLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLogger.swift; sourceTree = "<group>"; };
 		C6C6553F2F6C44B4003A4BBD /* HistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryStore.swift; sourceTree = "<group>"; };
@@ -140,6 +146,7 @@
 				C6C655412F6C44B4003A4BBD /* LLMClient.swift */,
 				C6C655422F6C44B4003A4BBD /* Localization.swift */,
 				C6C655432F6C44B4003A4BBD /* NotificationManager.swift */,
+				C655F19D2F760010004CC01 /* PopClipIntegration.swift */,
 				C6C655442F6C44B4003A4BBD /* PromptStore.swift */,
 				C6C655452F6C44B4003A4BBD /* SyncManager.swift */,
 				C6C655A12F6C44B4003A4BBD /* SelectionManager.swift */,
@@ -187,6 +194,7 @@
 			isa = PBXGroup;
 			children = (
 				C6C655552F6C44B4003A4BBD /* Sidey */,
+				C655F19C2F760001004CC01 /* PopClip */,
 				E5A0020229C12345001A2B3C /* Info.plist */,
 				E5A0040529C12345001A2B3C /* Products */,
 				E5A0040629C12345001A2B3C /* Frameworks */,
@@ -312,6 +320,7 @@
 				C655F1922F74EA820044CC01 /* Assets.xcassets in Resources */,
 				C655F1932F74EA820044CC01 /* Localizable.strings in Resources */,
 				C655F1942F74EA820044CC01 /* InfoPlist.strings in Resources */,
+				C655F19A2F760001004CC01 /* PopClip in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -323,6 +332,7 @@
 				C6C655632F6C44B4003A4BBD /* Assets.xcassets in Resources */,
 				C6C655642F6C44B4003A4BBD /* Localizable.strings in Resources */,
 				C6C655652F6C44B4003A4BBD /* InfoPlist.strings in Resources */,
+				C655F19B2F760001004CC01 /* PopClip in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -348,6 +358,7 @@
 				C655F1892F74EA820044CC01 /* DebugLogger.swift in Sources */,
 				C655F18A2F74EA820044CC01 /* SettingsView.swift in Sources */,
 				C655F18B2F74EA820044CC01 /* ContextDetector.swift in Sources */,
+				C655F18E2F760010004CC01 /* PopClipIntegration.swift in Sources */,
 				C6C655A52F6C44B4003A4BBD /* SelectionManager.swift in Sources */,
 				C6C655A62F6C44B4003A4BBD /* OCRManager.swift in Sources */,
 				C6C655B12F6C44B4003A4BBD /* AppBlocklist.swift in Sources */,
@@ -374,6 +385,7 @@
 				C6C6555F2F6C44B4003A4BBD /* DebugLogger.swift in Sources */,
 				C6C655602F6C44B4003A4BBD /* SettingsView.swift in Sources */,
 				C6C655612F6C44B4003A4BBD /* ContextDetector.swift in Sources */,
+				C6C655662F760010003A4BBD /* PopClipIntegration.swift in Sources */,
 				C6C656012F6C44B4003A4BBD /* Updater.swift in Sources */,
 				C6C655A32F6C44B4003A4BBD /* SelectionManager.swift in Sources */,
 				C6C655A42F6C44B4003A4BBD /* OCRManager.swift in Sources */,
