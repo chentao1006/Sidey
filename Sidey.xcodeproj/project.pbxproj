@@ -22,8 +22,8 @@
 		C655F18A2F74EA820044CC01 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655512F6C44B4003A4BBD /* SettingsView.swift */; };
 		C655F18B2F74EA820044CC01 /* ContextDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C6553D2F6C44B4003A4BBD /* ContextDetector.swift */; };
 		C655F18C2F74EA820044CC01 /* Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C656002F6C44B4003A4BBD /* Updater.swift */; };
-		C655F18F2F74EA820044CC01 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = C655F17B2F74EA820044CC01 /* MarkdownUI */; };
 		C655F18E2F760010004CC01 /* PopClipIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C655F19D2F760010004CC01 /* PopClipIntegration.swift */; };
+		C655F18F2F74EA820044CC01 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = C655F17B2F74EA820044CC01 /* MarkdownUI */; };
 		C655F1912F74EA820044CC01 /* prompts.json in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554E2F6C44B4003A4BBD /* prompts.json */; };
 		C655F1922F74EA820044CC01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C6C655472F6C44B4003A4BBD /* Assets.xcassets */; };
 		C655F1932F74EA820044CC01 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554D2F6C44B4003A4BBD /* Localizable.strings */; };
@@ -43,11 +43,11 @@
 		C6C6555F2F6C44B4003A4BBD /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C6553E2F6C44B4003A4BBD /* DebugLogger.swift */; };
 		C6C655602F6C44B4003A4BBD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655512F6C44B4003A4BBD /* SettingsView.swift */; };
 		C6C655612F6C44B4003A4BBD /* ContextDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C6553D2F6C44B4003A4BBD /* ContextDetector.swift */; };
-		C6C655662F760010003A4BBD /* PopClipIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C655F19D2F760010004CC01 /* PopClipIntegration.swift */; };
 		C6C655622F6C44B4003A4BBD /* prompts.json in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554E2F6C44B4003A4BBD /* prompts.json */; };
 		C6C655632F6C44B4003A4BBD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C6C655472F6C44B4003A4BBD /* Assets.xcassets */; };
 		C6C655642F6C44B4003A4BBD /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554D2F6C44B4003A4BBD /* Localizable.strings */; };
 		C6C655652F6C44B4003A4BBD /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = C6C6554A2F6C44B4003A4BBD /* InfoPlist.strings */; };
+		C6C655662F760010003A4BBD /* PopClipIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C655F19D2F760010004CC01 /* PopClipIntegration.swift */; };
 		C6C655A32F6C44B4003A4BBD /* SelectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655A12F6C44B4003A4BBD /* SelectionManager.swift */; };
 		C6C655A42F6C44B4003A4BBD /* OCRManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655A22F6C44B4003A4BBD /* OCRManager.swift */; };
 		C6C655A52F6C44B4003A4BBD /* SelectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C655A12F6C44B4003A4BBD /* SelectionManager.swift */; };
@@ -439,7 +439,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 41;
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -473,7 +473,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 41;
 				DEAD_CODE_STRIPPING = YES;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
