@@ -53,7 +53,9 @@ struct AssistantWindow: View {
     @ObservedObject private var promptStore = PromptStore.shared
     @ObservedObject private var historyStore = HistoryStore.shared
     @ObservedObject private var dockingManager = DockingManager.shared
+    #if !APPSTORE
     @ObservedObject private var permissionManager = PermissionManager.shared
+    #endif
     @StateObject private var llmClient = LLMClient()
     @Environment(\.openWindow) private var openWindow
     
@@ -63,8 +65,10 @@ struct AssistantWindow: View {
     @AppStorage("sendBehavior") private var sendBehavior = "return"
     @AppStorage("appLanguage") private var appLanguage = "system"
     @AppStorage("assistantWindowType") private var assistantWindowType = "menuBarPopover"
-    @AppStorage("hasDismissedAccessibilityTip") private var hasDismissedAccessibilityTip = false
     @AppStorage("hasDismissedPopClipTip") private var hasDismissedPopClipTip = false
+    #if !APPSTORE
+    @AppStorage("hasDismissedAccessibilityTip") private var hasDismissedAccessibilityTip = false
+    #endif
     
     @State private var window: NSWindow?
     @State private var isPopClipInstalled = PopClipIntegration.isPopClipInstalled
@@ -104,9 +108,12 @@ struct AssistantWindow: View {
             VStack(spacing: 10) {
                 if isPopClipInstalled && !isPopClipExtensionInstalled && !hasDismissedPopClipTip {
                     popClipTip
-                } else if !isPopClipInstalled && !permissionManager.isAccessibilityGranted && !hasDismissedAccessibilityTip {
+                }
+                #if !APPSTORE
+                if !isPopClipInstalled && !permissionManager.isAccessibilityGranted && !hasDismissedAccessibilityTip {
                     discoveryTip
                 }
+                #endif
                 appContextHeader
                 promptList
                 inputArea
@@ -171,6 +178,7 @@ struct AssistantWindow: View {
             isPopClipInstalled = PopClipIntegration.isPopClipInstalled
             isPopClipExtensionInstalled = PopClipIntegration.isExtensionInstalled
         }
+        #if !APPSTORE
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideySendSelectionToAssistant"))) { notification in
             if let selection = notification.object as? String {
                 AppDelegate.shared.queueSelectedTextForAssistant(selection)
@@ -183,6 +191,7 @@ struct AssistantWindow: View {
                 }
             }
         }
+        #endif
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideyPendingSelectionAvailable"))) { _ in
             consumePendingSelectedTextIfNeeded()
         }
@@ -295,6 +304,7 @@ struct AssistantWindow: View {
         }
     }
     
+    #if !APPSTORE
     @ViewBuilder
     private var discoveryTip: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -349,6 +359,7 @@ struct AssistantWindow: View {
         .padding(.horizontal, 2)
 
     }
+    #endif
     
     // MARK: - Subviews
     

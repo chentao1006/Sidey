@@ -56,9 +56,13 @@ struct GeneralSettingsView: View {
     @AppStorage("sendBehavior") private var sendBehavior = "return"
     @AppStorage("menuBarIcon") private var menuBarIcon = "brain"
     @AppStorage("assistantWindowType") private var assistantWindowType = "menuBarPopover"
+    #if !APPSTORE
     @AppStorage("isSelectionCaptureEnabled") private var isSelectionCaptureEnabled = true
+    #endif
     @ObservedObject private var dockingManager = DockingManager.shared
+    #if !APPSTORE
     @ObservedObject private var permissionManager = PermissionManager.shared
+    #endif
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var isPopClipInstalled = PopClipIntegration.isPopClipInstalled
     @State private var isPopClipExtensionInstalled = PopClipIntegration.isExtensionInstalled
@@ -195,6 +199,7 @@ struct GeneralSettingsView: View {
                     .padding(.vertical, 4)
                 }
                 
+                #if !APPSTORE
                 VStack(alignment: .leading, spacing: 8) {
 
                     HStack {
@@ -222,13 +227,16 @@ struct GeneralSettingsView: View {
                 Toggle(L("Quick Selection Capture"), isOn: $isSelectionCaptureEnabled)
                     .help(L("Show a floating button when text is selected in other apps."))
                     .disabled(!permissionManager.isAccessibilityGranted)
+                #endif
             } header: {
                 Text(L("Permissions")).font(.headline)
             }
             .onAppear {
                 isPopClipInstalled = PopClipIntegration.isPopClipInstalled
                 isPopClipExtensionInstalled = PopClipIntegration.isExtensionInstalled
+                #if !APPSTORE
                 permissionManager.checkAccessibilityStatus()
+                #endif
             }
             .onReceive(NotificationCenter.default.publisher(for: PopClipIntegration.installStateDidChangeNotification)) { _ in
                 isPopClipInstalled = PopClipIntegration.isPopClipInstalled

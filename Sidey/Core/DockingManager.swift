@@ -152,10 +152,12 @@ class DockingManager: ObservableObject {
                     persistentTargetPID = pid
                     DebugLogger.shared.log("New target app: \(processName) (\(bundleID)) PID: \(pid)")
                     
+                    #if !APPSTORE
                     // Set up Accessibility Observer if needed
                     if pid != currentObservedPID && PermissionManager.shared.checkAccessibility() {
                         setupAccessibilityObserver(for: pid)
                     }
+                    #endif
                 }
             }
             
@@ -169,6 +171,7 @@ class DockingManager: ObservableObject {
         var cocoaRect: NSRect?
         var foundWindow = false
         
+        #if !APPSTORE
         // Priority 1: Accessibility API (Most accurate, no shadows)
         if PermissionManager.shared.checkAccessibility(), let pid = persistentTargetPID {
             let appElement = AXUIElementCreateApplication(pid)
@@ -200,6 +203,7 @@ class DockingManager: ObservableObject {
                 }
             }
         }
+        #endif
         
         // Priority 2: CGWindowList Fallback
         if !foundWindow {
@@ -541,6 +545,7 @@ class PermissionManager: ObservableObject {
     @Published var isAccessibilityGranted: Bool = false
     
     private init() {
+        #if !APPSTORE
         checkAccessibilityStatus()
         
         // Start a slow background timer to detect when user grants permission in System Settings
@@ -548,10 +553,14 @@ class PermissionManager: ObservableObject {
         Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             self?.checkAccessibilityStatus()
         }
+        #endif
     }
     
     @discardableResult
     func checkAccessibilityStatus() -> Bool {
+        #if APPSTORE
+        return false
+        #else
         let status = AXIsProcessTrusted()
         
         DispatchQueue.main.async {
@@ -560,10 +569,14 @@ class PermissionManager: ObservableObject {
             }
         }
         return status
+        #endif
     }
     
     @discardableResult
     func checkAccessibility(prompt: Bool = false) -> Bool {
+        #if APPSTORE
+        return false
+        #else
         let status: Bool
         if prompt {
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: kCFBooleanTrue]
@@ -581,8 +594,10 @@ class PermissionManager: ObservableObject {
             }
         }
         return status
+        #endif
     }
 
+    #if !APPSTORE
     private func triggerAccessibilityPromptByEventPost() {
         let location = NSEvent.mouseLocation
         let event = CGEvent(
@@ -593,15 +608,18 @@ class PermissionManager: ObservableObject {
         )
         event?.post(tap: .cghidEventTap)
     }
+    #endif
     
     func openAccessibilitySettings() {
+        #if !APPSTORE
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
         NSWorkspace.shared.open(url)
+        #endif
     }
     
     func canUseAccessibility() -> Bool {
         #if APPSTORE
-        return checkAccessibilityStatus()
+        return false
         #else
         return checkAccessibilityStatus()
         #endif

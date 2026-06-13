@@ -5,6 +5,9 @@ class SelectionManager {
     static let shared = SelectionManager()
 
     func getSelectedText(from app: NSRunningApplication? = nil, allowClipboardFallback: Bool = true) -> String? {
+        #if APPSTORE
+        return nil
+        #else
         let currentBundleID = ContextDetector.shared.currentBundleID
         let targetApp: NSRunningApplication?
 
@@ -58,10 +61,7 @@ class SelectionManager {
         // 3. Cmd+C fallback — for apps that don't expose selection via AX
         //    (e.g. some Electron apps, games, remote desktop clients).
         //    The clipboard is always restored afterwards; invisible to the user.
-        #if !APPSTORE
         return forceCaptureSelection(for: app)
-        #else
-        return nil
         #endif
     }
 
@@ -176,6 +176,9 @@ class SelectionManager {
     // MARK: - getSelectedTextBounds
 
     func getSelectedTextBounds(for app: NSRunningApplication) -> CGRect? {
+        #if APPSTORE
+        return nil
+        #else
         guard PermissionManager.shared.canUseAccessibility() else { return nil }
         let pid = app.processIdentifier
         let appElement = AXUIElementCreateApplication(pid)
@@ -196,6 +199,7 @@ class SelectionManager {
             }
         }
         return nil
+        #endif
     }
 
     // MARK: - AppleScript helper

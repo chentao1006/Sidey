@@ -141,6 +141,7 @@ class SelectionMonitor: ObservableObject {
     @Published var isShowingButton: Bool = false
     
     private init() {
+        #if !APPSTORE
         // Reinstall keyboard monitors when the user grants accessibility permission
         // (they need AX permission; if start() was called before permission was given,
         //  the monitors would have returned nil and never fired).
@@ -150,9 +151,13 @@ class SelectionMonitor: ObservableObject {
                 guard granted, let self = self else { return }
                 self.start()
             }
+        #endif
     }
     
     func start() {
+        #if APPSTORE
+        return
+        #else
         // Request Permissions if needed (Silenly check)
         let hasPermissions = PermissionManager.shared.checkAccessibilityStatus()
         DebugLogger.shared.log("SelectionMonitor: Starting monitors (Permissions: \(hasPermissions))")
@@ -176,6 +181,7 @@ class SelectionMonitor: ObservableObject {
         }
         
         installKeyboardMonitors()
+        #endif
     }
     
     /// Install keyboard/flags monitors — requires Accessibility permission.

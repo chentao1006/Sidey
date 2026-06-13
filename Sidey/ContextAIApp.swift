@@ -63,7 +63,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let menuBarAssistantSize = NSSize(width: 320, height: 540)
     private var pendingAssistantSwitch: (bundleID: String, promptID: String)?
     private var pendingSelectedTextForAssistant: String?
+    #if !APPSTORE
     private var accessibilityCancellable: AnyCancellable?
+    #endif
     
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSAppleEventManager.shared().setEventHandler(
@@ -102,6 +104,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApplication.shared.applicationIconImage = icon
         }
         
+        #if !APPSTORE
         // Initialize selection monitoring only when already authorized.
         if PermissionManager.shared.checkAccessibilityStatus() {
             _ = FloatingButtonManager.shared
@@ -114,13 +117,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 _ = FloatingButtonManager.shared
                 SelectionMonitor.shared.start()
             }
+        #endif
         
         // Use a small delay to detect manual launch vs login launch
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             if !self.launchedAsLoginItem {
+                #if APPSTORE
+                if self.usesRegularAssistantWindow {
+                    self.showAssistant()
+                }
+                #else
                 if self.usesRegularAssistantWindow && PermissionManager.shared.checkAccessibilityStatus() {
                     self.showAssistant()
                 }
+                #endif
                 
                 // If API key is not set and not using public service, also show settings
                 let apiKey = UserDefaults.standard.string(forKey: "openAI_APIKey") ?? ""
@@ -286,14 +296,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func showAssistantWithCurrentSelection(targetScreen: NSScreen? = nil, shouldActivate: Bool = true, reopenMenuBarPopover: Bool = false) {
         showAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate, reopenMenuBarPopover: reopenMenuBarPopover)
+        #if !APPSTORE
         captureSelectedTextForAssistantAsync { [weak self] text in
             if let text = text {
                 self?.queueSelectedTextForAssistant(text)
                 self?.notifyPendingSelectedTextIfNeeded()
             }
         }
+        #endif
     }
-    
+
+    #if !APPSTORE
     private func captureSelectedTextForAssistantAsync(completion: @escaping (String?) -> Void) {
         guard PermissionManager.shared.checkAccessibilityStatus() else {
             completion(nil)
@@ -337,6 +350,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let bundleID = ContextDetector.shared.currentBundleID
         return NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == bundleID }
     }
+    #endif
     
     func queueSelectedTextForAssistant(_ selectedText: String?) {
         guard let selectedText,
@@ -604,9 +618,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidBecomeActive(_ notification: Notification) {
         if launchReady {
             let visible = NSApplication.shared.windows.filter { $0.isVisible && $0.className != "NSMenuWindow" }
+            #if APPSTORE
+            if usesRegularAssistantWindow && visible.isEmpty {
+                showAssistant()
+            }
+            #else
             if usesRegularAssistantWindow && visible.isEmpty && PermissionManager.shared.checkAccessibilityStatus() {
                 showAssistant()
             }
+            #endif
             updateDockIconVisibility()
         }
     }
@@ -758,12 +778,14 @@ extension AppDelegate: NSMenuDelegate {
                     showMenuBarAssistantPopover(allowToggle: true)
                 } else {
                     showMenuBarAssistantPopover(allowToggle: true)
+                    #if !APPSTORE
                     captureSelectedTextForAssistantAsync { [weak self] text in
                         if let text = text {
                             self?.queueSelectedTextForAssistant(text)
                             self?.notifyPendingSelectedTextIfNeeded()
                         }
                     }
+                    #endif
                 }
             }
         }
