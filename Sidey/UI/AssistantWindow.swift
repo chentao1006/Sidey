@@ -69,7 +69,11 @@ struct AssistantWindow: View {
     #if !APPSTORE
     @AppStorage("hasDismissedAccessibilityTip") private var hasDismissedAccessibilityTip = false
     #endif
+    @AppStorage("hasDismissedTabSwitchTip") private var hasDismissedTabSwitchTip = false
+    @AppStorage("inputAreaHeight") private var inputAreaHeight: Double = 60
     
+    @State private var dragStartHeight: Double? = nil
+    @State private var liveInputAreaHeight: Double? = nil
     @State private var window: NSWindow?
     @State private var isPopClipInstalled = PopClipIntegration.isPopClipInstalled
     @State private var isPopClipExtensionInstalled = PopClipIntegration.isExtensionInstalled
@@ -97,6 +101,7 @@ struct AssistantWindow: View {
     }
     @State private var autoCreateContext: AutoCreateContext?
     @State private var previewedAttachment: Attachment?
+    @State private var showTabSwitchTooltip = false
     
     init(hidesDockingControl: Bool = false) {
         self.hidesDockingControl = hidesDockingControl
@@ -116,7 +121,47 @@ struct AssistantWindow: View {
                 #endif
                 appContextHeader
                 promptList
+                    .popover(isPresented: $showTabSwitchTooltip, attachmentAnchor: .point(.leading), arrowEdge: .leading) {
+                        tabSwitchTooltip
+                            .onDisappear {
+                                hasDismissedTabSwitchTip = true
+                            }
+                    }
                 inputArea
+                
+                Capsule()
+                    .fill(Color.secondary.opacity(0.3))
+                    .frame(width: 20, height: 2)
+                    .padding(.vertical, 2)
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle()) // Make the whole width hoverable
+                    .onHover { isHovering in
+                        if isHovering {
+                            NSCursor.resizeUpDown.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
+                    .gesture(
+                        DragGesture(coordinateSpace: .global)
+                            .onChanged { value in
+                                if dragStartHeight == nil {
+                                    dragStartHeight = inputAreaHeight
+                                }
+                                if let start = dragStartHeight {
+                                    let maxH = max(100.0, (window?.frame.height ?? 520.0) - 200.0)
+                                    liveInputAreaHeight = max(30, min(start + value.translation.height, maxH))
+                                }
+                            }
+                            .onEnded { _ in
+                                if let live = liveInputAreaHeight {
+                                    inputAreaHeight = live
+                                }
+                                liveInputAreaHeight = nil
+                                dragStartHeight = nil
+                            }
+                    )
+                
                 responseArea
             }
             .padding()
@@ -156,6 +201,14 @@ struct AssistantWindow: View {
             DispatchQueue.main.async {
                 consumePendingAssistantSwitchIfNeeded(source: "onAppear")
                 consumePendingSelectedTextIfNeeded()
+            }
+            
+            if !hasDismissedTabSwitchTip {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                        showTabSwitchTooltip = true
+                    }
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -361,6 +414,52 @@ struct AssistantWindow: View {
     }
     #endif
     
+    @ViewBuilder
+    private var tabSwitchTooltip: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: "arrow.left.arrow.right.square")
+                    .foregroundColor(.accentColor)
+                    .font(.system(size: 14))
+                Text(L("Quick Switch Assistant"))
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                Spacer()
+                Button(action: {
+                    showTabSwitchTooltip = false
+                    hasDismissedTabSwitchTip = true
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            
+            Text(L("You can use Tab or Shift+Tab to quickly switch between available assistants."))
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            HStack {
+                Spacer()
+                Button(L("Got it")) {
+                    showTabSwitchTooltip = false
+                    hasDismissedTabSwitchTip = true
+                }
+                .buttonStyle(.plain)
+                .font(.caption)
+                .foregroundColor(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.accentColor)
+                .cornerRadius(4)
+            }
+        }
+        .padding(12)
+        .frame(width: 240)
+    }
+    
     // MARK: - Subviews
     
     @ViewBuilder
@@ -490,15 +589,65 @@ struct AssistantWindow: View {
     
     @ViewBuilder
     private var promptList: some View {
+        let availablePrompts = promptStore.getPrompts(for: contextDetector.currentBundleID)
+        let unassignedPrompts = promptStore.allPrompts.filter { prompt in
+            !prompt.apps.contains("*") && !availablePrompts.contains(where: { $0.id == prompt.id })
+        }
+        
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(L("Available Prompts"))
-                    .font(.headline)
-                Spacer()
-                
-                let availablePrompts = promptStore.getPrompts(for: contextDetector.currentBundleID)
-                let unassignedPrompts = promptStore.allPrompts.filter { prompt in
-                    !prompt.apps.contains("*") && !availablePrompts.contains(where: { $0.id == prompt.id })
+            HStack(spacing: 8) {
+                if availablePrompts.isEmpty {
+                    Text(L("No prompts available for this app. Please check prompts.json or select an app with configured prompts."))
+                        .foregroundColor(.secondary)
+                        .italic()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    ScrollViewReader { promptProxy in
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack {
+                                ForEach(availablePrompts) { prompt in
+                                    Button(action: {
+                                        self.switchTo(bundleID: contextDetector.currentBundleID, prompt: prompt)
+                                    }) {
+                                        let sessionKey = "\(contextDetector.currentBundleID)|\(prompt.id)"
+                                        
+                                        HStack(spacing: 4) {
+                                            Text(prompt.name)
+                                                .font(.body)
+                                            if llmClient.loadingStates[sessionKey] == true {
+                                                ProgressView()
+                                                    .controlSize(.small)
+                                                    .scaleEffect(0.6)
+                                            }
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(selectedPrompt?.id == prompt.id ? Color.accentColor : Color.secondary.opacity(0.15))
+                                        .foregroundColor(selectedPrompt?.id == prompt.id ? .white : .primary)
+                                        .cornerRadius(6)
+                                        .overlay(
+                                            Circle()
+                                                .fill(Color.green)
+                                                .frame(width: 8, height: 8)
+                                                .offset(x: -4, y: 4)
+                                                .opacity(unreadSessions.contains(sessionKey) ? 1 : 0),
+                                            alignment: .topTrailing
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .help(prompt.system)
+                                    .id(prompt.id)
+                                }
+                            }
+                        }
+                        .onChangeCompatible(of: selectedPrompt) { newValue in
+                            if let id = newValue?.id {
+                                withAnimation(.spring()) {
+                                    promptProxy.scrollTo(id, anchor: .center)
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 Menu {
@@ -548,67 +697,15 @@ struct AssistantWindow: View {
                     .disabled(contextDetector.currentBundleID.isEmpty || contextDetector.currentBundleID == "*")
                 } label: {
                     Image(systemName: "plus")
+                        .foregroundColor(.secondary)
+                        .padding(6)
+                        .background(Color.secondary.opacity(0.1))
+                        .clipShape(Circle())
                 }
                 .menuStyle(BorderlessButtonMenuStyle())
                 .menuIndicator(.hidden)
                 .fixedSize()
                 .help(L("Add Prompt"))
-            }
-            
-            let availablePrompts = promptStore.getPrompts(for: contextDetector.currentBundleID)
-            
-            if availablePrompts.isEmpty {
-                Text(L("No prompts available for this app. Please check prompts.json or select an app with configured prompts."))
-                    .foregroundColor(.secondary)
-                    .italic()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                ScrollViewReader { promptProxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack {
-                            ForEach(availablePrompts) { prompt in
-                                Button(action: {
-                                    self.switchTo(bundleID: contextDetector.currentBundleID, prompt: prompt)
-                                }) {
-                                    let sessionKey = "\(contextDetector.currentBundleID)|\(prompt.id)"
-                                    
-                                    HStack(spacing: 4) {
-                                        Text(prompt.name)
-                                            .font(.subheadline)
-                                        if llmClient.loadingStates[sessionKey] == true {
-                                            ProgressView()
-                                                .controlSize(.small)
-                                                .scaleEffect(0.6)
-                                        }
-                                    }
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(selectedPrompt?.id == prompt.id ? Color.accentColor : Color.secondary.opacity(0.15))
-                                        .foregroundColor(selectedPrompt?.id == prompt.id ? .white : .primary)
-                                        .cornerRadius(6)
-                                        .overlay(
-                                            Circle()
-                                                .fill(Color.green)
-                                                .frame(width: 8, height: 8)
-                                                .offset(x: -4, y: 4)
-                                                .opacity(unreadSessions.contains(sessionKey) ? 1 : 0),
-                                            alignment: .topTrailing
-                                        )
-                                }
-                                .buttonStyle(.plain)
-                                .help(prompt.system)
-                                .id(prompt.id)
-                            }
-                        }
-                    }
-                    .onChangeCompatible(of: selectedPrompt) { newValue in
-                        if let id = newValue?.id {
-                            withAnimation(.spring()) {
-                                promptProxy.scrollTo(id, anchor: .center)
-                            }
-                        }
-                    }
-                }
             }
             
             if let selected = selectedPrompt {
@@ -641,7 +738,11 @@ struct AssistantWindow: View {
     private var inputArea: some View {
         VStack(alignment: .leading, spacing: 4) {
             ZStack(alignment: .topLeading) {
-                MacTextEditor(text: $userInput, textToInsert: $textToInsert, sendBehavior: sendBehavior, onSend: sendMessage)
+                MacTextEditor(text: $userInput, textToInsert: $textToInsert, sendBehavior: sendBehavior, onSend: sendMessage, onTab: {
+                    cyclePrompt(forward: true)
+                }, onBacktab: {
+                    cyclePrompt(forward: false)
+                })
                 
                 if !inputPlaceholder.isEmpty {
                     Text(inputPlaceholder.replacingOccurrences(of: "\n", with: " "))
@@ -653,7 +754,7 @@ struct AssistantWindow: View {
                         .allowsHitTesting(false)
                 }
             }
-            .frame(minHeight: 20, idealHeight: 30, maxHeight: 40)
+            .frame(height: max(30, min(liveInputAreaHeight ?? inputAreaHeight, max(100.0, (window?.frame.height ?? 520.0) - 200.0))))
                 .padding(8)
                 .background(Color(NSColor.textBackgroundColor))
                 .cornerRadius(8)
@@ -1232,6 +1333,25 @@ struct AssistantWindow: View {
         return available.first
     }
     
+    private func cyclePrompt(forward: Bool = true) {
+        let availablePrompts = promptStore.getPrompts(for: contextDetector.currentBundleID)
+        guard !availablePrompts.isEmpty else { return }
+        
+        if let current = selectedPrompt, let currentIndex = availablePrompts.firstIndex(where: { $0.id == current.id }) {
+            var nextIndex = forward ? (currentIndex + 1) : (currentIndex - 1)
+            if nextIndex >= availablePrompts.count {
+                nextIndex = 0
+            } else if nextIndex < 0 {
+                nextIndex = availablePrompts.count - 1
+            }
+            switchTo(bundleID: contextDetector.currentBundleID, prompt: availablePrompts[nextIndex])
+        } else {
+            if let first = availablePrompts.first {
+                switchTo(bundleID: contextDetector.currentBundleID, prompt: first)
+            }
+        }
+    }
+    
     private func activateOrOpenApp(bundleID: String) {
         let runningApp = NSWorkspace.shared.runningApplications.first { $0.bundleIdentifier == bundleID }
         let targetScreen = runningApp.flatMap { AppDelegate.shared.screenForApp($0) }
@@ -1505,6 +1625,8 @@ struct MacTextEditor: NSViewRepresentable {
     @Binding var textToInsert: String?
     var sendBehavior: String
     var onSend: () -> Void
+    var onTab: (() -> Void)? = nil
+    var onBacktab: (() -> Void)? = nil
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -1553,6 +1675,18 @@ struct MacTextEditor: NSViewRepresentable {
             self.parent.text = textView.string
         }
         func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            if commandSelector == #selector(NSResponder.insertTab(_:)) {
+                if let onTab = parent.onTab {
+                    onTab()
+                    return true
+                }
+            } else if commandSelector == #selector(NSResponder.insertBacktab(_:)) {
+                if let onBacktab = parent.onBacktab {
+                    onBacktab()
+                    return true
+                }
+            }
+            
             if parent.sendBehavior == "return" {
                 if commandSelector == #selector(NSResponder.insertNewline(_:)) {
                     if textView.hasMarkedText() {
@@ -1571,3 +1705,4 @@ struct MacTextEditor: NSViewRepresentable {
         }
     }
 }
+

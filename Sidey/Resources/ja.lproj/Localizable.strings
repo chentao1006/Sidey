@@ -268,3 +268,8 @@
 "Yes, Share Anonymous Data" = "はい、匿名のデータを共有します";
 "No Thanks" = "いいえ、結構です";
 "Help improve Sidey by sharing anonymous usage data" = "匿名の利用状況データを共有して Sidey の改善に協力する";
+
+/* Quick Switch Tip */
+"Quick Switch Assistant" = "アシスタントのクイック切り替え";
+"You can use Tab or Shift+Tab to quickly switch between available assistants." = "TabまたはShift+Tabを使用して、利用可能なアシスタントをすばやく切り替えることができます。";
+"Got it" = "了解";

@@ -268,3 +268,8 @@
 "Yes, Share Anonymous Data" = "Ja, anonyme Daten teilen";
 "No Thanks" = "Nein danke";
 "Help improve Sidey by sharing anonymous usage data" = "Helfen Sie, Sidey durch das Teilen anonymer Nutzungsdaten zu verbessern";
+
+/* Quick Switch Tip */
+"Quick Switch Assistant" = "Assistent schnell wechseln";
+"You can use Tab or Shift+Tab to quickly switch between available assistants." = "Sie können Tab oder Umschalt+Tab verwenden, um schnell zwischen verfügbaren Assistenten zu wechseln.";
+"Got it" = "Verstanden";

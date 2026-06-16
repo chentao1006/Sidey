@@ -276,3 +276,8 @@
 "Yes, Share Anonymous Data" = "同意分享匿名数据";
 "No Thanks" = "不，谢谢";
 "Help improve Sidey by sharing anonymous usage data" = "通过分享匿名使用数据来帮助改进 Sidey";
+
+/* Quick Switch Tip */
+"Quick Switch Assistant" = "快捷切换助手";
+"You can use Tab or Shift+Tab to quickly switch between available assistants." = "您可以使用 Tab 或 Shift+Tab 快捷切换当前可用的助手。";
+"Got it" = "我知道了";
