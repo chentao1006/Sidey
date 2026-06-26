@@ -76,7 +76,7 @@ fi
 # 3. Git Operations
 git add .
 git commit -m "chore: release version $NEW_VERSION (build $NEW_BUILD)"
-git tag "v$NEW_VERSION"
+git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
 
 echo "📦 Code committed and tagged locally."
 
