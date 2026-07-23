@@ -34,6 +34,7 @@ enum AttachmentType: String, Codable {
     }
 }
 
+
 struct Attachment: Identifiable, Equatable, Codable {
     var id: UUID = UUID()
     let type: AttachmentType
@@ -846,10 +847,11 @@ struct AssistantWindow: View {
     
     private var inputPlaceholder: String {
         guard userInput.isEmpty,
-              let clipboard = attachments.first(where: { $0.type == .clipboard && $0.isSelected && !$0.content.isEmpty }) else {
+              let attachment = attachments.first(where: { $0.type == .selection && $0.isSelected && !$0.content.isEmpty })
+                ?? attachments.first(where: { $0.type == .clipboard && $0.isSelected && !$0.content.isEmpty }) else {
             return ""
         }
-        return clipboard.content
+        return attachment.content
     }
     
     @ViewBuilder
@@ -1106,9 +1108,15 @@ struct AssistantWindow: View {
         let sessionKey = self.currentSessionKey
         promptStates[sessionKey] = SessionState(exchanges: currentExchanges)
         
-        // Prepare full context with "Appropriate Compression" (适当压缩)
-        let maxHistoryTurns = 10
-        let contextExchanges = currentExchanges.dropLast().suffix(maxHistoryTurns)
+        // Include only the requested number of prior exchanges; -1 means unlimited.
+        let priorExchanges = currentExchanges.dropLast()
+        let contextExchanges: ArraySlice<MessageExchange>
+        let contextMessageCount = prompt.contextMessageCount ?? 5
+        if contextMessageCount < 0 {
+            contextExchanges = priorExchanges
+        } else {
+            contextExchanges = priorExchanges.suffix(min(max(contextMessageCount, 0), 10))
+        }
         
         let historyMessages = contextExchanges.flatMap { exchange -> [ChatMessage] in
             let compressedUser = exchange.userMessage.count > 2000 ? (String(exchange.userMessage.prefix(2000)) + "... [History Truncated]") : exchange.userMessage
@@ -1220,11 +1228,16 @@ struct AssistantWindow: View {
     
     private func consumePendingSelectedTextIfNeeded() {
         guard window?.isVisible == true,
-              let selection = AppDelegate.shared.consumeSelectedTextForAssistant(),
-              !selection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+              let pendingText = AppDelegate.shared.consumeSelectedTextForAssistant(),
+              !pendingText.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
-        applySelectionToInput(selection)
+        switch pendingText.presentation {
+        case .input:
+            applySelectionToInput(pendingText.text)
+        case .placeholder:
+            applySelectionAsPlaceholder(pendingText.text)
+        }
     }
     
     private func applySelectionToInput(_ selection: String) {
@@ -1240,6 +1253,21 @@ struct AssistantWindow: View {
         } else {
             let newAttachment = Attachment(type: .selection, content: selection)
             attachments.append(newAttachment)
+        }
+    }
+
+    private func applySelectionAsPlaceholder(_ selection: String) {
+        userInput = ""
+        inputWasFilledFromSelection = false
+
+        for index in attachments.indices where attachments[index].type == .clipboard {
+            attachments[index].isSelected = false
+        }
+
+        if let existingIndex = attachments.firstIndex(where: { $0.type == .selection && $0.content == selection }) {
+            attachments[existingIndex].isSelected = true
+        } else {
+            attachments.append(Attachment(type: .selection, content: selection))
         }
     }
     
@@ -1705,4 +1733,3 @@ struct MacTextEditor: NSViewRepresentable {
         }
     }
 }
-

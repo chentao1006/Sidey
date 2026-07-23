@@ -45,6 +45,16 @@ struct GlobalHotKeyListener: View {
     }
 }
 
+enum PendingTextPresentation {
+    case input
+    case placeholder
+}
+
+struct PendingAssistantText {
+    let text: String
+    let presentation: PendingTextPresentation
+}
+
 class AppDelegate: NSObject, NSApplicationDelegate {
     static var shared: AppDelegate!
     
@@ -62,7 +72,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let updaterViewModel = UpdaterViewModel()
     private let menuBarAssistantSize = NSSize(width: 320, height: 540)
     private var pendingAssistantSwitch: (bundleID: String, promptID: String)?
-    private var pendingSelectedTextForAssistant: String?
+    private var pendingSelectedTextForAssistant: PendingAssistantText?
     #if !APPSTORE
     private var accessibilityCancellable: AnyCancellable?
     #endif
@@ -223,7 +233,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        queueSelectedTextForAssistant(text)
+        queueSelectedTextForAssistant(text, presentation: .placeholder)
         showAssistant(reopenMenuBarPopover: true)
         notifyPendingSelectedTextIfNeeded()
     }
@@ -352,13 +362,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     #endif
     
-    func queueSelectedTextForAssistant(_ selectedText: String?) {
+    func queueSelectedTextForAssistant(_ selectedText: String?, presentation: PendingTextPresentation = .input) {
         guard let selectedText,
               !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        pendingSelectedTextForAssistant = selectedText
+        pendingSelectedTextForAssistant = PendingAssistantText(text: selectedText, presentation: presentation)
     }
     
-    func consumeSelectedTextForAssistant() -> String? {
+    func consumeSelectedTextForAssistant() -> PendingAssistantText? {
         let selectedText = pendingSelectedTextForAssistant
         pendingSelectedTextForAssistant = nil
         return selectedText
@@ -797,6 +807,12 @@ extension AppDelegate: NSMenuDelegate {
         let bundleID = ContextDetector.shared.currentBundleID
         let appName = ContextDetector.shared.currentAppName
         let prompts = PromptStore.shared.getPrompts(for: bundleID)
+
+        let hotKeyString = HotKeyFormatter.currentHotkeyString()
+        let showItem = NSMenuItem(title: "\(L("Show Assistant")) (\(hotKeyString))", action: #selector(showAssistantAction), keyEquivalent: "")
+        showItem.target = self
+        menu.addItem(showItem)
+        menu.addItem(NSMenuItem.separator())
         
         if !prompts.isEmpty {
             let headerItem = NSMenuItem(title: String(format: L("Assistants for %@:"), appName), action: nil, keyEquivalent: "")
@@ -811,17 +827,6 @@ extension AppDelegate: NSMenuDelegate {
             }
             menu.addItem(NSMenuItem.separator())
         }
-        
-        let hotKeyString = HotKeyFormatter.currentHotkeyString()
-        
-        let showItem = NSMenuItem(title: "\(L("Show Assistant")) (\(hotKeyString))", action: #selector(showAssistantAction), keyEquivalent: "")
-        showItem.target = self
-        menu.addItem(showItem)
-        
-        let switchWindowTypeTitle = usesRegularAssistantWindow ? L("Switch to Menu Bar Popover") : L("Switch to Regular Window")
-        let switchWindowTypeItem = NSMenuItem(title: switchWindowTypeTitle, action: #selector(toggleAssistantWindowTypeAction), keyEquivalent: "")
-        switchWindowTypeItem.target = self
-        menu.addItem(switchWindowTypeItem)
         
         let settingsItem = NSMenuItem(title: L("Settings..."), action: #selector(showSettingsAction), keyEquivalent: "")
         settingsItem.target = self

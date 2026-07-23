@@ -31,6 +31,8 @@
 /* Behavior */
 "Behavior" = "行为";
 "Send Behavior" = "发送行为";
+"Context Messages" = "上下文消息数";
+"Unlimited" = "无限";
 "Return to Send, ⇧+Return to Newline" = "回车 发送，⇧+回车 换行";
 "⌘+Return to Send, Return to Newline" = "⌘+回车 发送，回车 换行";
 "Launch at Login" = "开机启动";

@@ -31,6 +31,8 @@
 /* Behavior */
 "Behavior" = "Comportamiento";
 "Send Behavior" = "Modo de envío";
+"Context Messages" = "Mensajes de contexto";
+"Unlimited" = "Ilimitado";
 "Return to Send, ⇧+Return to Newline" = "Return to Send, ⇧+Return to Newline";
 "⌘+Return to Send, Return to Newline" = "⌘+Return to Send, Return to Newline";
 "Launch at Login" = "Abrir al iniciar sesión";

@@ -31,6 +31,8 @@
 /* Behavior */
 "Behavior" = "Verhalten";
 "Send Behavior" = "Sendeverhalten";
+"Context Messages" = "Kontextnachrichten";
+"Unlimited" = "Unbegrenzt";
 "Return to Send, ⇧+Return to Newline" = "Return to Send, ⇧+Return to Newline";
 "⌘+Return to Send, Return to Newline" = "⌘+Return to Send, Return to Newline";
 "Launch at Login" = "Beim Anmelden starten";

@@ -31,6 +31,8 @@
 /* Behavior */
 "Behavior" = "動作";
 "Send Behavior" = "送信方法";
+"Context Messages" = "コンテキストメッセージ数";
+"Unlimited" = "無制限";
 "Return to Send, ⇧+Return to Newline" = "Returnで送信、⇧+Returnで改行";
 "⌘+Return to Send, Return to Newline" = "⌘+Returnで送信、Returnで改行";
 "Launch at Login" = "ログイン時に起動";

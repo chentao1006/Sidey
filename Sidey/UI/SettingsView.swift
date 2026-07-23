@@ -273,7 +273,7 @@ struct GeneralSettingsView: View {
                 }
                 .pickerStyle(.menu)
                 .onChangeCompatible(of: sendBehavior) { _ in SyncManager.shared.syncToCloud() }
-                
+
                 Toggle(L("Launch at Login"), isOn: $launchAtLogin)
                     .help(L("Start the app automatically when you log in."))
                     .onChangeCompatible(of: launchAtLogin) { newValue in
@@ -669,6 +669,24 @@ struct PromptSettingsView: View {
                             .onChangeCompatible(of: store.allPrompts[index].system) { _ in store.savePrompts() }
                     } header: {
                         Text(L("System Prompt")).font(.headline)
+                    }
+
+                    Section {
+                        Picker(L("Context Messages"), selection: Binding(
+                            get: { store.allPrompts[index].contextMessageCount ?? 5 },
+                            set: { newValue in
+                                store.allPrompts[index].contextMessageCount = newValue
+                                store.savePrompts()
+                            }
+                        )) {
+                            ForEach(0...10, id: \.self) { count in
+                                Text("\(count)").tag(count)
+                            }
+                            Text(L("Unlimited")).tag(-1)
+                        }
+                        .pickerStyle(.menu)
+                    } header: {
+                        Text(L("Behavior")).font(.headline)
                     }
                     
                     Section {

@@ -8,6 +8,7 @@ struct Prompt: Codable, Identifiable, Hashable {
     var name: String
     var system: String
     var apps: [String]
+    var contextMessageCount: Int? = nil
 }
 
 enum ResponseStyle: String, CaseIterable, Identifiable {
