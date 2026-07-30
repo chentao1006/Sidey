@@ -523,9 +523,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         
-        // Step 1: Make the window visible on ALL Spaces first.
-        window.collectionBehavior.insert(.canJoinAllSpaces)
-        window.collectionBehavior.remove(.moveToActiveSpace)
+        // Show in the desktop where the user invoked Sidey instead of switching Spaces.
+        window.collectionBehavior.remove(.canJoinAllSpaces)
+        window.collectionBehavior.insert(.moveToActiveSpace)
         
         // Step 2: Move to the target screen (if needed) before making it visible.
         let screen = targetScreen ?? screenForMouseCursor()
@@ -554,9 +554,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         NotificationCenter.default.post(name: Notification.Name("SideyRefreshContext"), object: nil, userInfo: nil)
         
-        // Step 4: After the window is visible, anchor it to just this Space
+        // Keep the movable window bound to the current active Space.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             window.collectionBehavior.remove(.canJoinAllSpaces)
+            window.collectionBehavior.insert(.moveToActiveSpace)
             if shouldActivate {
                 NSApplication.shared.activate(ignoringOtherApps: true)
                 window.makeKeyAndOrderFront(nil)
@@ -815,6 +816,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             newPanel.isFloatingPanel = true
             newPanel.becomesKeyOnlyIfNeeded = false
             newPanel.isMovableByWindowBackground = false
+            newPanel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary, .transient]
             newPanel.hidesOnDeactivate = !isCursorAssistantPinned
             newPanel.level = .floating
             newPanel.isOpaque = false
