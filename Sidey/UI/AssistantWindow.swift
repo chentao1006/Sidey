@@ -49,6 +49,7 @@ struct Attachment: Identifiable, Equatable, Codable {
 
 struct AssistantWindow: View {
     private let hidesDockingControl: Bool
+    private let showsCloseButton: Bool
     
     @ObservedObject private var contextDetector = ContextDetector.shared
     @ObservedObject private var promptStore = PromptStore.shared
@@ -104,8 +105,9 @@ struct AssistantWindow: View {
     @State private var previewedAttachment: Attachment?
     @State private var showTabSwitchTooltip = false
     
-    init(hidesDockingControl: Bool = false) {
+    init(hidesDockingControl: Bool = false, showsCloseButton: Bool = false) {
         self.hidesDockingControl = hidesDockingControl
+        self.showsCloseButton = showsCloseButton
     }
     
     var body: some View {
@@ -174,6 +176,7 @@ struct AssistantWindow: View {
 
         .onChangeCompatible(of: alwaysOnTop) { newValue in
             window?.level = newValue ? .floating : .normal
+            (window as? NSPanel)?.hidesOnDeactivate = !newValue
             AppDelegate.shared.updateMenuBarAssistantPopoverBehavior()
         }
         .onChangeCompatible(of: windowOpacity) { newValue in
@@ -183,6 +186,7 @@ struct AssistantWindow: View {
             if let w = newWindow {
                 w.level = alwaysOnTop ? .floating : .normal
                 w.alphaValue = CGFloat(windowOpacity)
+                (w as? NSPanel)?.hidesOnDeactivate = !alwaysOnTop
             }
         }
         // Automatically select the first available prompt on context change
@@ -236,7 +240,7 @@ struct AssistantWindow: View {
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SideySendSelectionToAssistant"))) { notification in
             if let selection = notification.object as? String {
                 AppDelegate.shared.queueSelectedTextForAssistant(selection)
-                AppDelegate.shared.showAssistant()
+                AppDelegate.shared.showAssistant(positionInputAtMouse: true)
                 DispatchQueue.main.async {
                     consumePendingSelectedTextIfNeeded()
                 }
@@ -466,6 +470,17 @@ struct AssistantWindow: View {
     @ViewBuilder
     private var appContextHeader: some View {
         HStack(spacing: 8) {
+            if showsCloseButton {
+                Button {
+                    window?.orderOut(nil)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
+                .help("Close")
+            }
+
             Button(action: {
                 if !contextDetector.currentBundleID.isEmpty {
                     activateOrOpenApp(bundleID: contextDetector.currentBundleID)

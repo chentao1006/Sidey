@@ -50,6 +50,11 @@ enum PendingTextPresentation {
     case placeholder
 }
 
+private final class CursorAssistantPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+}
+
 struct PendingAssistantText {
     let text: String
     let presentation: PendingTextPresentation
@@ -69,6 +74,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var statusMenu: NSMenu?
     private var menuBarAssistantPopover: NSPopover?
+    private var cursorAssistantPanel: NSPanel?
     private let updaterViewModel = UpdaterViewModel()
     private let menuBarAssistantSize = NSSize(width: 320, height: 540)
     private var pendingAssistantSwitch: (bundleID: String, promptID: String)?
@@ -76,6 +82,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     #if !APPSTORE
     private var accessibilityCancellable: AnyCancellable?
     #endif
+
+    private var isCursorAssistantPinned: Bool {
+        UserDefaults.standard.object(forKey: "alwaysOnTop") as? Bool ?? true
+    }
     
     func applicationWillFinishLaunching(_ notification: Notification) {
         NSAppleEventManager.shared().setEventHandler(
@@ -154,7 +164,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         NotificationCenter.default.addObserver(forName: Notification.Name("CXAIToggleMainWindow"), object: nil, queue: .main) { _ in
-            self.showAssistantWithCurrentSelection()
+            self.showAssistantWithCurrentSelection(positionInputAtMouse: true)
         }
         
         NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: nil, queue: .main) { [weak self] notification in
@@ -234,7 +244,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         queueSelectedTextForAssistant(text, presentation: .placeholder)
-        showAssistant(reopenMenuBarPopover: true)
+        showAssistant(reopenMenuBarPopover: true, positionInputAtMouse: true)
         notifyPendingSelectedTextIfNeeded()
     }
     
@@ -295,17 +305,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         DockingManager.shared.iconWindow = window
     }
     
-    func showAssistant(targetScreen: NSScreen? = nil, shouldActivate: Bool = true, reopenMenuBarPopover: Bool = false) {
+    func showAssistant(targetScreen: NSScreen? = nil, shouldActivate: Bool = true, reopenMenuBarPopover: Bool = false, positionInputAtMouse: Bool = false) {
         Aptabase.shared.trackEvent("show_assistant")
         if usesRegularAssistantWindow {
-            showStandardAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate)
+            showStandardAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate, positionInputAtMouse: positionInputAtMouse)
+        } else if positionInputAtMouse {
+            showCursorAssistantPanel()
         } else {
-            showMenuBarAssistantPopover(forceReopen: reopenMenuBarPopover)
+            showMenuBarAssistantPopover(forceReopen: reopenMenuBarPopover, positionInputAtMouse: positionInputAtMouse)
         }
     }
     
-    func showAssistantWithCurrentSelection(targetScreen: NSScreen? = nil, shouldActivate: Bool = true, reopenMenuBarPopover: Bool = false) {
-        showAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate, reopenMenuBarPopover: reopenMenuBarPopover)
+    func showAssistantWithCurrentSelection(targetScreen: NSScreen? = nil, shouldActivate: Bool = true, reopenMenuBarPopover: Bool = false, positionInputAtMouse: Bool = false) {
+        showAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate, reopenMenuBarPopover: reopenMenuBarPopover, positionInputAtMouse: positionInputAtMouse)
         #if !APPSTORE
         captureSelectedTextForAssistantAsync { [weak self] text in
             if let text = text {
@@ -476,14 +488,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
-    private func showStandardAssistant(targetScreen: NSScreen? = nil, shouldActivate: Bool = true) {
+    private func showStandardAssistant(targetScreen: NSScreen? = nil, shouldActivate: Bool = true, positionInputAtMouse: Bool = false) {
         if menuBarAssistantPopover?.isShown == true {
             menuBarAssistantPopover?.performClose(nil)
         }
+        cursorAssistantPanel?.orderOut(nil)
         
         guard let window = assistantWindow else {
             setupAssistantWindow()
-            showStandardAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate)
+            showStandardAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate, positionInputAtMouse: positionInputAtMouse)
             return
         }
         
@@ -507,6 +520,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             window.orderFrontRegardless()
         }
+
+        if positionInputAtMouse {
+            let mouseLocation = NSEvent.mouseLocation
+            DispatchQueue.main.async { [weak self, weak window] in
+                guard let self, let window else { return }
+                self.alignAssistantInputTopLeft(to: mouseLocation, in: window)
+            }
+        }
         
         NotificationCenter.default.post(name: Notification.Name("SideyRefreshContext"), object: nil, userInfo: nil)
         
@@ -518,6 +539,49 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 window.makeKeyAndOrderFront(nil)
             }
         }
+    }
+
+    /// Anchors against the rendered text input, so layout changes do not affect placement.
+    private func alignAssistantInputTopLeft(to mouseLocation: CGPoint, in window: NSWindow) {
+        guard let contentView = window.contentView,
+              let inputView = firstEditableTextView(in: contentView) else { return }
+
+        let inputFrame = window.convertToScreen(inputView.convert(inputView.bounds, to: nil))
+        // The text view sits inside the input field's 8-point SwiftUI padding.
+        let inputTopLeft = CGPoint(x: inputFrame.minX - 8, y: inputFrame.maxY + 8)
+        let offset = CGPoint(x: mouseLocation.x - inputTopLeft.x, y: mouseLocation.y - inputTopLeft.y)
+        let desiredOrigin = CGPoint(x: window.frame.origin.x + offset.x, y: window.frame.origin.y + offset.y)
+        let screen = NSScreen.screens.first(where: { $0.frame.contains(mouseLocation) }) ?? window.screen ?? NSScreen.main
+        guard let visibleFrame = screen?.visibleFrame else {
+            window.setFrameOrigin(desiredOrigin)
+            return
+        }
+
+        let maxX = max(visibleFrame.minX, visibleFrame.maxX - window.frame.width)
+        let maxY = max(visibleFrame.minY, visibleFrame.maxY - window.frame.height)
+        let clampedOrigin = CGPoint(
+            x: min(max(desiredOrigin.x, visibleFrame.minX), maxX),
+            y: min(max(desiredOrigin.y, visibleFrame.minY), maxY)
+        )
+        window.setFrameOrigin(clampedOrigin)
+    }
+
+    private func firstEditableTextView(in view: NSView) -> NSTextView? {
+        if let textView = view as? NSTextView, textView.isEditable {
+            return textView
+        }
+        for subview in view.subviews {
+            if let textView = firstEditableTextView(in: subview) {
+                return textView
+            }
+        }
+        return nil
+    }
+
+    private func focusAssistantInput(in window: NSWindow) {
+        guard let contentView = window.contentView,
+              let inputView = firstEditableTextView(in: contentView) else { return }
+        window.makeFirstResponder(inputView)
     }
 
     
@@ -650,8 +714,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
     
-    private func showMenuBarAssistantPopover(allowToggle: Bool = false, forceReopen: Bool = false) {
+    private func showMenuBarAssistantPopover(allowToggle: Bool = false, forceReopen: Bool = false, positionInputAtMouse: Bool = false) {
         guard let button = statusItem?.button else { return }
+
+        cursorAssistantPanel?.orderOut(nil)
         
         if assistantWindow?.isVisible == true {
             assistantWindow?.orderOut(nil)
@@ -675,9 +741,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             } else if forceReopen {
                 popover.performClose(nil)
                 DispatchQueue.main.async { [weak self] in
-                    self?.showMenuBarAssistantPopover()
+                    self?.showMenuBarAssistantPopover(positionInputAtMouse: positionInputAtMouse)
                 }
             } else {
+                if positionInputAtMouse, let popoverWindow = popover.contentViewController?.view.window {
+                    alignAssistantInputTopLeft(to: NSEvent.mouseLocation, in: popoverWindow)
+                }
                 NotificationCenter.default.post(name: Notification.Name("SideyRefreshContext"), object: nil, userInfo: nil)
             }
             return
@@ -687,11 +756,78 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.activate(ignoringOtherApps: true)
         popover.contentSize = menuBarAssistantSize
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        if positionInputAtMouse {
+            let mouseLocation = NSEvent.mouseLocation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self, weak popover] in
+                guard let self, let popoverWindow = popover?.contentViewController?.view.window else { return }
+                self.alignAssistantInputTopLeft(to: mouseLocation, in: popoverWindow)
+            }
+        }
         NotificationCenter.default.post(name: Notification.Name("SideyRefreshContext"), object: nil, userInfo: nil)
         
         DispatchQueue.main.async {
             popover.contentViewController?.view.window?.level = .floating
         }
+    }
+
+    /// A cursor-anchored assistant has no Popover arrow, but remains transient like one:
+    /// it closes automatically whenever Sidey loses focus.
+    private func showCursorAssistantPanel() {
+        if menuBarAssistantPopover?.isShown == true {
+            menuBarAssistantPopover?.performClose(nil)
+        }
+        assistantWindow?.orderOut(nil)
+
+        let panel: NSPanel
+        if let existingPanel = cursorAssistantPanel {
+            panel = existingPanel
+        } else {
+            let newPanel = CursorAssistantPanel(
+                contentRect: NSRect(origin: .zero, size: menuBarAssistantSize),
+                styleMask: [.borderless, .fullSizeContentView],
+                backing: .buffered,
+                defer: false
+            )
+            newPanel.isReleasedWhenClosed = false
+            newPanel.isFloatingPanel = true
+            newPanel.becomesKeyOnlyIfNeeded = false
+            newPanel.isMovableByWindowBackground = true
+            newPanel.hidesOnDeactivate = !isCursorAssistantPinned
+            newPanel.level = .floating
+            newPanel.isOpaque = false
+            newPanel.backgroundColor = .clear
+            newPanel.hasShadow = true
+            let contentView = NSHostingView(rootView: AssistantWindow(hidesDockingControl: true, showsCloseButton: true))
+            contentView.wantsLayer = true
+            contentView.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+            contentView.layer?.cornerRadius = 12
+            contentView.layer?.masksToBounds = true
+            newPanel.contentView = contentView
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.didResignKeyNotification,
+                object: newPanel,
+                queue: .main
+            ) { [weak self, weak newPanel] _ in
+                guard self?.isCursorAssistantPinned == false else { return }
+                newPanel?.orderOut(nil)
+            }
+            cursorAssistantPanel = newPanel
+            panel = newPanel
+        }
+
+        let mouseLocation = NSEvent.mouseLocation
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        // Keep the initial, unpositioned frame invisible until the SwiftUI input has laid out.
+        panel.alphaValue = 0
+        panel.makeKeyAndOrderFront(nil)
+        DispatchQueue.main.async { [weak self, weak panel] in
+            guard let self, let panel else { return }
+            self.alignAssistantInputTopLeft(to: mouseLocation, in: panel)
+            panel.makeKey()
+            self.focusAssistantInput(in: panel)
+            panel.alphaValue = 1
+        }
+        NotificationCenter.default.post(name: Notification.Name("SideyRefreshContext"), object: nil, userInfo: nil)
     }
 }
 
