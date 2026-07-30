@@ -171,6 +171,7 @@ struct AssistantWindow: View {
         .environment(\.locale, currentLocale)
         .id(appLanguage)
         .frame(minWidth: 300, idealWidth: 300, minHeight: 520, idealHeight: 520)
+        .background(Color(NSColor.windowBackgroundColor))
         .background(WindowAccessor(window: $window))
 
         .onChangeCompatible(of: alwaysOnTop) { newValue in
@@ -471,7 +472,7 @@ struct AssistantWindow: View {
         HStack(spacing: 8) {
             if showsCloseButton {
                 Button {
-                    window?.orderOut(nil)
+                    AppDelegate.shared.closeCursorAssistantPanel(returnFocus: true)
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.red)

@@ -60,7 +60,7 @@ private final class CursorAssistantPanel: NSPanel {
             if let textView = firstResponder as? NSTextView, textView.hasMarkedText() {
                 super.sendEvent(event)
             } else {
-                orderOut(nil)
+                AppDelegate.shared.closeCursorAssistantPanel(returnFocus: true)
             }
             return
         }
@@ -510,6 +510,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             menuBarAssistantPopover?.performClose(nil)
         }
     }
+
+    func closeCursorAssistantPanel(returnFocus: Bool) {
+        cursorAssistantPanel?.orderOut(nil)
+        guard returnFocus else { return }
+
+        let bundleID = ContextDetector.shared.currentBundleID
+        guard !bundleID.isEmpty,
+              bundleID != Bundle.main.bundleIdentifier,
+              let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first,
+              !app.isTerminated else { return }
+        app.activate(options: [.activateAllWindows])
+    }
     
     private func showStandardAssistant(targetScreen: NSScreen? = nil, shouldActivate: Bool = true, positionInputAtMouse: Bool = false) {
         if menuBarAssistantPopover?.isShown == true {
@@ -824,7 +836,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             newPanel.hasShadow = true
             let contentView = NSHostingView(rootView: AssistantWindow(hidesDockingControl: true, showsCloseButton: true))
             contentView.wantsLayer = true
-            contentView.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
             contentView.layer?.cornerRadius = 12
             contentView.layer?.masksToBounds = true
             newPanel.contentView = contentView
