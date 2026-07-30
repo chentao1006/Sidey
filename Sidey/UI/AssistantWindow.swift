@@ -1636,6 +1636,15 @@ struct SelectableMarkdownText: NSViewRepresentable {
             index += 1
         }
 
+        // `AttributedString(markdown:)` supplies a concrete default foreground
+        // color. That bypasses NSTextView.textColor, leaving response text black
+        // when the app switches to a dark appearance. Use the dynamic label color
+        // for all rendered Markdown so it follows the active system appearance.
+        result.addAttribute(
+            .foregroundColor,
+            value: NSColor.labelColor,
+            range: NSRange(location: 0, length: result.length)
+        )
         return result
     }
 
