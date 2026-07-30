@@ -1,6 +1,5 @@
 import SwiftUI
 import AppKit
-import MarkdownUI
 
 struct MessageExchange: Equatable, Identifiable, Codable {
     let id: UUID
@@ -591,7 +590,7 @@ struct AssistantWindow: View {
                 Image(systemName: assistantWindowType == "regularWindow" ? "menubar.rectangle" : "macwindow")
             }
             .buttonStyle(.plain)
-            .help(assistantWindowType == "regularWindow" ? L("Switch to Menu Bar Popover") : L("Switch to Regular Window"))
+            .help(assistantWindowType == "regularWindow" ? L("Switch to Temporary Popover") : L("Switch to Regular Window"))
             
             Button {
                 AppDelegate.shared.showSettings()
@@ -942,33 +941,7 @@ struct AssistantWindow: View {
                                     
                                     VStack(alignment: .leading, spacing: 0) {
                                         Color.clear.frame(height: 0).id(exchange.id.uuidString + "_top")
-                                        if exchange.aiResponse == "Thinking..." {
-                                            HStack {
-                                                ProgressView()
-                                                    .controlSize(.small)
-                                                    .padding(.trailing, 4)
-                                                Text(L("Thinking..."))
-                                            }
-                                            .padding()
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                        } else {
-                                            let lines = exchange.aiResponse.components(separatedBy: .newlines)
-                                            VStack(alignment: .leading, spacing: 0) {
-                                                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                                                    ResponseLineView(line: line, onCopy: { text in
-                                                        NSPasteboard.general.clearContents()
-                                                        NSPasteboard.general.setString(text, forType: .string)
-                                                        
-                                                        // Back to App
-                                                        if !contextDetector.currentBundleID.isEmpty,
-                                                           let app = NSRunningApplication.runningApplications(withBundleIdentifier: contextDetector.currentBundleID).first {
-                                                            app.activate(options: .activateIgnoringOtherApps)
-                                                        }
-                                                    })
-                                                }
-                                            }
-                                            .padding(.vertical, 8)
-                                        }
+                                        AssistantResponseContent(response: exchange.aiResponse)
                                     }
                                 }
                             }
@@ -1561,79 +1534,175 @@ struct AttachmentItemView: View {
     }
 }
 
-struct ResponseLineView: View {
-    let line: String
-    let onCopy: (String) -> Void
-    
-    @State private var isHovered = false
-    @State private var showCheckmark = false
-    
+private struct AssistantResponseContent: View {
+    let response: String
+
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            if line.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
-                Color.clear.frame(height: 8)
-            } else {
-                Markdown(line)
-                    .markdownTheme(.lineTheme)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-                    .overlay(alignment: .bottomTrailing) {
-                        if isHovered {
-                            HStack(spacing: 4) {
-                                Button(action: {
-                                    onCopy(line)
-                                    withAnimation {
-                                        showCheckmark = true
-                                    }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                        withAnimation {
-                                            showCheckmark = false
-                                        }
-                                    }
-                                }) {
-                                    Image(systemName: showCheckmark ? "checkmark" : "doc.on.doc")
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundColor(showCheckmark ? .green : .primary.opacity(0.7))
-                                }
-                                .buttonStyle(.plain)
-                                .help(L("Copy and back to App"))
-                                .onHover { inside in
-                                    if inside {
-                                        NSCursor.pointingHand.set()
-                                    } else {
-                                        NSCursor.arrow.set()
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(6)
-                            .shadow(color: Color.black.opacity(0.1), radius: 2)
-                            .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                            .padding(.bottom, 2)
-                            .padding(.trailing, 2)
-                        }
-                    }
+        if response == "Thinking..." {
+            HStack {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(.trailing, 4)
+                Text(L("Thinking..."))
             }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            SelectableMarkdownText(markdown: response)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 1)
-        .contentShape(Rectangle())
-        .onHover { isHovered = $0 }
     }
 }
 
-extension Theme {
-    static let lineTheme = Theme()
-        .paragraph {
-            $0.label
-                .markdownMargin(top: 0, bottom: 0)
+/// A single native text surface lets selections cross paragraphs, lists, and code blocks.
+/// Unlike one SwiftUI view per line, it also receives the standard Cmd+A and Copy commands.
+struct SelectableMarkdownText: NSViewRepresentable {
+    let markdown: String
+
+    func makeNSView(context: Context) -> IntrinsicTextView {
+        let textView = IntrinsicTextView()
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.drawsBackground = false
+        textView.isRichText = true
+        textView.allowsUndo = false
+        textView.font = NSFont.preferredFont(forTextStyle: .body)
+        textView.textColor = .labelColor
+        textView.textContainerInset = .zero
+        textView.textContainer?.lineFragmentPadding = 0
+        textView.setContentCompressionResistancePriority(.required, for: .vertical)
+        return textView
+    }
+
+    func updateNSView(_ textView: IntrinsicTextView, context: Context) {
+        textView.textStorage?.setAttributedString(Self.renderedLines(from: markdown))
+        textView.invalidateIntrinsicContentSize()
+    }
+
+    /// Render every source line into one attributed string. This deliberately avoids
+    /// Markdown's soft-break rule (a single newline becomes a space), while keeping
+    /// the native text view as one continuous selection surface.
+    private static func renderedLines(from source: String) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        let lines = source.components(separatedBy: .newlines)
+        var insideFence = false
+        var index = 0
+
+        while index < lines.count {
+            let line = lines[index]
+
+            // GFM tables need their header, divider, and rows considered together.
+            if !insideFence,
+               index + 1 < lines.count,
+               isTableRow(line),
+               isTableDivider(lines[index + 1]) {
+                var rows = [tableCells(from: line)]
+                index += 2 // Skip the Markdown divider row.
+                while index < lines.count, isTableRow(lines[index]) {
+                    rows.append(tableCells(from: lines[index]))
+                    index += 1
+                }
+                appendTable(rows, to: result)
+                if index < lines.count {
+                    result.append(NSAttributedString(string: "\n"))
+                }
+                continue
+            }
+
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            let isFence = trimmed.hasPrefix("```") || trimmed.hasPrefix("~~~")
+
+            if isFence {
+                insideFence.toggle()
+            } else if insideFence {
+                result.append(NSAttributedString(
+                    string: line,
+                    attributes: [.font: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)]
+                ))
+            } else {
+                let parsed = (try? AttributedString(
+                    markdown: line,
+                    options: .init(interpretedSyntax: .full, failurePolicy: .returnPartiallyParsedIfPossible)
+                )) ?? AttributedString(line)
+                result.append(NSAttributedString(parsed))
+            }
+
+            if index < lines.count - 1 {
+                result.append(NSAttributedString(string: "\n"))
+            }
+            index += 1
         }
-        .codeBlock {
-            $0.label
-                .markdownMargin(top: 0, bottom: 0)
+
+        return result
+    }
+
+    private static func isTableRow(_ line: String) -> Bool {
+        line.contains("|") && tableCells(from: line).count >= 2
+    }
+
+    private static func isTableDivider(_ line: String) -> Bool {
+        let cells = tableCells(from: line)
+        guard cells.count >= 2 else { return false }
+        return cells.allSatisfy { cell in
+            let allowed = CharacterSet(charactersIn: "-: ")
+            return cell.contains("-") && cell.unicodeScalars.allSatisfy(allowed.contains)
         }
+    }
+
+    private static func tableCells(from line: String) -> [String] {
+        var value = line.trimmingCharacters(in: .whitespaces)
+        if value.hasPrefix("|") { value.removeFirst() }
+        if value.hasSuffix("|") { value.removeLast() }
+        return value.split(separator: "|", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+    }
+
+    private static func appendTable(_ rows: [[String]], to result: NSMutableAttributedString) {
+        let columnCount = rows.map(\.count).max() ?? 0
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineBreakMode = .byWordWrapping
+        paragraphStyle.tabStops = (1..<columnCount).map {
+            NSTextTab(textAlignment: .left, location: CGFloat($0) * 120, options: [:])
+        }
+
+        for (rowIndex, row) in rows.enumerated() {
+            for columnIndex in 0..<columnCount {
+                let cell = columnIndex < row.count ? row[columnIndex] : ""
+                let parsed = (try? AttributedString(
+                    markdown: cell,
+                    options: .init(interpretedSyntax: .full, failurePolicy: .returnPartiallyParsedIfPossible)
+                )) ?? AttributedString(cell)
+                let attributed = NSMutableAttributedString(attributedString: NSAttributedString(parsed))
+                attributed.addAttribute(.paragraphStyle, value: paragraphStyle, range: NSRange(location: 0, length: attributed.length))
+                if rowIndex == 0 {
+                    attributed.addAttribute(.font, value: NSFont.systemFont(ofSize: NSFont.systemFontSize, weight: .semibold), range: NSRange(location: 0, length: attributed.length))
+                }
+                result.append(attributed)
+                if columnIndex < columnCount - 1 {
+                    result.append(NSAttributedString(string: "\t", attributes: [.paragraphStyle: paragraphStyle]))
+                }
+            }
+            if rowIndex < rows.count - 1 {
+                result.append(NSAttributedString(string: "\n", attributes: [.paragraphStyle: paragraphStyle]))
+            }
+        }
+    }
+}
+
+final class IntrinsicTextView: NSTextView {
+    override var intrinsicContentSize: NSSize {
+        guard let layoutManager, let textContainer else { return super.intrinsicContentSize }
+        layoutManager.ensureLayout(for: textContainer)
+        let height = ceil(layoutManager.usedRect(for: textContainer).height)
+        return NSSize(width: NSView.noIntrinsicMetric, height: max(height, 1))
+    }
+
+    override func layout() {
+        super.layout()
+        invalidateIntrinsicContentSize()
+    }
 }
 
 // macOS 13+ compatibility wrapper for onChange

@@ -219,9 +219,9 @@
 "Quit" = "退出";
 "Quit Sidey" = "退出 旁白";
 "Window Type" = "窗口类型";
-"Menu Bar Popover" = "菜单栏浮窗";
+"Temporary Popover" = "临时浮窗";
 "Regular Window" = "普通窗口";
-"Switch to Menu Bar Popover" = "切换到菜单栏浮窗";
+"Switch to Temporary Popover" = "切换到临时浮窗";
 "Switch to Regular Window" = "切换到普通窗口";
 
 /* Attachments */

@@ -24,7 +24,7 @@ brew install --cask sidey
 
 - **Menu Bar Popover**: Open Sidey from the menu bar for quick questions, rewrites, summaries, or selected-text tasks without switching into a full chat app.
 - **Window Companion**: A lightweight, dynamic icon that automatically docks to the edge of your active window. It follows your window as you move or resize it, allowing you to summon the AI assistant with a single click without leaving your workflow.
-- **Selection Assistant**: A premium, context-aware floating button that appears elegantly near your selected text. It allows you to instantly process chosen content with your active AI assistant without any extra clicks or keyboard shortcuts.
+- **Cursor Popover**: Invoke Sidey from a selected passage or a shortcut and a compact, temporary assistant window opens beside your cursor, ready for a question with the current selection already in context.
 - **Context Awareness**: Automatically detects the frontmost application and suggests relevant prompts. Retrieves active window details including application name and bundle identifier.
 - **Deep Context Capture**: Supports a multi-tier text retrieval system:
   - **Accessibility Search**: Directly queries the focused window for selected text.
@@ -44,6 +44,7 @@ brew install --cask sidey
 | :--- | :--- |
 | **Menu Bar Popover** | ![Menu Bar Popover](Resources/menu-bar-flow.png) |
 | **Window Companion** | ![Window Companion](Resources/side-icon-en.jpg) |
+| **Cursor Popover** | A temporary assistant window opens beside the cursor, so you can work with selected text without leaving the current app. |
 | **Context Awareness** | ![Main Window](Resources/Screenshot-en.jpg) |
 | **Assistant Window** | ![Assistant Window](Resources/side-window-en.jpg) |
 | **Auto Assistant** | ![Auto Assistant](Resources/auto-assistant-en.png) |

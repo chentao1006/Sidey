@@ -213,9 +213,9 @@
 "Quit" = "終了";
 "Quit Sidey" = "Sideyを終了";
 "Window Type" = "ウィンドウタイプ";
-"Menu Bar Popover" = "メニューバーポップオーバー";
+"Temporary Popover" = "一時ポップオーバー";
 "Regular Window" = "通常ウィンドウ";
-"Switch to Menu Bar Popover" = "Switch to Menu Bar Popover";
+"Switch to Temporary Popover" = "一時ポップオーバーに切り替え";
 "Switch to Regular Window" = "Switch to Regular Window";
 
 /* Attachments */

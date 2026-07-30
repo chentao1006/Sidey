@@ -219,9 +219,9 @@
 "Quit" = "Quit";
 "Quit Sidey" = "Quit Sidey";
 "Window Type" = "Window Type";
-"Menu Bar Popover" = "Menu Bar Popover";
+"Temporary Popover" = "Temporary Popover";
 "Regular Window" = "Regular Window";
-"Switch to Menu Bar Popover" = "Switch to Menu Bar Popover";
+"Switch to Temporary Popover" = "Switch to Temporary Popover";
 "Switch to Regular Window" = "Switch to Regular Window";
 
 /* Attachments */

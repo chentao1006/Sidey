@@ -213,9 +213,9 @@
 "Quit" = "Salir";
 "Quit Sidey" = "Quit Sidey";
 "Window Type" = "Tipo de ventana";
-"Menu Bar Popover" = "Ventana de barra de menús";
+"Temporary Popover" = "Ventana emergente temporal";
 "Regular Window" = "Ventana normal";
-"Switch to Menu Bar Popover" = "Switch to Menu Bar Popover";
+"Switch to Temporary Popover" = "Cambiar a ventana emergente temporal";
 "Switch to Regular Window" = "Switch to Regular Window";
 
 /* Attachments */

@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sidey - Lightweight, app-aware AI assistant for macOS</title>
-    <meta name="description" content="Sidey is a lightweight macOS AI assistant with a menu bar popover for quick tasks inside the app you are using, with app-aware assistants and custom AI providers.">
-    <meta name="keywords" content="Sidey, macOS AI assistant, menu bar popover, lightweight AI assistant, app aware AI, context aware AI, menu bar AI, selection assistant">
+    <meta name="description" content="Sidey is a lightweight macOS AI assistant with menu bar and cursor popovers for quick tasks in the app you are using, plus app-aware assistants and custom AI providers.">
+    <meta name="keywords" content="Sidey, macOS AI assistant, menu bar popover, cursor popover, lightweight AI assistant, app aware AI, context aware AI, menu bar AI, selection assistant">
     <meta name="robots" content="index, follow">
     <meta name="author" content="chentao1006">
     <link rel="canonical" href="https://sidey.ct106.com/">
@@ -14,12 +14,12 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://sidey.ct106.com/">
     <meta property="og:title" content="Sidey - Lightweight, app-aware AI assistant for macOS">
-    <meta property="og:description" content="A fast macOS AI assistant with a menu bar popover for small tasks, app-specific assistants, selected text, and custom AI providers.">
+    <meta property="og:description" content="A fast macOS AI assistant with menu bar and cursor popovers for small tasks, selected text, app-specific assistants, and custom AI providers.">
     <meta property="og:image" content="https://sidey.ct106.com/Resources/menu-bar-flow.png">
     <meta property="og:site_name" content="Sidey">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Sidey - Lightweight, app-aware AI assistant for macOS">
-    <meta name="twitter:description" content="A quick macOS AI assistant that adapts to the app you are using.">
+    <meta name="twitter:description" content="A quick macOS AI assistant with a temporary popover beside your cursor that adapts to the app you are using.">
     <meta name="twitter:image" content="https://sidey.ct106.com/Resources/menu-bar-flow.png">
 
     <script type="application/ld+json">
@@ -30,7 +30,7 @@
         "alternateName": "旁白",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "macOS",
-        "description": "Sidey is a lightweight, app-aware AI assistant for macOS. It opens as a menu bar popover for quick tasks in the app you are using, with selected text, clipboard context, and custom AI providers.",
+        "description": "Sidey is a lightweight, app-aware AI assistant for macOS. It opens from the menu bar or as a temporary popover beside your cursor for quick tasks with selected text, clipboard context, and custom AI providers.",
         "image": "https://sidey.ct106.com/Resources/menu-bar-flow.png",
         "url": "https://sidey.ct106.com/",
         "downloadUrl": "https://apps.apple.com/app/sidey/id6760834274",
@@ -59,7 +59,7 @@
                 "name": "What is Sidey?",
                 "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Sidey is a lightweight AI assistant for macOS designed for quick tasks in the current app, with app-specific assistants and contextual input."
+                    "text": "Sidey is a lightweight AI assistant for macOS designed for quick tasks in the current app. It can open from the menu bar or as a temporary popover beside your cursor, with app-specific assistants and contextual input."
                 }
             },
             {
@@ -657,8 +657,8 @@
                     <div>
                         <h1 lang="en">A lightweight AI assistant for macOS menu bar and app context.</h1>
                         <h1 lang="zh">一款用于 macOS 菜单栏和应用上下文的轻量 AI 助手。</h1>
-                        <p class="lead" lang="en">Sidey opens from the menu bar as a compact popover for the short AI jobs that appear while you work: explain a snippet, rewrite a paragraph, inspect selected text, or ask an assistant tuned for the current app.</p>
-                        <p class="lead" lang="zh">旁白从菜单栏打开为紧凑浮窗，面向工作中随手出现的小任务：解释一段内容、改写一句话、处理选中文本，或调用为当前应用准备好的专属助手。</p>
+                        <p class="lead" lang="en">Sidey opens from the menu bar or as a temporary popover beside your cursor for the short AI jobs that appear while you work: explain a snippet, rewrite a paragraph, inspect selected text, or ask an assistant tuned for the current app.</p>
+                        <p class="lead" lang="zh">旁白可从菜单栏打开，也可作为随光标出现的临时浮窗，处理工作中随手出现的小任务：解释一段内容、改写一句话、处理选中文本，或调用为当前应用准备好的专属助手。</p>
                         <div class="hero-actions">
                             <a href="https://apps.apple.com/app/sidey/id6760834274" class="appstore-link" rel="noopener" aria-label="Download on the Mac App Store">
                                 <img src="https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg" alt="Download on the Mac App Store" lang="en" class="inline">
@@ -715,6 +715,12 @@
                             <h3 lang="zh">上下文来自当前位置</h3>
                             <p lang="en">Use selection, clipboard, and the active app so the assistant starts with the material already in front of you.</p>
                             <p lang="zh">利用选中文本、剪贴板和当前应用信息，让助手从眼前内容开始回答。</p>
+                        </article>
+                        <article class="feature-card">
+                            <h3 lang="en">Cursor popover</h3>
+                            <h3 lang="zh">随光标浮窗</h3>
+                            <p lang="en">Invoke Sidey from selected text or a shortcut to open a temporary assistant window beside the cursor, without leaving the current app.</p>
+                            <p lang="zh">选中文字或按下快捷键，即可在光标旁打开临时助手浮窗，无需离开当前应用。</p>
                         </article>
                         <article class="feature-card">
                             <h3 lang="en">Assistants that match the app</h3>
@@ -843,12 +849,12 @@
         const translations = {
             en: {
                 title: "Sidey - Lightweight, app-aware AI assistant for macOS",
-                description: "Sidey is a lightweight macOS AI assistant with a menu bar popover for quick tasks inside the app you are using, with app-aware assistants and custom AI providers.",
+                description: "Sidey is a lightweight macOS AI assistant with menu bar and cursor popovers for quick tasks inside the app you are using, with app-aware assistants and custom AI providers.",
                 htmlLang: "en"
             },
             zh: {
                 title: "旁白 Sidey - 轻量、按应用感知的 macOS AI 助手",
-                description: "旁白 Sidey 提供轻量菜单栏浮窗，面向当前应用里的短任务，可按应用配置不同助手，并支持自定义 AI 服务。",
+                description: "旁白 Sidey 提供轻量菜单栏浮窗和随光标出现的临时浮窗，面向当前应用里的短任务，可按应用配置不同助手，并支持自定义 AI 服务。",
                 htmlLang: "zh-Hans"
             }
         };

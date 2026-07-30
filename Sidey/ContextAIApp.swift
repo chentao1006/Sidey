@@ -53,6 +53,29 @@ enum PendingTextPresentation {
 private final class CursorAssistantPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown, event.keyCode == 53 {
+            // Let the active input method consume Escape while composition is in progress.
+            if let textView = firstResponder as? NSTextView, textView.hasMarkedText() {
+                super.sendEvent(event)
+            } else {
+                orderOut(nil)
+            }
+            return
+        }
+        super.sendEvent(event)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        let isTitleBarDrag = event.type == .leftMouseDown
+            && event.locationInWindow.y >= frame.height - 40
+        if isTitleBarDrag {
+            performDrag(with: event)
+            return
+        }
+        super.mouseDown(with: event)
+    }
 }
 
 struct PendingAssistantText {
@@ -791,7 +814,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             newPanel.isReleasedWhenClosed = false
             newPanel.isFloatingPanel = true
             newPanel.becomesKeyOnlyIfNeeded = false
-            newPanel.isMovableByWindowBackground = true
+            newPanel.isMovableByWindowBackground = false
             newPanel.hidesOnDeactivate = !isCursorAssistantPinned
             newPanel.level = .floating
             newPanel.isOpaque = false

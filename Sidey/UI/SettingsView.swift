@@ -143,7 +143,7 @@ struct GeneralSettingsView: View {
                 .onChangeCompatible(of: menuBarIcon) { _ in SyncManager.shared.syncToCloud() }
                 
                 Picker(L("Window Type"), selection: $assistantWindowType) {
-                    Text(L("Menu Bar Popover")).tag("menuBarPopover")
+                    Text(L("Temporary Popover")).tag("menuBarPopover")
                     Text(L("Regular Window")).tag("regularWindow")
                 }
                 .pickerStyle(.menu)

@@ -213,9 +213,9 @@
 "Quit" = "종료";
 "Quit Sidey" = "Quit Sidey";
 "Window Type" = "창 유형";
-"Menu Bar Popover" = "메뉴 막대 팝오버";
+"Temporary Popover" = "임시 팝오버";
 "Regular Window" = "일반 창";
-"Switch to Menu Bar Popover" = "Switch to Menu Bar Popover";
+"Switch to Temporary Popover" = "임시 팝오버로 전환";
 "Switch to Regular Window" = "Switch to Regular Window";
 
 /* Attachments */
