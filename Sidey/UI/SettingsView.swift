@@ -603,7 +603,7 @@ struct PromptSettingsView: View {
                     Button(action: {
                         let newPrompt = Prompt(id: UUID().uuidString, name: L("New Prompt"), system: L("You are a helpful assistant."), apps: [])
                         store.allPrompts.append(newPrompt)
-                        Aptabase.shared.trackEvent("add_assistant")
+                        AppAnalytics.trackEvent("add_assistant")
                         store.savePrompts()
                         selectedPromptID = newPrompt.id
                     }) {
@@ -774,7 +774,7 @@ struct PromptSettingsView: View {
                 for prompt in newPrompts {
                     store.allPrompts.append(prompt)
                 }
-                Aptabase.shared.trackEvent("add_assistant_bulk")
+                AppAnalytics.trackEvent("add_assistant_bulk")
                 store.savePrompts()
                 if let first = newPrompts.first {
                     selectedPromptID = first.id
@@ -1033,7 +1033,7 @@ struct AboutSettingsView: View {
             Toggle(L("Help improve Sidey by sharing anonymous usage data"), isOn: $allowAnalytics)
                 .onChange(of: allowAnalytics) { newValue in
                     if newValue {
-                        Aptabase.shared.initialize(appKey: "A-US-3536295643")
+                        AppAnalytics.initialize()
                     }
                 }
                 .padding(.top, 10)

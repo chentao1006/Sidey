@@ -5,6 +5,22 @@ import Carbon
 import Aptabase
 import Combine
 
+enum AppAnalytics {
+    static let appKey = "A-US-3536295643"
+
+    static func initialize() {
+        Aptabase.shared.initialize(appKey: appKey)
+    }
+
+    static func trackEvent(_ name: String) {
+        guard UserDefaults.standard.bool(forKey: "allowAnalytics") else { return }
+        Aptabase.shared.trackEvent(name)
+    }
+
+    static func trackDailyHeartbeat() {
+        Aptabase.shared.trackEvent("daily_heartbeat")
+    }
+}
 
 @main
 struct SideyApp: App {
@@ -13,9 +29,7 @@ struct SideyApp: App {
     @AppStorage("menuBarIcon") private var menuBarIcon = "brain"
     
     init() {
-        if UserDefaults.standard.bool(forKey: "allowAnalytics") {
-            Aptabase.shared.initialize(appKey: "A-US-3536295643")
-        }
+        AppAnalytics.initialize()
         _ = SyncManager.shared
         _ = NotificationManager.shared
     }
@@ -102,6 +116,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let menuBarAssistantSize = NSSize(width: 320, height: 540)
     private var pendingAssistantSwitch: (bundleID: String, promptID: String)?
     private var pendingSelectedTextForAssistant: PendingAssistantText?
+    private var dailyHeartbeatTimer: Timer?
     #if !APPSTORE
     private var accessibilityCancellable: AnyCancellable?
     #endif
@@ -203,6 +218,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         setupAnalyticsPrompt()
+        scheduleDailyHeartbeat()
+    }
+
+    private func scheduleDailyHeartbeat() {
+        dailyHeartbeatTimer?.invalidate()
+
+        let calendar = Calendar.autoupdatingCurrent
+        guard let nextMidnight = calendar.nextDate(
+            after: Date(),
+            matching: DateComponents(hour: 0, minute: 0, second: 0),
+            matchingPolicy: .nextTime
+        ) else { return }
+
+        dailyHeartbeatTimer = Timer.scheduledTimer(
+            withTimeInterval: nextMidnight.timeIntervalSinceNow,
+            repeats: false
+        ) { [weak self] _ in
+            AppAnalytics.trackDailyHeartbeat()
+            self?.scheduleDailyHeartbeat()
+        }
     }
     
     private func setupAnalyticsPrompt() {
@@ -223,7 +258,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 UserDefaults.standard.set(true, forKey: "hasAskedAnalytics")
                 if response == .alertFirstButtonReturn {
                     UserDefaults.standard.set(true, forKey: "allowAnalytics")
-                    Aptabase.shared.initialize(appKey: "A-US-3536295643")
+                    AppAnalytics.initialize()
                 }
             }
             
@@ -232,7 +267,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     UserDefaults.standard.set(true, forKey: "hasAskedAnalytics")
                     if response == .alertFirstButtonReturn {
                         UserDefaults.standard.set(true, forKey: "allowAnalytics")
-                        Aptabase.shared.initialize(appKey: "A-US-3536295643")
+                        AppAnalytics.initialize()
                     }
                 }
             } else {
@@ -329,7 +364,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func showAssistant(targetScreen: NSScreen? = nil, shouldActivate: Bool = true, reopenMenuBarPopover: Bool = false, positionInputAtMouse: Bool = false) {
-        Aptabase.shared.trackEvent("show_assistant")
+        AppAnalytics.trackEvent("show_assistant")
         if usesRegularAssistantWindow {
             showStandardAssistant(targetScreen: targetScreen, shouldActivate: shouldActivate, positionInputAtMouse: positionInputAtMouse)
         } else if positionInputAtMouse {
@@ -671,7 +706,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func showSettings() {
-        Aptabase.shared.trackEvent("show_settings")
+        AppAnalytics.trackEvent("show_settings")
         if settingsWindow == nil {
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 500, height: 600),
